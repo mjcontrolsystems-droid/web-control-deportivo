@@ -203,6 +203,71 @@ prueba('una tarjeta de un partido borrado no cuenta', function () use ($torneo, 
     igual([], $r, 'el partido 999 no existe en el calendario');
 });
 
+grupo('Quién lleva más tarjetas');
+
+prueba('ordena por total y desempata por rojas', function () use ($torneo, $partidos, $tarjeta) {
+    // Cuatro tarjetas no son lo mismo si una es roja.
+    $jugadores = [
+        ['id' => 100, 'equipo_id' => 1, 'nombre' => 'Solo amarillas', 'dorsal' => '5'],
+        ['id' => 200, 'equipo_id' => 1, 'nombre' => 'Con roja', 'dorsal' => '7'],
+    ];
+    $equipos = [1 => ['id' => 1, 'nombre' => 'Promo 45']];
+
+    $eventos = [
+        $tarjeta('amarilla', 1, 100), $tarjeta('amarilla', 2, 100),
+        $tarjeta('amarilla', 1, 200), $tarjeta('roja', 2, 200),
+    ];
+
+    $r = disciplina_ranking_desde_eventos($eventos, $jugadores, $equipos, $torneo, $partidos);
+    igual(2, count($r));
+    igual(200, (int) $r[0]['jugador']['id'], 'con la misma cantidad, primero el de la roja');
+    igual(1, $r[0]['rojas']);
+    igual(2, $r[1]['amarillas']);
+});
+
+prueba('solo aparecen los que tienen tarjetas', function () use ($torneo, $partidos, $tarjeta) {
+    // Una lista con los 240 jugadores casi todos en cero esconde a los que importan.
+    $jugadores = [
+        ['id' => 100, 'equipo_id' => 1, 'nombre' => 'Amonestado', 'dorsal' => '5'],
+        ['id' => 200, 'equipo_id' => 1, 'nombre' => 'Impecable', 'dorsal' => '7'],
+    ];
+    $r = disciplina_ranking_desde_eventos([$tarjeta('amarilla', 1, 100)], $jugadores, [1 => ['id' => 1, 'nombre' => 'A']], $torneo, $partidos);
+    igual(1, count($r));
+    igual(100, (int) $r[0]['jugador']['id']);
+});
+
+prueba('una tarjeta sin jugador identificado no rompe el ranking', function () use ($torneo, $partidos) {
+    // Se puede registrar una tarjeta sin decir a quién; no hay a quién rankear.
+    $sinJugador = [['tipo' => 'amarilla', 'partido_id' => 1, 'jugador_id' => 0]];
+    igual([], disciplina_ranking_desde_eventos($sinJugador, [], [], $torneo, $partidos));
+});
+
+prueba('el ranking por equipo suma lo de sus jugadores', function () use ($torneo, $partidos, $tarjeta) {
+    $jugadores = [
+        ['id' => 100, 'equipo_id' => 1, 'nombre' => 'Uno', 'dorsal' => '5'],
+        ['id' => 200, 'equipo_id' => 1, 'nombre' => 'Dos', 'dorsal' => '7'],
+        ['id' => 300, 'equipo_id' => 2, 'nombre' => 'Tres', 'dorsal' => '9'],
+    ];
+    $equipos = [1 => ['id' => 1, 'nombre' => 'Promo 45'], 2 => ['id' => 2, 'nombre' => 'Promo 52']];
+
+    $eventos = [
+        $tarjeta('amarilla', 1, 100), $tarjeta('roja', 2, 100),
+        $tarjeta('amarilla', 1, 200),
+        $tarjeta('amarilla', 1, 300),
+    ];
+
+    $porEquipo = disciplina_ranking_equipos(
+        disciplina_ranking_desde_eventos($eventos, $jugadores, $equipos, $torneo, $partidos),
+        $equipos
+    );
+
+    igual(2, count($porEquipo));
+    igual(1, (int) $porEquipo[0]['equipo']['id'], 'el que más tarjetas tiene va primero');
+    igual(3, $porEquipo[0]['total'], '2 amarillas y 1 roja');
+    igual(2, $porEquipo[0]['jugadores'], 'dos jugadores amonestados');
+    igual(1, $porEquipo[1]['total']);
+});
+
 grupo('Suspensiones por tarjetas (continuación)');
 
 prueba('las tarjetas de otro jugador no salpican', function () use ($torneo, $partidos, $jugadores, $tarjeta, $porId) {

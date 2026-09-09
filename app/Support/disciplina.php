@@ -302,6 +302,118 @@ function disciplina_acumulacion(int $torneoId, array $torneo, array $partidos): 
 }
 
 /**
+ * Quién lleva más tarjetas, de mayor a menor.
+ *
+ * Ordena por total y desempata por rojas: dos jugadores con cuatro tarjetas no son lo
+ * mismo si uno tiene una roja. NO se inventa un puntaje ponderado — cada columna se
+ * muestra tal cual, para que el organizador saque sus propias conclusiones en vez de
+ * discutir contra una fórmula que nadie acordó.
+ *
+ * Solo aparecen quienes tienen al menos una tarjeta: una lista con los 240 jugadores,
+ * casi todos en cero, esconde justamente a los que hay que mirar.
+ *
+ * @return array<int, array{jugador:array, equipo:?array, amarillas:int, rojas:int, total:int, acumulacion:?array}>
+ */
+function disciplina_ranking_desde_eventos(array $eventos, array $jugadores, array $equiposPorId, array $torneo, array $partidos): array
+{
+    $partidosPorId = [];
+    foreach ($partidos as $p) {
+        $partidosPorId[(int) $p['id']] = true;
+    }
+
+    $conteo = [];
+    foreach ($eventos as $ev) {
+        $tipo = (string) ($ev['tipo'] ?? '');
+        if (!in_array($tipo, ['amarilla', 'roja'], true)) {
+            continue;
+        }
+        $jugadorId = (int) ($ev['jugador_id'] ?? 0);
+        // Sin jugador identificado (se registró la tarjeta sin decir a quién) no hay a
+        // quién rankear; y una tarjeta de un partido borrado no debería contar.
+        if ($jugadorId <= 0 || !isset($partidosPorId[(int) ($ev['partido_id'] ?? 0)])) {
+            continue;
+        }
+        if (!isset($conteo[$jugadorId])) {
+            $conteo[$jugadorId] = ['amarillas' => 0, 'rojas' => 0];
+        }
+        $conteo[$jugadorId][$tipo === 'roja' ? 'rojas' : 'amarillas']++;
+    }
+
+    $acumulacion = disciplina_acumulacion_desde_eventos($eventos, $torneo, $partidos);
+    $jugadoresPorId = jugadores_por_id($jugadores);
+
+    $ranking = [];
+    foreach ($conteo as $jugadorId => $c) {
+        $jug = $jugadoresPorId[$jugadorId] ?? null;
+        if ($jug === null) {
+            continue;   // jugador borrado después de recibir la tarjeta
+        }
+        $ranking[] = [
+            'jugador' => $jug,
+            'equipo' => $equiposPorId[(int) $jug['equipo_id']] ?? null,
+            'amarillas' => $c['amarillas'],
+            'rojas' => $c['rojas'],
+            'total' => $c['amarillas'] + $c['rojas'],
+            'acumulacion' => $acumulacion[$jugadorId] ?? null,
+        ];
+    }
+
+    usort($ranking, function ($a, $b) {
+        if ($a['total'] !== $b['total']) {
+            return $b['total'] <=> $a['total'];
+        }
+        if ($a['rojas'] !== $b['rojas']) {
+            return $b['rojas'] <=> $a['rojas'];
+        }
+        return strcmp((string) $a['jugador']['nombre'], (string) $b['jugador']['nombre']);
+    });
+
+    return $ranking;
+}
+
+/**
+ * Lo mismo pero por equipo: cuántas tarjetas acumula cada plantilla.
+ *
+ * Sirve para lo que en las ligas se llama "fair play", y sobre todo para detectar al
+ * equipo que se está yendo de las manos antes de que haya un problema en la cancha.
+ *
+ * @return array<int, array{equipo:array, amarillas:int, rojas:int, total:int, jugadores:int}>
+ */
+function disciplina_ranking_equipos(array $ranking, array $equiposPorId): array
+{
+    $porEquipo = [];
+    foreach ($ranking as $fila) {
+        $equipoId = (int) ($fila['jugador']['equipo_id'] ?? 0);
+        if (!isset($equiposPorId[$equipoId])) {
+            continue;
+        }
+        if (!isset($porEquipo[$equipoId])) {
+            $porEquipo[$equipoId] = [
+                'equipo' => $equiposPorId[$equipoId],
+                'amarillas' => 0,
+                'rojas' => 0,
+                'total' => 0,
+                'jugadores' => 0,
+            ];
+        }
+        $porEquipo[$equipoId]['amarillas'] += $fila['amarillas'];
+        $porEquipo[$equipoId]['rojas'] += $fila['rojas'];
+        $porEquipo[$equipoId]['total'] += $fila['total'];
+        $porEquipo[$equipoId]['jugadores']++;
+    }
+
+    $lista = array_values($porEquipo);
+    usort($lista, function ($a, $b) {
+        if ($a['total'] !== $b['total']) {
+            return $b['total'] <=> $a['total'];
+        }
+        return $b['rojas'] <=> $a['rojas'];
+    });
+
+    return $lista;
+}
+
+/**
  * Texto corto para mostrar en pantalla: "Suspendido por roja (1 partido)".
  */
 function disciplina_texto_suspension(array $info): string

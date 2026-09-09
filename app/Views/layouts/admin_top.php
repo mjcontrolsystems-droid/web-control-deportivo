@@ -39,6 +39,12 @@ function admin_nav_copa(string $seccion_activa, ?array $torneoActivo): string
         <a class="nav-link <?= admin_nav_activa('partidos', $seccion_activa) ?>" href="<?= url('admin/partidos.php') ?>"><i class="bi bi-calendar2-week me-2"></i>Encuentros</a>
         <?php endif; ?>
         <?php endif; ?>
+        <?php // Disciplina va SIEMPRE que se pueda ver: quién lleva más tarjetas es una
+              // lectura de la temporada que necesita cualquier organizador, cobre multas
+              // o no. Sanciones, en cambio, es el cobro, y solo aplica si la liga cobra. ?>
+        <?php if (puede('sanciones', $torneoActivo)): ?>
+        <a class="nav-link <?= admin_nav_activa('disciplina', $seccion_activa) ?>" href="<?= url('admin/disciplina.php') ?>"><i class="bi bi-card-heading me-2"></i>Disciplina</a>
+        <?php endif; ?>
         <?php // Sanciones solo aparece si la liga cobra multas por tarjeta ?>
         <?php if (torneo_cobra_multas($torneoActivo) && puede('sanciones', $torneoActivo)): ?>
         <a class="nav-link <?= admin_nav_activa('sanciones', $seccion_activa) ?>" href="<?= url('admin/sanciones.php') ?>"><i class="bi bi-cash-coin me-2"></i>Sanciones</a>
