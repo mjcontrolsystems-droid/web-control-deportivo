@@ -9,22 +9,32 @@ $etAmarilla = etiqueta_ta($torneo['deporte'] ?? null);
 $etRoja = etiqueta_tr($torneo['deporte'] ?? null);
 ?>
 
+<?php // Todo lo de pantalla va envuelto: al imprimir se esconde y en su lugar sale la
+      // hoja del reporte, que está armada para papel. Mismo mecanismo que la nómina. ?>
+<div class="solo-pantalla">
+
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
     <div>
         <h3 class="mb-0">Disciplina</h3>
         <div class="small text-muted">Ordenado por total de tarjetas, de mayor a menor.</div>
     </div>
-    <?php // Filtrar por equipo es lo que se hace cuando hay que hablar con un delegado:
-          // se entra a ver su plantilla y nada más. ?>
-    <form method="get" class="d-flex align-items-center gap-2">
-        <label class="small text-muted mb-0" for="filtroEquipo">Equipo</label>
-        <select name="equipo_id" id="filtroEquipo" class="form-select form-select-sm" style="width:auto;" data-enviar-al-cambiar>
-            <option value="0">Todos</option>
-            <?php foreach ($equipos as $eq): ?>
-            <option value="<?= (int) $eq['id'] ?>" <?= $equipoFiltro === (int) $eq['id'] ? 'selected' : '' ?>><?= e($eq['nombre']) ?></option>
-            <?php endforeach; ?>
-        </select>
-    </form>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <?php // Filtrar por equipo es lo que se hace cuando hay que hablar con un delegado:
+              // se entra a ver su plantilla y nada más. El reporte respeta el filtro, así
+              // que desde aquí sale también la hoja de un solo equipo. ?>
+        <form method="get" class="d-flex align-items-center gap-2 mb-0">
+            <label class="small text-muted mb-0" for="filtroEquipo">Equipo</label>
+            <select name="equipo_id" id="filtroEquipo" class="form-select form-select-sm" style="width:auto;" data-enviar-al-cambiar>
+                <option value="0">Todos</option>
+                <?php foreach ($equipos as $eq): ?>
+                <option value="<?= (int) $eq['id'] ?>" <?= $equipoFiltro === (int) $eq['id'] ? 'selected' : '' ?>><?= e($eq['nombre']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </form>
+        <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-imprimir-pdf">
+            <i class="bi bi-printer me-1"></i>Imprimir reporte
+        </button>
+    </div>
 </div>
 
 <div class="row g-3 mb-4">
@@ -90,7 +100,8 @@ $etRoja = etiqueta_tr($torneo['deporte'] ?? null);
             <p class="small text-muted mt-3 mb-0">
                 <i class="bi bi-info-circle me-1"></i>Se ordena por total y se desempata por
                 <?= e(mb_strtolower($etRoja)) ?>s: cuatro tarjetas no son lo mismo si una es <?= e(mb_strtolower($etRoja)) ?>.
-                Toca una fila para ver el detalle del jugador.
+                Toca una fila para ver el detalle del jugador. El botón de imprimir saca este mismo
+                listado como reporte, respetando el equipo que tengas filtrado.
             </p>
             <?php endif; ?>
         </div>
@@ -129,4 +140,14 @@ $etRoja = etiqueta_tr($torneo['deporte'] ?? null);
             <?php endif; ?>
         </div>
     </div>
+</div>
+
+</div><?php // fin de .solo-pantalla ?>
+
+<?php // ---------- El reporte que sale en papel ----------
+      // Armado aparte y no como "la pantalla impresa": lo que se entrega en una reunión de
+      // delegados necesita encabezado, fecha y una nota de cómo se ordena. Respeta el
+      // filtro de arriba, así que también sirve para la hoja de un solo equipo. ?>
+<div class="solo-impresion ficha-imprimir">
+    <?php require __DIR__ . '/../parciales/disciplina_hoja.php'; ?>
 </div>

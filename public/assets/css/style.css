@@ -1193,6 +1193,9 @@ a.hero-stat:focus-visible {
        captura y los botones de cada fila. Lo que queda es el comprobante. */
     .no-imprimir,
     .sidebar-admin,
+    /* La barra superior del panel en móvil: el botón del menú y el nombre de la marca no
+       pintan nada en una hoja que se entrega a un delegado. */
+    main > nav.navbar,
     .hoja-cuenta form,
     .hoja-cuenta .btn {
         display: none !important;
