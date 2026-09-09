@@ -149,6 +149,16 @@ if ($equipoCapitan !== null && isset($equiposPorId[$equipoCapitan])) {
     if ($proximoMio !== null && torneo_aplica_suspensiones($torneo)) {
         $misSuspendidos = disciplina_suspendidos_para_partido($torneo['id'], $proximoMio, $torneo, $partidos, $jugadoresPorId);
     }
+    // Los suyos que van a la próxima amarilla. Es el aviso que le permite cuidarlos: al
+    // organizador le llega tarde, al capitán le sirve para armar el once.
+    $misAlBorde = [];
+    foreach (disciplina_acumulacion($torneo['id'], $torneo, $partidos) as $jid => $info) {
+        $jug = $jugadoresPorId[$jid] ?? null;
+        if (!empty($info['al_borde']) && $jug !== null && (int) $jug['equipo_id'] === $equipoCapitan) {
+            $misAlBorde[$jid] = $info;
+        }
+    }
+
     $misDeudores = [];
     if (torneo_cobra_multas($torneo)) {
         $deudaVigente = $proximoMio !== null
@@ -198,6 +208,7 @@ if ($equipoCapitan !== null && isset($equiposPorId[$equipoCapitan])) {
         'misMovimientos',
         'miPlantilla',
         'misActivos',
+        'misAlBorde',
         'misDeudores',
         'misPartidos',
         'misSuspendidos',

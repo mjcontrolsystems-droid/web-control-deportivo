@@ -40,6 +40,21 @@
                 <div class="small"><?= e((string) ($suspension['detalle'] ?? ($suspension['motivo'] ?? 'Por sanción disciplinaria'))) ?></div>
             </div>
         </div>
+        <?php elseif (!empty($acumulacion['al_borde'])): ?>
+        <?php // Solo se avisa cuando falta UNA. Decirle a alguien que va 1 de 3 es ruido;
+              // decirle que va 2 de 3 le cambia cómo entra a la cancha. ?>
+        <div class="alert alert-warning rounded-4 border-0 shadow-sm d-flex align-items-start gap-2">
+            <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+            <div>
+                <div class="fw-semibold">A una amarilla de la suspensión</div>
+                <div class="small">
+                    Lleva <?= (int) $acumulacion['hacia_suspension'] ?> amarillas acumuladas.
+                    Con la siguiente se pierde <?= (int) torneo_partidos_suspension_amarillas($torneo) === 1
+                        ? 'el próximo partido'
+                        : (int) torneo_partidos_suspension_amarillas($torneo) . ' partidos' ?>.
+                </div>
+            </div>
+        </div>
         <?php elseif ($cobraMultas && $debe > 0): ?>
         <div class="alert alert-warning rounded-4 border-0 shadow-sm d-flex align-items-start gap-2">
             <i class="bi bi-cash-coin mt-1"></i>

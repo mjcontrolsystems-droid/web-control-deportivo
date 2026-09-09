@@ -788,9 +788,13 @@ if ($accion === 'mensaje') {
     // Los castigos se calculan UNA vez para toda la copa y después se aplican partido por
     // partido. Preguntarlos por encuentro leía los eventos de la copa entera ocho veces
     // seguidas para armar un solo mensaje.
+    $eventosCopa = eventos_de_torneo($torneo['id']);
     $castigosCopa = torneo_aplica_suspensiones($torneo)
-        ? disciplina_castigos_desde_eventos(eventos_de_torneo($torneo['id']), $torneo, $partidos)
+        ? disciplina_castigos_desde_eventos($eventosCopa, $torneo, $partidos)
         : [];
+
+    // Quiénes van a la próxima amarilla, para avisarlo en el mismo mensaje.
+    $acumulacionCopa = disciplina_acumulacion_desde_eventos($eventosCopa, $torneo, $partidos);
 
     // La deuda exigible PARA esta jornada: las multas de jornadas anteriores. Una tarjeta
     // de esta misma fecha todavía no vence (ver sanciones_filtrar_vigentes).
@@ -803,7 +807,8 @@ if ($accion === 'mensaje') {
         $avisos = [];
         $equiposDelPartido = [(int) $p['equipo_local'], (int) $p['equipo_visitante']];
 
-        foreach (disciplina_suspendidos_desde_castigos($castigosCopa, $p, $partidos, $jugadoresPorId) as $jid => $info) {
+        $suspendidosDelPartido = disciplina_suspendidos_desde_castigos($castigosCopa, $p, $partidos, $jugadoresPorId);
+        foreach ($suspendidosDelPartido as $jid => $info) {
             $jug = $jugadoresPorId[$jid] ?? null;
             $avisos[] = mensaje_aviso_suspendido(
                 jugador_nombre($jug),
@@ -821,6 +826,24 @@ if ($accion === 'mensaje') {
                 jugador_nombre($jug),
                 (string) ($equiposPorId[(int) $jug['equipo_id']]['nombre'] ?? ''),
                 sancion_monto_texto($torneo, (float) $info['total'])
+            );
+        }
+
+        // Y quién va a la próxima amarilla. Va al grupo a propósito: es el aviso que le
+        // permite al equipo cuidar a su jugador, y solo sirve ANTES del partido.
+        foreach ($acumulacionCopa as $jid => $info) {
+            $jug = $jugadoresPorId[$jid] ?? null;
+            if ($jug === null || empty($info['al_borde']) || !in_array((int) $jug['equipo_id'], $equiposDelPartido, true)) {
+                continue;
+            }
+            // Un suspendido ya no necesita este aviso: hoy no juega.
+            if (isset($suspendidosDelPartido[$jid])) {
+                continue;
+            }
+            $avisos[] = mensaje_aviso_al_borde(
+                jugador_nombre($jug),
+                (string) ($equiposPorId[(int) $jug['equipo_id']]['nombre'] ?? ''),
+                (int) $info['hacia_suspension']
             );
         }
 

@@ -86,6 +86,10 @@ if ($proximoDeSuEquipo !== null) {
     $suspension = $suspendidos[$id] ?? null;
 }
 
+// Cuántas amarillas acumula y cuántas le faltan. Es lo que su equipo necesita saber
+// ANTES de perderlo, no después.
+$acumulacion = disciplina_acumulacion_desde_eventos($eventos, $torneo, $partidos)[$id] ?? null;
+
 // --- Multas: qué debe y qué ya pagó ---
 $multas = [];
 $debe = 0.0;
@@ -106,6 +110,7 @@ $titulo_pagina = '#' . $jugador['dorsal'] . ' ' . $jugador['nombre'] . ' — ' .
 $pagina_activa = 'equipos';
 
 vista_publica('publico/jugador', compact(
+    'acumulacion',
     'amarillas',
     'anotaciones',
     'autogoles',

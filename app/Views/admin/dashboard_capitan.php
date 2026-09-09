@@ -7,7 +7,7 @@
  * y le deja a mano el botón para arreglar su plantilla.
  */
 $deuda = fn(float $monto) => sancion_monto_texto($torneo, $monto);
-$hayProblemas = !empty($misSuspendidos) || !empty($misDeudores);
+$hayProblemas = !empty($misSuspendidos) || !empty($misDeudores) || !empty($misAlBorde);
 ?>
 
 <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
@@ -83,6 +83,23 @@ $hayProblemas = !empty($misSuspendidos) || !empty($misDeudores);
                     <div class="d-flex justify-content-between align-items-center border-bottom py-2">
                         <span><?= e(jugador_nombre($jugadoresPorId[$jid] ?? null)) ?></span>
                         <span class="badge rounded-pill text-bg-danger"><?= e((string) ($info['detalle'] ?? 'Suspendido')) ?></span>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+
+                <?php // Aviso preventivo, no impedimento: pueden jugar, pero con una
+                      // amarilla más los pierdes la fecha siguiente. Es la información que
+                      // te deja decidir si lo arriesgas hoy o lo cuidas. ?>
+                <?php if (!empty($misAlBorde)): ?>
+                <div class="mb-3">
+                    <div class="fw-semibold small text-uppercase text-muted mb-2">A una amarilla de suspensión</div>
+                    <?php foreach ($misAlBorde as $jid => $info): ?>
+                    <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                        <span><?= e(jugador_nombre($jugadoresPorId[$jid] ?? null)) ?></span>
+                        <span class="badge rounded-pill text-bg-warning text-dark">
+                            <?= (int) $info['hacia_suspension'] ?> amarillas
+                        </span>
                     </div>
                     <?php endforeach; ?>
                 </div>

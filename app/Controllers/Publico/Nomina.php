@@ -88,6 +88,10 @@ if ($partidoHoja !== null && torneo_aplica_suspensiones($torneo)) {
         $suspendidos[$jid] = $info;
     }
 }
+// Quién va a la próxima amarilla. No bloquea a nadie — es un aviso para el capitán, que
+// es quien decide si lo arriesga o lo cuida para la siguiente fecha.
+$alBorde = disciplina_acumulacion($torneo['id'], $torneo, $partidos);
+
 $deudores = [];
 if (torneo_cobra_multas($torneo) && torneo_bloquea_morosos($torneo)) {
     // Solo la deuda exigible PARA este encuentro: multas de jornadas anteriores. Una
@@ -111,6 +115,7 @@ $titulo_pagina = 'Nómina de ' . $equipo['nombre'] . ' — ' . $torneo['nombre']
 $pagina_activa = 'equipos';
 
 vista_publica('publico/nomina', compact(
+    'alBorde',
     'condicion',
     'deporte',
     'deudores',

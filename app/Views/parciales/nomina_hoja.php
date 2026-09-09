@@ -87,11 +87,17 @@ $linea = '<span style="display:inline-block;border-bottom:1px solid #000;min-wid
             <td><strong><?= e($j['dorsal']) ?></strong></td>
             <td><?= e($j['nombre']) ?></td>
             <td style="font-size:11px;">
-                <?php // Lo que la mesa debe verificar antes de dejarlo entrar. ?>
+                <?php // Lo que la mesa debe verificar antes de dejarlo entrar, en orden de
+                      // gravedad: primero lo que le impide jugar, y solo si está limpio, el
+                      // aviso de que va a la próxima amarilla. ?>
                 <?php if (isset($suspendidos[$jid])): ?>
                     <strong>SUSPENDIDO</strong> — no puede jugar
                 <?php elseif (isset($deudores[$jid])): ?>
                     <strong>DEBE <?= e(sancion_monto_texto($torneo, (float) $deudores[$jid]['total'])) ?></strong> — paga antes de entrar
+                <?php elseif (!empty($alBorde[$jid]['al_borde'])): ?>
+                    <?php // Aviso, no impedimento: puede jugar, pero el capitán tiene que
+                          // saber que con una amarilla más lo pierde la próxima fecha. ?>
+                    <?= (int) $alBorde[$jid]['hacia_suspension'] ?> amarillas — con otra, se suspende
                 <?php endif; ?>
             </td>
         </tr>

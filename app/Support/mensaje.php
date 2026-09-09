@@ -116,6 +116,20 @@ function mensaje_aviso_suspendido(string $jugador, string $equipo, string $motiv
     return $texto;
 }
 
+/**
+ * Aviso preventivo: va a la próxima amarilla. No le impide jugar; le avisa al equipo que
+ * si lo amonestan hoy, lo pierde la fecha siguiente.
+ */
+function mensaje_aviso_al_borde(string $jugador, string $equipo, int $amarillas): string
+{
+    $texto = 'OJO: ' . $jugador;
+    if ($equipo !== '') {
+        $texto .= ' (' . $equipo . ')';
+    }
+
+    return $texto . ' lleva ' . $amarillas . ' amarillas — con otra se suspende';
+}
+
 function mensaje_aviso_deudor(string $jugador, string $equipo, string $monto): string
 {
     $texto = 'DEBE ' . $monto . ': ' . $jugador;

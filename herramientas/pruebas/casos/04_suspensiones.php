@@ -142,6 +142,69 @@ prueba('una copa sin suspensiones configuradas no suspende a nadie', function ()
     igual([], disciplina_castigos_desde_eventos([$tarjeta('roja', 1)], $sinReglas, $partidos));
 });
 
+grupo('Aviso de que va a la próxima amarilla');
+
+prueba('con una amarilla todavía no se avisa nada', function () use ($torneo, $partidos, $tarjeta) {
+    // Avisar "va 1 de 4" es ruido: nadie cambia nada por eso.
+    $r = disciplina_acumulacion_desde_eventos([$tarjeta('amarilla', 1)], $torneo, $partidos);
+    igual(1, $r[100]['amarillas']);
+    falso($r[100]['al_borde']);
+});
+
+prueba('a una de la suspensión sí se avisa', function () use ($torneo, $partidos, $tarjeta) {
+    // Con 4 amarillas por suspensión, el aviso salta en la tercera.
+    $r = disciplina_acumulacion_desde_eventos(
+        [$tarjeta('amarilla', 1), $tarjeta('amarilla', 2), $tarjeta('amarilla', 3)],
+        $torneo,
+        $partidos
+    );
+    igual(3, $r[100]['hacia_suspension']);
+    igual(1, $r[100]['faltan']);
+    cierto($r[100]['al_borde']);
+});
+
+prueba('al cumplir el múltiplo el contador vuelve a empezar', function () use ($torneo, $partidos, $tarjeta) {
+    // La cuarta amarilla ya suspendió. Seguir diciendo "está al borde" sería mentira: le
+    // vuelven a faltar cuatro para la siguiente.
+    $r = disciplina_acumulacion_desde_eventos(
+        [$tarjeta('amarilla', 1), $tarjeta('amarilla', 2), $tarjeta('amarilla', 3), $tarjeta('amarilla', 4)],
+        $torneo,
+        $partidos
+    );
+    igual(4, $r[100]['amarillas'], 'el total de la temporada no se pierde');
+    igual(0, $r[100]['hacia_suspension'], 'pero hacia la próxima va en cero');
+    falso($r[100]['al_borde']);
+});
+
+prueba('el aviso vuelve en la séptima', function () use ($torneo, $partidos, $tarjeta) {
+    $eventos = [];
+    foreach ([1, 2, 3, 4, 5] as $p) { $eventos[] = $tarjeta('amarilla', $p); }
+    $eventos[] = $tarjeta('amarilla', 1);
+    $eventos[] = $tarjeta('amarilla', 2);   // séptima
+    $r = disciplina_acumulacion_desde_eventos($eventos, $torneo, $partidos);
+    igual(7, $r[100]['amarillas']);
+    igual(3, $r[100]['hacia_suspension'], '7 entre 4 deja 3');
+    cierto($r[100]['al_borde']);
+});
+
+prueba('las rojas no cuentan para la acumulación', function () use ($torneo, $partidos, $tarjeta) {
+    // La roja tiene su propio castigo; sumarla aquí lo cobraría dos veces.
+    $r = disciplina_acumulacion_desde_eventos([$tarjeta('roja', 1), $tarjeta('roja', 2)], $torneo, $partidos);
+    igual([], $r);
+});
+
+prueba('una liga que no suspende por acumulación no avisa nada', function () use ($partidos, $tarjeta) {
+    $sinAcumulacion = ['partidos_suspension_roja' => 1, 'amarillas_para_suspension' => 0, 'partidos_suspension_amarillas' => 0];
+    igual([], disciplina_acumulacion_desde_eventos([$tarjeta('amarilla', 1)], $sinAcumulacion, $partidos));
+});
+
+prueba('una tarjeta de un partido borrado no cuenta', function () use ($torneo, $partidos, $tarjeta) {
+    $r = disciplina_acumulacion_desde_eventos([$tarjeta('amarilla', 999)], $torneo, $partidos);
+    igual([], $r, 'el partido 999 no existe en el calendario');
+});
+
+grupo('Suspensiones por tarjetas (continuación)');
+
 prueba('las tarjetas de otro jugador no salpican', function () use ($torneo, $partidos, $jugadores, $tarjeta, $porId) {
     $castigos = disciplina_castigos_desde_eventos([$tarjeta('roja', 1, 200)], $torneo, $partidos);
     $suspendidos = disciplina_suspendidos_desde_castigos($castigos, $porId(2), $partidos, $jugadores);

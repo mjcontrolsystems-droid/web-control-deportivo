@@ -239,6 +239,69 @@ function disciplina_suspendidos_desde_castigos(array $castigos, array $partidoOb
 }
 
 /**
+ * Cuántas amarillas acumula cada jugador y cuántas le faltan para la suspensión.
+ *
+ * Es la información PREVENTIVA que la app no daba: sabía sumar las tarjetas —por eso
+ * suspende sola al llegar al múltiplo— pero nadie podía verlo venir. Un capitán que sabe
+ * que su goleador va a la tercera lo cuida; enterarse cuando ya está suspendido no sirve
+ * de nada.
+ *
+ * El contador NO se reinicia por partido: se acumula toda la temporada y dispara en cada
+ * múltiplo (3, 6, 9... según la copa). Por eso "las que lleva hacia la próxima" es el
+ * resto de la división, y no el total.
+ *
+ * @return array<int, array{amarillas:int, hacia_suspension:int, faltan:int, al_borde:bool}>
+ */
+function disciplina_acumulacion_desde_eventos(array $eventos, array $torneo, array $partidos): array
+{
+    $cada = torneo_amarillas_para_suspension($torneo);
+    $castiga = torneo_partidos_suspension_amarillas($torneo);
+    if ($cada < 1 || $castiga < 1) {
+        return [];   // esta liga no suspende por acumulación
+    }
+
+    // Solo tarjetas de partidos que existen, igual que el cálculo de castigos: una tarjeta
+    // huérfana de un partido borrado no debe contar para suspender a nadie.
+    $partidosPorId = [];
+    foreach ($partidos as $p) {
+        $partidosPorId[(int) $p['id']] = true;
+    }
+
+    $totales = [];
+    foreach ($eventos as $ev) {
+        if (($ev['tipo'] ?? '') !== 'amarilla') {
+            continue;
+        }
+        $jugadorId = (int) ($ev['jugador_id'] ?? 0);
+        if ($jugadorId <= 0 || !isset($partidosPorId[(int) ($ev['partido_id'] ?? 0)])) {
+            continue;
+        }
+        $totales[$jugadorId] = ($totales[$jugadorId] ?? 0) + 1;
+    }
+
+    $resumen = [];
+    foreach ($totales as $jugadorId => $total) {
+        $hacia = $total % $cada;              // las que lleva desde la última suspensión
+        $faltan = $cada - $hacia;             // cuántas más para la siguiente
+        $resumen[$jugadorId] = [
+            'amarillas' => $total,
+            'hacia_suspension' => $hacia,
+            'faltan' => $faltan,
+            // "Al borde" = con una más se suspende. Es el único caso que hay que avisar:
+            // decirle a alguien que va 1 de 3 es ruido.
+            'al_borde' => $faltan === 1,
+        ];
+    }
+
+    return $resumen;
+}
+
+function disciplina_acumulacion(int $torneoId, array $torneo, array $partidos): array
+{
+    return disciplina_acumulacion_desde_eventos(eventos_de_torneo($torneoId), $torneo, $partidos);
+}
+
+/**
  * Texto corto para mostrar en pantalla: "Suspendido por roja (1 partido)".
  */
 function disciplina_texto_suspension(array $info): string
