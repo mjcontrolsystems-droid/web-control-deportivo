@@ -123,6 +123,7 @@ vista_publica('publico/jugador', compact(
     'jugador',
     'multas',
     'pagina_activa',
+    'partidosPorId',
     'proximoDeSuEquipo',
     'rojas',
     'suspension',

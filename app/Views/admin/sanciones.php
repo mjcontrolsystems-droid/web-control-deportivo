@@ -98,7 +98,28 @@
                     <td data-label="Motivo">
                         <i class="bi bi-square-fill <?= $esRoja ? 'text-danger' : 'text-warning' ?> me-1"></i>
                         <?= $esRoja ? 'Roja' : 'Amarilla' ?>
-                        <span class="text-muted small">· Encuentro #<?= (int) $s['partido_id'] ?></span>
+                        <?php
+                        // Jornada, fecha y rival en vez del id del partido: es lo que hace
+                        // falta cuando el jugador pregunta de cuándo viene la multa.
+                        $pSancion = $partidosSancion[(int) $s['partido_id']] ?? null;
+                        ?>
+                        <?php if ($pSancion !== null): ?>
+                        <?php
+                        $rivalSancion = (int) $pSancion['equipo_local'] === (int) $s['equipo_id']
+                            ? ($equiposPorId[(int) $pSancion['equipo_visitante']]['nombre'] ?? '')
+                            : ($equiposPorId[(int) $pSancion['equipo_local']]['nombre'] ?? '');
+                        ?>
+                        <span class="text-muted small d-block">
+                            Jornada <?= (int) ($pSancion['jornada'] ?? 0) ?>
+                            · <?= e(formatear_fecha_corta((string) $pSancion['fecha'])) ?>
+                            <?= $rivalSancion !== '' ? ' · vs ' . e($rivalSancion) : '' ?>
+                        </span>
+                        <?php else: ?>
+                        <?php // El encuentro ya no existe (se borró el calendario y se
+                              // regeneró). La multa sigue siendo válida, pero no se puede
+                              // decir de dónde vino sin inventarlo. ?>
+                        <span class="text-muted small d-block">Encuentro ya no disponible</span>
+                        <?php endif; ?>
                     </td>
                     <td class="text-end fw-semibold" data-label="Monto"><?= e(sancion_monto_texto($torneo, $s['monto'])) ?></td>
                     <td data-label="Estado">

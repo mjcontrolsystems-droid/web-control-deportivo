@@ -57,6 +57,18 @@ if (!in_array($filtroEstado, [SANCION_PENDIENTE, SANCION_PAGADA, SANCION_CONDONA
 $sanciones = sanciones_listar($torneo['id'], $filtroEstado === 'todas' ? '' : $filtroEstado);
 $resumen = sanciones_resumen($torneo['id']);
 
+// De qué encuentro salió cada tarjeta, dicho como lo diría una persona.
+//
+// Antes se mostraba el id del partido en la base ("Encuentro #52"): un número interno que
+// no coincide con la jornada ni con nada que el organizador reconozca, porque los ids son
+// correlativos de todo lo que se creó alguna vez, incluidos los calendarios que se
+// borraron y se regeneraron. Cuando un jugador pregunta "¿de cuándo es esa multa?", lo
+// que hace falta es la jornada, la fecha y el rival.
+$partidosSancion = [];
+foreach (partidos_listar($torneo['id']) as $p) {
+    $partidosSancion[(int) $p['id']] = $p;
+}
+
 // Agrupadas por equipo: así el organizador cobra "por mesa" cuando llega el capitán.
 $porEquipo = [];
 foreach ($sanciones as $s) {
@@ -77,6 +89,7 @@ vista_admin('admin/sanciones', compact(
     'equiposPorId',
     'filtroEstado',
     'jugadoresPorId',
+    'partidosSancion',
     'porEquipo',
     'resumen',
     'sanciones',

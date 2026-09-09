@@ -155,7 +155,22 @@
                             <td class="td-equipo" data-label="Motivo">
                                 <i class="bi bi-square-fill <?= ($m['tipo'] ?? '') === 'roja' ? 'text-danger' : 'text-warning' ?> me-1"></i>
                                 <?= ($m['tipo'] ?? '') === 'roja' ? 'Roja' : 'Amarilla' ?>
-                                <span class="text-muted small">· Encuentro #<?= (int) $m['partido_id'] ?></span>
+                                <?php // La jornada y el rival, no el id interno del partido:
+                                      // el jugador que abre esto quiere saber de cuándo le
+                                      // viene la multa, y "#52" no se lo dice. ?>
+                                <?php $pMulta = $partidosPorId[(int) $m['partido_id']] ?? null; ?>
+                                <?php if ($pMulta !== null): ?>
+                                <?php
+                                $rivalMulta = (int) $pMulta['equipo_local'] === (int) $jugador['equipo_id']
+                                    ? ($equiposPorId[(int) $pMulta['equipo_visitante']]['nombre'] ?? '')
+                                    : ($equiposPorId[(int) $pMulta['equipo_local']]['nombre'] ?? '');
+                                ?>
+                                <span class="text-muted small d-block">
+                                    Jornada <?= (int) ($pMulta['jornada'] ?? 0) ?>
+                                    · <?= e(formatear_fecha_corta((string) $pMulta['fecha'])) ?>
+                                    <?= $rivalMulta !== '' ? ' · vs ' . e($rivalMulta) : '' ?>
+                                </span>
+                                <?php endif; ?>
                             </td>
                             <td class="text-end fw-semibold" data-label="Monto"><?= e(sancion_monto_texto($torneo, (float) $m['monto'])) ?></td>
                             <td data-label="Estado">
