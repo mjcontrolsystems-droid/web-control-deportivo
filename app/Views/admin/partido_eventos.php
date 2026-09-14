@@ -16,18 +16,26 @@
 </div>
 
 <div class="card-suave p-3 mb-4 marcador-ficha">
-    <div class="d-flex align-items-center justify-content-center gap-3 gap-md-4 flex-wrap">
-        <div class="text-center" style="min-width:120px;">
+    <?php // Tres columnas de rejilla y no una fila flexible: equipo — marcador — equipo.
+          //
+          // Antes cada bloque llevaba min-width:120px y la fila podía envolverse, así que
+          // en un teléfono los tres no cabían y el visitante se caía a una segunda línea,
+          // con los escudos desnivelados. La rejilla NO envuelve: las dos columnas de
+          // equipo se reparten por igual lo que sobre y el marcador ocupa lo que necesita,
+          // así que los escudos siempre quedan a la misma altura por angosta que sea la
+          // pantalla. ?>
+    <div class="marcador-ficha-equipos">
+        <div class="equipo-ficha">
             <?= logo_equipo($equipoLocal ?? ['nombre' => '?'], 44) ?>
-            <div class="small fw-semibold mt-1"><?= $equipoLocal ? e($equipoLocal['nombre']) : '?' ?></div>
+            <div class="small fw-semibold mt-1 nombre"><?= $equipoLocal ? e($equipoLocal['nombre']) : '?' ?></div>
         </div>
-        <div class="text-center px-2">
-            <div class="display-6 fw-bold lh-1" data-marcador-vivo><?= (int) $marcadorLocalVivo ?> <span class="text-muted">-</span> <?= (int) $marcadorVisitanteVivo ?></div>
+        <div class="text-center px-1">
+            <div class="display-6 fw-bold lh-1 marcador-ficha-numeros" data-marcador-vivo><?= (int) $marcadorLocalVivo ?> <span class="text-muted">-</span> <?= (int) $marcadorVisitanteVivo ?></div>
             <div class="small text-muted mt-1"><i class="bi bi-lightning-charge me-1"></i><?= e(etiqueta_anotaciones($deporte)) ?> en vivo</div>
         </div>
-        <div class="text-center" style="min-width:120px;">
+        <div class="equipo-ficha">
             <?= logo_equipo($equipoVisitante ?? ['nombre' => '?'], 44) ?>
-            <div class="small fw-semibold mt-1"><?= $equipoVisitante ? e($equipoVisitante['nombre']) : '?' ?></div>
+            <div class="small fw-semibold mt-1 nombre"><?= $equipoVisitante ? e($equipoVisitante['nombre']) : '?' ?></div>
         </div>
     </div>
     <p class="text-center small text-muted mb-0 mt-2">El marcador se calcula automáticamente con los <?= e(mb_strtolower(etiqueta_anotaciones($deporte))) ?> que registres abajo.</p>

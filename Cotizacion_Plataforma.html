@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Cotización — Plataforma de Copas y Ligas · MJ Control Systems</title>
+<style>
+/* Cotización imprimible en A4. Los campos con línea punteada son editables desde el
+   navegador: se escribe encima, se imprime o se guarda como PDF, y el archivo original
+   queda limpio para la siguiente. */
+@page { size: A4; margin: 14mm 13mm; }
+
+* { box-sizing: border-box; }
+
+body {
+    font-family: "Segoe UI", Calibri, Arial, sans-serif;
+    color: #1f2430;
+    font-size: 10.5pt;
+    line-height: 1.45;
+    margin: 0;
+    background: #f2f3f7;
+}
+
+.hoja {
+    background: #fff;
+    max-width: 210mm;
+    margin: 12px auto;
+    padding: 16mm 14mm;
+    box-shadow: 0 8px 30px -12px rgba(0,0,0,.25);
+}
+
+/* ---------- Encabezado ---------- */
+.cabecera {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    border-bottom: 3px solid #307df8;
+    padding-bottom: 12px;
+}
+.cabecera img { height: 62px; width: auto; object-fit: contain; }
+.marca { display: flex; align-items: center; gap: 14px; }
+.marca .nombre { font-size: 15pt; font-weight: 700; line-height: 1.15; }
+.marca .lema { font-size: 8.5pt; color: #5d6577; max-width: 230px; }
+.folio { text-align: right; font-size: 9pt; color: #5d6577; }
+.folio .titulo { font-size: 17pt; font-weight: 700; color: #307df8; letter-spacing: .04em; }
+
+h2 {
+    font-size: 11.5pt;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #307df8;
+    border-bottom: 1px solid #dfe3ec;
+    padding-bottom: 4px;
+    margin: 18px 0 9px;
+}
+h3 { font-size: 10pt; margin: 12px 0 4px; color: #1f2430; }
+p { margin: 0 0 7px; }
+
+table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+th, td { border: 1px solid #d7dce7; padding: 5px 7px; text-align: left; vertical-align: top; }
+th { background: #eef3fd; font-size: 9pt; text-transform: uppercase; letter-spacing: .04em; }
+td.n, th.n { text-align: right; white-space: nowrap; }
+tr.destacada td { background: #f3f8ff; font-weight: 600; }
+
+.dos { display: flex; gap: 18px; }
+.dos > div { flex: 1; }
+
+.campo {
+    border-bottom: 1px dotted #8b93a6;
+    min-width: 150px;
+    display: inline-block;
+    padding: 1px 3px;
+    outline: none;
+}
+.campo:focus { background: #fff8dc; }
+
+.incluye { column-count: 2; column-gap: 20px; font-size: 9.5pt; }
+.incluye ul { margin: 0 0 8px; padding-left: 16px; }
+.incluye li { margin-bottom: 2px; break-inside: avoid; }
+.incluye h3 { break-after: avoid; }
+
+.nota {
+    background: #f3f8ff;
+    border-left: 3px solid #307df8;
+    padding: 8px 11px;
+    font-size: 9.5pt;
+    margin: 10px 0;
+}
+.chico { font-size: 8.5pt; color: #5d6577; }
+
+.firmas { display: flex; gap: 40px; margin-top: 26px; }
+.firmas div { flex: 1; text-align: center; padding-top: 26px; border-top: 1px solid #1f2430; font-size: 9pt; }
+
+.pie { margin-top: 16px; border-top: 1px solid #dfe3ec; padding-top: 8px; font-size: 8.5pt; color: #5d6577; text-align: center; }
+.pie img { height: 26px; vertical-align: middle; margin-right: 6px; }
+
+@media print {
+    body { background: #fff; }
+    .hoja { box-shadow: none; margin: 0; max-width: none; padding: 0; }
+    .solo-pantalla { display: none !important; }
+    h2 { break-after: avoid; }
+    table { break-inside: auto; }
+    tr { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="hoja">
+
+    <div class="solo-pantalla nota">
+        <strong>Cómo usar esta cotización:</strong> escribe directamente sobre las líneas punteadas
+        (cliente, fecha, número, cantidad de equipos), ajusta los precios si hace falta, y usa
+        <strong>Ctrl + P → Guardar como PDF</strong>. El archivo original no se modifica, así que sirve
+        para la siguiente cotización.
+    </div>
+
+    <!-- ENCABEZADO -->
+    <div class="cabecera">
+        <div class="marca">
+            <img src="public/assets/img/logo-empresa.png" alt="MJ Control Systems">
+            <div>
+                <div class="nombre">MJ Control Systems</div>
+                <div class="lema">Plataformas web inteligentes,<br>control total de tu negocio.</div>
+            </div>
+        </div>
+        <div class="folio">
+            <div class="titulo">COTIZACIÓN</div>
+            <div style="margin-top:6px;">
+                No. <span class="campo" contenteditable="true" style="min-width:70px;">&nbsp;</span><br>
+                Fecha: <span class="campo" contenteditable="true" style="min-width:95px;">&nbsp;</span><br>
+                Válida por 30 días
+            </div>
+        </div>
+    </div>
+
+    <!-- PRODUCTO -->
+    <div style="display:flex;align-items:center;gap:14px;margin:16px 0 4px;">
+        <img src="public/assets/img/logo.png" alt="Plataforma de Copas y Ligas" style="height:54px;">
+        <div>
+            <div style="font-size:14pt;font-weight:700;">Plataforma de Copas y Ligas</div>
+            <div class="chico">Sistema web para administrar campeonatos de fútbol y basketball, con sitio público para los equipos y la afición.</div>
+        </div>
+    </div>
+
+    <!-- CLIENTE -->
+    <h2>Dirigida a</h2>
+    <div class="dos">
+        <div>
+            <p>Liga, copa u organización:<br>
+            <span class="campo" contenteditable="true" style="min-width:260px;">&nbsp;</span></p>
+            <p>Contacto:<br>
+            <span class="campo" contenteditable="true" style="min-width:260px;">&nbsp;</span></p>
+        </div>
+        <div>
+            <p>Teléfono / correo:<br>
+            <span class="campo" contenteditable="true" style="min-width:260px;">&nbsp;</span></p>
+            <p>Equipos participantes:
+            <span class="campo" contenteditable="true" style="min-width:60px;">&nbsp;</span>
+            &nbsp;&nbsp;Deporte:
+            <span class="campo" contenteditable="true" style="min-width:110px;">&nbsp;</span></p>
+        </div>
+    </div>
+
+    <!-- QUÉ INCLUYE -->
+    <h2>Qué incluye la plataforma</h2>
+    <div class="incluye">
+
+        <h3>Calendario y formato</h3>
+        <ul>
+            <li>Liga (una o dos vueltas), copa con eliminación directa, o fase de grupos</li>
+            <li>Generador automático de calendario según los días que se juega y los partidos que caben por fecha</li>
+            <li>Reparto justo de localías, horarios y equipos que juegan dos veces el mismo fin de semana</li>
+            <li>La temporada aterriza exacto en la fecha de la final</li>
+            <li>Correr una jornada y las siguientes cuando se cae un fin de semana</li>
+            <li>Cuadro final sembrado desde la tabla, con avance automático de ganadores, tercer lugar y podio</li>
+            <li>Fútbol 5, 7 y 11, y basketball con reglas FIBA</li>
+        </ul>
+
+        <h3>El partido</h3>
+        <ul>
+            <li>Ficha de eventos: goles (jugada, penal, tiro libre, autogol), tarjetas, cambios y asistencias</li>
+            <li>Marcador calculado solo desde los eventos registrados</li>
+            <li>Cronómetro por periodos, con tiempo extra</li>
+            <li>Alineación con titulares y banca</li>
+            <li>Triunfo por default (W.O.) con marcador reglamentario</li>
+            <li>Transmisión en vivo para proyectar o compartir por enlace</li>
+            <li>Imagen del resultado lista para redes sociales</li>
+            <li>Ficha del encuentro en PDF</li>
+        </ul>
+
+        <h3>Estadísticas</h3>
+        <ul>
+            <li>Tabla de posiciones con racha y criterios de desempate</li>
+            <li>Tabla de goleadores</li>
+            <li>Portería menos vencida por promedio, no por total</li>
+            <li>Perfil de cada jugador: goles, tarjetas, suspensiones y multas</li>
+            <li>Reporte del equipo en PDF</li>
+        </ul>
+
+        <h3>Disciplina</h3>
+        <ul>
+            <li>Multas por tarjeta con tarifas que define la liga</li>
+            <li>Suspensiones automáticas por roja y por acumulación de amarillas</li>
+            <li>La multa de una jornada se exige a partir de la siguiente</li>
+            <li>Aviso de quién está a una amarilla de suspenderse</li>
+            <li>Hoja de solvencia por jornada</li>
+            <li>Reporte de tarjetas imprimible, por jugador y por equipo</li>
+        </ul>
+
+        <h3>Dinero</h3>
+        <ul>
+            <li>Estado de cuenta por equipo: inscripción, arbitraje, cargos y pagos</li>
+            <li>Cuotas configurables; los cargos se generan solos conforme se juega</li>
+            <li>Comprobante imprimible para entregar al capitán</li>
+            <li>Cada capitán consulta lo que debe sin preguntárselo al organizador</li>
+        </ul>
+
+        <h3>Operación de cada semana</h3>
+        <ul>
+            <li>Nómina para el árbitro: se marca desde el teléfono y se imprime con la X puesta</li>
+            <li>Mensaje de la jornada listo para pegar en el grupo de WhatsApp</li>
+            <li>Accesos por nivel: mesa, asistente y capitán (cada capitán solo su equipo)</li>
+            <li>Cierre de inscripciones con un interruptor</li>
+            <li>Importación de plantillas desde el Excel del delegado</li>
+            <li>Exportación de toda la competencia a Excel</li>
+            <li>Bitácora de quién hizo qué y cuándo</li>
+        </ul>
+
+        <h3>Sitio público</h3>
+        <ul>
+            <li>Portada con tabla, calendario, goleadores y próximos encuentros</li>
+            <li>Página de cada equipo y de cada jugador, con foto</li>
+            <li>Reglamento en PDF y espacio para patrocinadores</li>
+            <li>Avisos emergentes: condolencias, celebraciones o informativos</li>
+            <li>Se entra con un código de 6 caracteres o un QR, sin crear cuenta</li>
+            <li>Contador de visitas</li>
+        </ul>
+
+        <h3>Incluido siempre</h3>
+        <ul>
+            <li>Hosting y sitio en línea</li>
+            <li>Respaldo diario de la base, verificado</li>
+            <li>Actualizaciones y mejoras de la plataforma</li>
+            <li>Soporte por WhatsApp en horario hábil</li>
+        </ul>
+
+    </div>
+
+    <!-- PRECIOS -->
+    <h2>Licencia de uso — por temporada</h2>
+    <p class="chico">Una temporada equivale a hasta 5 meses de competencia. Incluye todo lo anterior.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Equipos participantes</th>
+                <th class="n">Por temporada</th>
+                <th class="n">Equivale a</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>Hasta 8 equipos</td><td class="n">Q 700.00</td><td class="n">Q 88 por equipo</td></tr>
+            <tr class="destacada"><td>De 9 a 16 equipos</td><td class="n">Q 1,200.00</td><td class="n">Q 75 por equipo</td></tr>
+            <tr><td>De 17 a 24 equipos</td><td class="n">Q 1,700.00</td><td class="n">Q 71 por equipo</td></tr>
+            <tr><td>De 25 a 32 equipos</td><td class="n">Q 2,200.00</td><td class="n">Q 69 por equipo</td></tr>
+            <tr><td>Más de 32 equipos o varias copas a la vez</td><td class="n" colspan="2">Cotización a la medida</td></tr>
+        </tbody>
+    </table>
+    <p class="chico">Ligas que juegan todo el año: <strong>Q 350.00 mensuales</strong> hasta 16 equipos, sin compromiso de plazo.</p>
+
+    <h2>Implementación (pago único)</h2>
+    <table>
+        <tbody>
+            <tr>
+                <td>Puesta en marcha: carga de equipos y plantillas desde Excel, escudos y colores, configuración de
+                    reglas y tarifas, generación del calendario completo, alta de los capitanes y una sesión de
+                    capacitación de hora y media.</td>
+                <td class="n">Q 600.00</td>
+            </tr>
+        </tbody>
+    </table>
+    <p class="chico">Sin costo al contratar dos temporadas seguidas.</p>
+
+    <!-- SERVICIOS OPCIONALES -->
+    <h2>Si necesitan mi acompañamiento</h2>
+    <p>La plataforma está hecha para que el organizador la maneje solo. Estos servicios son para quien
+        prefiere apoyarse en alguien, o directamente delegar la administración del campeonato.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Servicio</th>
+                <th>Qué cubre</th>
+                <th class="n">Precio</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Asesoría y soporte prioritario</strong></td>
+                <td>Atención directa por WhatsApp o llamada sin horario, revisión del calendario antes de publicarlo,
+                    apoyo para configurar reglas y tarifas, y capacitación de personal nuevo cuando lo necesiten.</td>
+                <td class="n">Q 400.00 / mes<br><span class="chico">o Q 1,500.00 la temporada</span></td>
+            </tr>
+            <tr class="destacada">
+                <td><strong>Administración del campeonato</strong><br><span class="chico">Yo soy el administrador</span></td>
+                <td>Capturo los resultados y las fichas de todos los encuentros de la fecha, publico la tabla, aplico
+                    sanciones y suspensiones, llevo el estado de cuenta de los equipos y envío el mensaje de la jornada
+                    al grupo. El organizador solo dirige su liga.</td>
+                <td class="n">Q 250.00 / jornada<br><span class="chico">o Q 3,200.00 la temporada<br>(hasta 16 jornadas)</span></td>
+            </tr>
+            <tr>
+                <td><strong>Mesa de control presencial</strong></td>
+                <td>Presencia en la cancha el día de juego, capturando en vivo: marcador, tarjetas y cambios, con la
+                    transmisión en pantalla para la afición.</td>
+                <td class="n">Q 350.00 / día de juego</td>
+            </tr>
+            <tr>
+                <td><strong>Dominio e imagen propia</strong></td>
+                <td>Sitio con el dominio de la liga (ejemplo: <em>miliga.com</em>), colores y escudo propios en toda la
+                    plataforma.</td>
+                <td class="n">Q 500.00 único<br><span class="chico">+ Q 150.00 / año del dominio</span></td>
+            </tr>
+            <tr>
+                <td><strong>Migración de temporadas anteriores</strong></td>
+                <td>Cargar el historial de campeonatos pasados para que los jugadores vean sus números de siempre.</td>
+                <td class="n">Q 400.00 por temporada</td>
+            </tr>
+            <tr>
+                <td><strong>Capacitación adicional</strong></td>
+                <td>Sesión de hora y media, presencial o en línea, para mesa, delegados o capitanes.</td>
+                <td class="n">Q 250.00 por sesión</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- RESUMEN -->
+    <h2>Resumen de esta propuesta</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Concepto</th>
+                <th class="n">Cantidad</th>
+                <th class="n">Precio</th>
+                <th class="n">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="campo" contenteditable="true" style="min-width:240px;">&nbsp;</span></td>
+                <td class="n"><span class="campo" contenteditable="true" style="min-width:40px;">&nbsp;</span></td>
+                <td class="n"><span class="campo" contenteditable="true" style="min-width:70px;">&nbsp;</span></td>
+                <td class="n"><span class="campo" contenteditable="true" style="min-width:70px;">&nbsp;</span></td>
+            </tr>
+            <tr>
+                <td><span class="campo" contenteditable="true" style="min-width:240px;">&nbsp;</span></td>
+                <td class="n"><span class="campo" contenteditable="true" style="min-width:40px;">&nbsp;</span></td>
+                <td class="n"><span class="campo" contenteditable="true" style="min-width:70px;">&nbsp;</span></td>
+                <td class="n"><span class="campo" contenteditable="true" style="min-width:70px;">&nbsp;</span></td>
+            </tr>
+            <tr>
+                <td><span class="campo" contenteditable="true" style="min-width:240px;">&nbsp;</span></td>
+                <td class="n"><span class="campo" contenteditable="true" style="min-width:40px;">&nbsp;</span></td>
+                <td class="n"><span class="campo" contenteditable="true" style="min-width:70px;">&nbsp;</span></td>
+                <td class="n"><span class="campo" contenteditable="true" style="min-width:70px;">&nbsp;</span></td>
+            </tr>
+            <tr class="destacada">
+                <td colspan="3" class="n">TOTAL</td>
+                <td class="n">Q <span class="campo" contenteditable="true" style="min-width:70px;">&nbsp;</span></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- CONDICIONES -->
+    <h2>Condiciones</h2>
+    <div class="dos">
+        <div>
+            <p><strong>Forma de pago.</strong> 50% al aceptar la propuesta y 50% al entregar el calendario generado y
+                el sitio publicado. Los servicios por jornada se cobran al cierre de cada mes.</p>
+            <p><strong>Plazo de entrega.</strong> El sitio queda en línea en 3 días hábiles desde que se reciben los
+                listados de equipos y jugadores.</p>
+            <p><strong>Moneda.</strong> Precios en quetzales (GTQ). No incluyen IVA.</p>
+        </div>
+        <div>
+            <p><strong>Los datos son de la liga.</strong> La información se puede exportar a Excel en cualquier momento,
+                y se entrega completa al terminar la relación. No queda retenida.</p>
+            <p><strong>Respaldos.</strong> La base se respalda a diario y el respaldo se verifica: no basta con que
+                exista, tiene que poder restaurarse.</p>
+            <p><strong>Vigencia de esta oferta.</strong> 30 días a partir de la fecha indicada.</p>
+        </div>
+    </div>
+
+    <div class="firmas">
+        <div>Miguelangel Josué Cruz Sagastume<br><span class="chico">MJ Control Systems</span></div>
+        <div>Acepto la propuesta<br><span class="chico">Nombre, firma y fecha</span></div>
+    </div>
+
+    <div class="pie">
+        <img src="public/assets/img/logo-empresa.png" alt="">
+        MJ Control Systems · Plataformas web inteligentes, control total de tu negocio.<br>
+        mjcontrolsystems@gmail.com
+    </div>
+
+</div>
+</body>
+</html>

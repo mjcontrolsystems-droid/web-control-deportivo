@@ -798,6 +798,40 @@ a.hero-stat:focus-visible {
     .partido-hero .fs-1 { font-size: 1.5rem !important; }
 }
 
+/* ---------- Encabezado de la ficha de eventos ----------
+   equipo — marcador — equipo, en rejilla y no en fila flexible.
+   Con flex la fila podía envolverse y en el teléfono el visitante se caía abajo, dejando
+   los escudos desnivelados. Con grid las tres columnas existen siempre: las de los equipos
+   se reparten por igual lo que sobra y el marcador ocupa solo lo suyo. */
+.marcador-ficha-equipos {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: start;   /* los escudos, que van primero, quedan siempre a la misma altura */
+    gap: 1rem;
+}
+
+.marcador-ficha-equipos .equipo-ficha {
+    text-align: center;
+    min-width: 0;   /* sin esto, un nombre largo ensancha la columna y descuadra la rejilla */
+}
+
+.marcador-ficha-equipos .equipo-ficha .nombre {
+    /* Por palabras, nunca letra por letra: la regla general de las tarjetas en móvil parte
+       donde sea, y un nombre de equipo cortado a la mitad es ilegible. */
+    overflow-wrap: break-word;
+    word-break: normal;
+    line-height: 1.2;
+}
+
+/* El marcador jamás se parte en dos líneas. Nombre propio y no ".marcador-vivo": esa
+   clase ya es de la pantalla de transmisión y le aplica display:flex en columna, que aquí
+   habría partido el resultado en dos renglones. */
+.marcador-ficha-equipos .marcador-ficha-numeros { white-space: nowrap; }
+
+@media (max-width: 575.98px) {
+    .marcador-ficha-equipos { gap: .5rem; }
+}
+
 .badge-jornada {
     background: #f1ecfb;
     color: var(--color-primario-oscuro);
