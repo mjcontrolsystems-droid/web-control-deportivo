@@ -10,7 +10,7 @@
             <?php // La foto preside el perfil, con el escudo del equipo al lado. Es lo que
                   // convierte esta página en algo comprobable: quien duda de si el que va a
                   // entrar es de la promoción, abre esto en el teléfono y compara la cara. ?>
-            <?= foto_jugador($jugador, 96, 'foto-jugador--hero') ?>
+            <?= foto_jugador($jugador, 96, 'foto-jugador--hero', true) ?>
             <?php if ($equipo): ?><?= logo_equipo($equipo, 56) ?><?php endif; ?>
             <div>
                 <h1 class="text-white mb-1">#<?= e($jugador['dorsal']) ?> <?= e($jugador['nombre']) ?></h1>

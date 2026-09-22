@@ -134,7 +134,7 @@ function logo_equipo(array $equipo, int $size = 96, string $clase = ''): string
  * vienen de todos los tamaños —selfies verticales, recortes de WhatsApp— y sin eso la
  * lista queda desalineada.
  */
-function foto_jugador(?array $jugador, int $size = 44, string $clase = ''): string
+function foto_jugador(?array $jugador, int $size = 44, string $clase = '', bool $iconoSinFoto = false): string
 {
     $estiloBase = "width:{$size}px;height:{$size}px;border-radius:50%;flex-shrink:0;";
 
@@ -145,7 +145,10 @@ function foto_jugador(?array $jugador, int $size = 44, string $clase = ''): stri
     }
 
     $dorsal = trim((string) ($jugador['dorsal'] ?? ''));
-    $texto = $dorsal !== '' ? e($dorsal) : '?';
+    // En el perfil el dorsal ya va en el título; ahí el círculo muestra un ícono para no repetirlo.
+    $texto = $iconoSinFoto
+        ? '<i class="bi bi-person-fill"></i>'
+        : ($dorsal !== '' ? e($dorsal) : '?');
     $fuente = max(11, (int) round($size * 0.4));
 
     return "<span class=\"foto-jugador foto-jugador--sin {$clase}\" style=\"{$estiloBase}font-size:{$fuente}px;\">{$texto}</span>";
