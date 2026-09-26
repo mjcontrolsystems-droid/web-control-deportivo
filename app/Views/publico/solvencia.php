@@ -118,7 +118,7 @@
             <?php $hayAlguno = false; ?>
             <?php foreach ([['local', 'morosos_local', 'susp_local'], ['visitante', 'morosos_visitante', 'susp_visitante']] as [$claveEquipo, $claveMorosos, $claveSusp]): ?>
                 <?php foreach ($en[$claveSusp] as $s): $hayAlguno = true; ?>
-                <tr>
+                <tr class="estado-mal">
                     <td><?= e($en[$claveEquipo]['nombre'] ?? '?') ?></td>
                     <td><?= e(jugador_nombre($s['jugador'])) ?></td>
                     <td>SUSPENDIDO — <?= e($s['info']['detalle']) ?></td>
@@ -127,7 +127,7 @@
                 </tr>
                 <?php endforeach; ?>
                 <?php foreach ($en[$claveMorosos] as $m): $hayAlguno = true; ?>
-                <tr>
+                <tr class="estado-mal">
                     <td><?= e($en[$claveEquipo]['nombre'] ?? '?') ?></td>
                     <td><?= e(jugador_nombre($m['jugador'])) ?></td>
                     <td>Debe <?= e(sancion_monto_texto($torneo, $m['total'])) ?></td>
@@ -138,7 +138,7 @@
                 <?php endforeach; ?>
             <?php endforeach; ?>
             <?php if (!$hayAlguno): ?>
-            <tr><td colspan="4">Ambos planteles completos: nadie suspendido ni en deuda.</td></tr>
+            <tr class="estado-ok"><td colspan="4">Ambos planteles completos: nadie suspendido ni en deuda.</td></tr>
             <?php endif; ?>
         </tbody>
     </table>

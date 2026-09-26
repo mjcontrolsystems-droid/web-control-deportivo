@@ -1184,13 +1184,24 @@ a.hero-stat:focus-visible {
     text-align: left;
 }
 .hoja-previa .ficha-tabla th {
-    background: rgba(var(--color-primario-rgb), .07);
+    background: var(--color-primario-oscuro);
+    color: #fff;
     text-transform: uppercase;
     font-size: .7rem;
     letter-spacing: .04em;
 }
 .hoja-previa .ficha-pie { margin-top: 1.2rem; font-size: .72rem; color: #8b7fa8; }
 .hoja-previa .ficha-pie p { margin: 0; }
+
+/* Colores de estado en los documentos imprimibles (solvencia, nómina, reporte de
+   equipo, tarjetas). Van FUERA del @media print para que la vista previa en pantalla
+   se vea igual que el papel: verde = habilitado/ganó, rojo = no juega/perdió,
+   ámbar = aviso. Antes la hoja salía en blanco y gris y en la cancha costaba ver de un
+   vistazo quién no podía jugar. */
+.estado-ok    { background: #e6f6ec !important; color: #146c43 !important; font-weight: 600; }
+.estado-mal   { background: #fde8e8 !important; color: #b42318 !important; font-weight: 600; }
+.estado-aviso { background: #fff4d6 !important; color: #8a5a00 !important; font-weight: 600; }
+.estado-ok td, .estado-mal td, .estado-aviso td { color: inherit !important; }
 
 @media print {
     /* Los enlaces de la ficha (nombres de jugador y equipo que en pantalla llevan a su
@@ -1252,8 +1263,13 @@ a.hero-stat:focus-visible {
         font-size: 12px;
     }
     .ficha-imprimir { padding: 0; }
-    .ficha-titulo { text-align: center; margin-bottom: 1rem; }
-    .ficha-titulo h2 { margin: 0; font-size: 18px; }
+    .ficha-titulo {
+        text-align: center;
+        margin-bottom: 1rem;
+        padding-bottom: .5rem;
+        border-bottom: 3px solid var(--color-primario);
+    }
+    .ficha-titulo h2 { margin: 0; font-size: 18px; color: var(--color-primario-oscuro); }
     .ficha-titulo p { margin: 0; font-size: 12px; color: #444; }
     .ficha-datos, .ficha-tabla {
         width: 100%;
@@ -1270,8 +1286,27 @@ a.hero-stat:focus-visible {
         text-align: left;
         font-size: 11px;
     }
-    .ficha-tabla th { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .ficha-imprimir h3 { font-size: 13px; margin: 1rem 0 .4rem; break-after: avoid; }
+    /* Sin esto el navegador quita TODOS los fondos al imprimir (ahorro de tinta) y los
+       documentos salen en blanco y gris aunque en pantalla se vean a color. */
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+    .ficha-tabla th {
+        background: var(--color-primario-oscuro) !important;
+        color: #fff !important;
+        border-color: var(--color-primario-oscuro) !important;
+    }
+    .ficha-tabla tbody tr:nth-child(even) td { background: rgba(var(--color-primario-rgb), .05); }
+    .ficha-tabla tbody tr.estado-ok td,
+    .ficha-tabla tbody tr.estado-mal td,
+    .ficha-tabla tbody tr.estado-aviso td { background: transparent; }
+    .ficha-imprimir h3 {
+        font-size: 13px;
+        margin: 1rem 0 .4rem;
+        break-after: avoid;
+        color: var(--color-primario-oscuro);
+        border-left: 4px solid var(--color-secundario);
+        padding-left: 6px;
+    }
     .ficha-observaciones { border: 1px solid #999; padding: 6px; min-height: 40px; }
     .ficha-linea-blanco { display: inline-block; width: 100%; min-width: 140px; border-bottom: 1px solid #666; }
     .ficha-firma { margin-top: 2.5rem; }
@@ -1285,7 +1320,7 @@ a.hero-stat:focus-visible {
     .ficha-pie {
         margin-top: 2rem;
         padding-top: .5rem;
-        border-top: 1px solid #ccc;
+        border-top: 2px solid var(--color-primario);
         text-align: center;
         color: #666;
     }

@@ -59,13 +59,13 @@
     <thead><tr><th style="width:45%;">Jugador</th><th>Situación</th></tr></thead>
     <tbody>
         <?php foreach ($suspendidosProximo as $jid => $info): ?>
-        <tr>
+        <tr class="estado-mal">
             <td><?= e(jugador_nombre($jugadoresPorId[$jid] ?? null)) ?></td>
             <td>SUSPENDIDO — <?= e($info['detalle']) ?></td>
         </tr>
         <?php endforeach; ?>
         <?php foreach ($deudaEquipo as $jid => $info): ?>
-        <tr>
+        <tr class="estado-mal">
             <td><?= e(jugador_nombre($jugadoresPorId[$jid] ?? null)) ?></td>
             <td>Multa pendiente de <?= e(sancion_monto_texto($torneo, $info['total'])) ?></td>
         </tr>
@@ -123,7 +123,7 @@
         <tr>
             <td><?= e(formatear_fecha_larga($p['fecha'])) ?></td>
             <td><?= e($equiposPorId[$rivalId]['nombre'] ?? '—') ?></td>
-            <td><?= $signo ?></td>
+            <td class="<?= $propios > $ajenos ? 'estado-ok' : ($propios < $ajenos ? 'estado-mal' : 'estado-aviso') ?>"><?= $signo ?></td>
             <td><?= $propios ?> - <?= $ajenos ?></td>
         </tr>
         <?php endforeach; ?>

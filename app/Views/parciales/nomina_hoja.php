@@ -86,7 +86,8 @@ $linea = '<span style="display:inline-block;border-bottom:1px solid #000;min-wid
             </td>
             <td><strong><?= e($j['dorsal']) ?></strong></td>
             <td><?= e($j['nombre']) ?></td>
-            <td style="font-size:11px;">
+            <?php $claseEstado = isset($suspendidos[$jid]) || isset($deudores[$jid]) ? 'estado-mal' : (!empty($alBorde[$jid]['al_borde']) ? 'estado-aviso' : ''); ?>
+            <td style="font-size:11px;" class="<?= $claseEstado ?>">
                 <?php // Lo que la mesa debe verificar antes de dejarlo entrar, en orden de
                       // gravedad: primero lo que le impide jugar, y solo si está limpio, el
                       // aviso de que va a la próxima amarilla. ?>

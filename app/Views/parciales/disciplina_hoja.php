@@ -48,7 +48,8 @@ $equipoDelReporte = $equipoFiltro > 0 ? ($equiposPorId[$equipoFiltro] ?? null) :
             <td style="text-align:center;"><?= (int) $f['amarillas'] ?: '' ?></td>
             <td style="text-align:center;"><?= (int) $f['rojas'] ?: '' ?></td>
             <td style="text-align:center;"><strong><?= (int) $f['total'] ?></strong></td>
-            <td style="font-size:11px;">
+            <?php $claseEstado = isset($suspendidosAhora[$jid]) ? 'estado-mal' : (!empty($f['acumulacion']['al_borde']) ? 'estado-aviso' : ''); ?>
+            <td style="font-size:11px;" class="<?= $claseEstado ?>">
                 <?php // Lo mismo que en pantalla y en el mismo orden de urgencia, para que
                       // el papel y la app nunca digan cosas distintas. ?>
                 <?php if (isset($suspendidosAhora[$jid])): ?>
