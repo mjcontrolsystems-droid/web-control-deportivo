@@ -881,6 +881,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var casillasJuega = document.querySelectorAll('.check-juega');
     if (casillasJuega.length) {
         var reflejar = function (casilla) {
+            // Un suspendido nunca se marca, ni aunque alguien quite el "disabled" desde
+            // las herramientas del navegador.
+            if (casilla.disabled) {
+                casilla.checked = false;
+            }
             var destino = document.querySelector('.casilla-juega[data-jugador="' + casilla.getAttribute('data-jugador') + '"]');
             if (destino) {
                 destino.classList.toggle('marcada', casilla.checked);
@@ -896,7 +901,8 @@ document.addEventListener('DOMContentLoaded', function () {
             var marcar = boton.hasAttribute('data-marcar-todos');
             boton.addEventListener('click', function () {
                 casillasJuega.forEach(function (casilla) {
-                    casilla.checked = marcar;
+                    // Los suspendidos se saltan: su casilla está bloqueada.
+                    casilla.checked = marcar && !casilla.disabled;
                     reflejar(casilla);
                 });
             });

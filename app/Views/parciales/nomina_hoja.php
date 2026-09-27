@@ -74,14 +74,24 @@ $linea = '<span style="display:inline-block;border-bottom:1px solid #000;min-wid
         <?php foreach ($plantilla as $j): $jid = (int) $j['id']; ?>
         <tr>
             <td style="text-align:center;">
+                <?php // Un SUSPENDIDO no puede jugar: su casilla va bloqueada y "Marcar
+                      // todos" lo salta, para que nadie lo anote por descuido. En el papel
+                      // sale con una X roja en vez del cuadrito, así tampoco se llena a mano.
+                      // Al que debe multa no se le bloquea: puede pagar en la cancha. ?>
+                <?php $bloqueado = isset($suspendidos[$jid]); ?>
                 <?php if ($modoHoja === 'pantalla'): ?>
-                    <?php // Un suspendido o un moroso no debería marcarse: la casilla se
-                          // deja igual pero avisada, porque la decisión final la toma la
-                          // mesa con el papel en la mano. ?>
+                    <?php if ($bloqueado): ?>
+                    <span class="check-juega-bloqueado" title="Suspendido: no puede jugar">
+                        <input type="checkbox" class="check-juega" data-jugador="<?= $jid ?>" disabled
+                               aria-label="<?= e($j['nombre']) ?> está suspendido y no puede jugar">
+                        <i class="bi bi-lock-fill"></i>
+                    </span>
+                    <?php else: ?>
                     <input type="checkbox" class="check-juega" data-jugador="<?= $jid ?>"
                            aria-label="Marcar a <?= e($j['nombre']) ?> como presente">
+                    <?php endif; ?>
                 <?php else: ?>
-                    <span class="casilla-juega" data-jugador="<?= $jid ?>"></span>
+                    <span class="casilla-juega<?= $bloqueado ? ' casilla-juega--bloqueada' : '' ?>" data-jugador="<?= $jid ?>"></span>
                 <?php endif; ?>
             </td>
             <td><strong><?= e($j['dorsal']) ?></strong></td>
