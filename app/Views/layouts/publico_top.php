@@ -49,7 +49,7 @@ function nav_activa(string $clave, string $activa): string
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark fixed-top navbar-copa">
+<nav class="navbar navbar-expand-xl navbar-dark fixed-top navbar-copa">
     <div class="container">
         <?php // El logo que subió el organizador manda: solo si la copa no tiene logo
               // propio se cae al balón/ícono del deporte (ver logo_torneo() en helpers). ?>
@@ -61,7 +61,7 @@ function nav_activa(string $clave, string $activa): string
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navPrincipal">
-            <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1">
+            <ul class="navbar-nav ms-auto align-items-xl-center gap-xl-1">
                 <?php if ($torneo): ?>
                 <li class="nav-item"><a class="nav-link <?= nav_activa('inicio', $pagina_activa) ?>" href="<?= url_copa('index.php') ?>"><i class="bi bi-house-door me-1"></i>Inicio</a></li>
                 <li class="nav-item"><a class="nav-link <?= nav_activa('tabla', $pagina_activa) ?>" href="<?= url_copa('tabla.php') ?>"><i class="bi bi-trophy me-1"></i>Tabla de Posiciones</a></li>
@@ -80,17 +80,17 @@ function nav_activa(string $clave, string $activa): string
                 <?php endif; ?>
                 <li class="nav-item"><a class="nav-link <?= nav_activa('organizador', $pagina_activa) ?>" href="<?= url_copa('organizador.php') ?>"><i class="bi bi-person-badge me-1"></i>Organizador</a></li>
                 <?php endif; ?>
-                <li class="nav-item ms-lg-2">
-                    <button type="button" class="btn btn-outline-luz btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalCompartir">
-                        <i class="bi bi-share-fill me-1"></i>Compartir
+                <li class="nav-item ms-xl-2">
+                    <button type="button" class="btn btn-outline-luz btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalCompartir" title="Compartir">
+                        <i class="bi bi-share-fill"></i><span class="nav-btn-texto ms-1">Compartir</span>
                     </button>
                 </li>
-                <li class="nav-item ms-lg-2">
-                    <button type="button" class="btn btn-outline-luz btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalCodigo">
-                        <i class="bi bi-key-fill me-1"></i>Tengo un código
+                <li class="nav-item ms-xl-2">
+                    <button type="button" class="btn btn-outline-luz btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalCodigo" title="Tengo un código">
+                        <i class="bi bi-key-fill"></i><span class="nav-btn-texto ms-1">Tengo un código</span>
                     </button>
                 </li>
-                <li class="nav-item ms-lg-2">
+                <li class="nav-item ms-xl-2">
                     <?php if ($usuarioActual): ?>
                     <div class="dropdown">
                         <button class="btn btn-outline-luz btn-sm rounded-pill px-2 d-flex align-items-center gap-2 dropdown-toggle" type="button" data-bs-toggle="dropdown">
@@ -99,7 +99,7 @@ function nav_activa(string $clave, string $activa): string
                             <?php else: ?>
                                 <span class="avatar-organizador" style="width:26px;height:26px;font-size:.72rem;"><?= e(iniciales_de($usuarioActual['nombre'] ?: $usuarioActual['usuario'])) ?></span>
                             <?php endif; ?>
-                            <span class="d-none d-lg-inline"><?= e($usuarioActual['nombre'] !== '' ? explode(' ', $usuarioActual['nombre'])[0] : $usuarioActual['usuario']) ?></span>
+                            <span class="d-none d-xl-inline"><?= e($usuarioActual['nombre'] !== '' ? explode(' ', $usuarioActual['nombre'])[0] : $usuarioActual['usuario']) ?></span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="<?= url('admin/index.php') ?>"><i class="bi bi-speedometer2 me-2"></i>Panel</a></li>
@@ -109,7 +109,7 @@ function nav_activa(string $clave, string $activa): string
                         </ul>
                     </div>
                     <?php else: ?>
-                        <a class="btn btn-degradado btn-sm rounded-pill px-3" href="<?= url('login.php') ?>"><i class="bi bi-person-circle me-1"></i>Acceder</a>
+                        <a class="btn btn-degradado btn-sm rounded-pill px-3" href="<?= url('login.php') ?>" title="Acceder"><i class="bi bi-person-circle"></i><span class="nav-btn-texto ms-1">Acceder</span></a>
                     <?php endif; ?>
                 </li>
             </ul>

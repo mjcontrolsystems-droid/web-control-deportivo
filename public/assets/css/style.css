@@ -122,9 +122,19 @@ h1, h2, h3, h4, h5, h6, .fw-heading {
     white-space: nowrap;
 }
 
-/* Entre 992 y 1400px caben los seis enlaces más los tres botones, pero justos: se aprieta
-   un poco el espaciado en vez de dejar que envuelvan. */
-@media (min-width: 992px) and (max-width: 1399.98px) {
+/* El menú tiene hasta ocho enlaces y tres botones, y ya no cabía en una fila: los
+   últimos (Compartir, Tengo un código, Acceder) se salían por la derecha y la página se
+   veía corrida. Ahora el menú se despliega desde 1200px (antes 992px, donde era imposible
+   que cupiera), los tres botones quedan solo con su ícono hasta pantallas muy anchas, y
+   entre 1200 y 1600px se aprietan los enlaces y se les quita el ícono. */
+@media (min-width: 1200px) and (max-width: 2099.98px) {
+    .navbar-copa .nav-btn-texto { display: none; }
+    .navbar-copa .navbar-nav .btn { padding-left: .6rem !important; padding-right: .6rem !important; }
+}
+@media (min-width: 1200px) and (max-width: 1599.98px) {
+    .navbar-copa .nav-link > .bi { display: none; }
+}
+@media (min-width: 1200px) and (max-width: 1399.98px) {
     .navbar-copa .nav-link {
         font-size: .86rem;
         padding-left: .55rem !important;
@@ -167,7 +177,7 @@ h1, h2, h3, h4, h5, h6, .fw-heading {
 /* Menú móvil (navbar colapsado): los links y botones quedaban pegados unos a otros.
    Se separan con espacio vertical y los botones pasan a ocupar todo el ancho, más
    fáciles de tocar y visualmente ordenados. */
-@media (max-width: 991.98px) {
+@media (max-width: 1199.98px) {
     .navbar-copa .navbar-collapse {
         margin-top: .75rem;
         padding-top: .75rem;
