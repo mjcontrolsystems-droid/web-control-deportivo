@@ -94,36 +94,36 @@
             </div>
             <a href="<?= url_copa('tabla.php') ?>" class="btn btn-sm btn-outline-secondary rounded-pill px-3 mt-3 mt-sm-0">Ver tabla completa <i class="bi bi-arrow-right ms-1"></i></a>
         </div>
-        <div class="table-responsive">
-            <table class="table tabla-posiciones align-middle mb-0">
+        <div class="table-responsive tabla-clasica-marco">
+            <table class="table tabla-posiciones tabla-clasica align-middle mb-0">
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>Equipo</th>
+                        <th class="col-fija col-pos">#</th>
+                        <th class="col-fija col-equipo">Club</th>
                         <th class="text-center">PJ</th>
-                        <th class="text-center">PG</th>
-                        <th class="text-center">PP</th>
+                        <th class="text-center">G</th>
+                        <th class="text-center">P</th>
+                        <th class="text-center col-pts">Pts</th>
                         <th class="text-center">DIF</th>
-                        <th class="text-center">PTS</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($top5 as $fila): ?>
                     <tr class="fila-clicable <?= (!$esLiga && $fila['posicion'] <= 4) ? 'zona-playoff' : '' ?>" data-href="<?= e(url_copa('equipo.php?id=' . $fila['equipo']['id'])) ?>">
-                        <td data-label="#">
+                        <td class="col-fija col-pos">
                             <span class="pos-num <?= $fila['posicion'] === 1 ? 'oro' : ($fila['posicion'] === 2 ? 'plata' : ($fila['posicion'] === 3 ? 'bronce' : '')) ?>"><?= $fila['posicion'] ?></span>
                         </td>
-                        <td class="td-equipo" data-label="Equipo">
-                            <a href="<?= url_copa('equipo.php?id=' . $fila['equipo']['id']) ?>" class="d-flex align-items-center gap-2 text-decoration-none text-dark">
-                                <?= logo_equipo($fila['equipo'], 34) ?>
-                                <span class="fw-semibold"><?= e($fila['equipo']['nombre']) ?></span>
+                        <td class="col-fija col-equipo">
+                            <a href="<?= url_copa('equipo.php?id=' . $fila['equipo']['id']) ?>" class="d-flex flex-nowrap align-items-center gap-2 text-decoration-none text-dark">
+                                <?= logo_equipo($fila['equipo'], 28) ?>
+                                <span class="nombre-club"><?= e($fila['equipo']['nombre']) ?></span>
                             </a>
                         </td>
-                        <td class="text-center" data-label="PJ"><?= $fila['pj'] ?></td>
-                        <td class="text-center" data-label="PG"><?= $fila['pg'] ?></td>
-                        <td class="text-center" data-label="PP"><?= $fila['pp'] ?></td>
-                        <td class="text-center fw-semibold <?= $fila['dif'] >= 0 ? 'text-success' : 'text-danger' ?>" data-label="DIF"><?= $fila['dif'] >= 0 ? '+' : '' ?><?= $fila['dif'] ?></td>
-                        <td class="text-center fw-bold" data-label="PTS"><?= $fila['pts'] ?></td>
+                        <td class="text-center"><?= $fila['pj'] ?></td>
+                        <td class="text-center"><?= $fila['pg'] ?></td>
+                        <td class="text-center"><?= $fila['pp'] ?></td>
+                        <td class="text-center col-pts"><?= $fila['pts'] ?></td>
+                        <td class="text-center"><?= $fila['dif'] > 0 ? '+' : '' ?><?= $fila['dif'] ?></td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>

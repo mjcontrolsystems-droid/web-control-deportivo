@@ -2179,3 +2179,146 @@ main.flex-grow-1 {
     color: #fff;
     text-decoration: underline;
 }
+
+
+/* ---------- Tabla de posiciones clásica ----------
+   Como la de la Liga Nacional en Google: filas corridas separadas por una línea fina,
+   no una tarjeta por equipo. Se lee de un vistazo y compara mejor entre equipos.
+   En el teléfono NO se apila (anula las reglas de .tabla-posiciones de arriba): sigue
+   siendo tabla y, si no cabe, se desliza de lado con la posición y el club fijos. */
+.tabla-clasica-marco {
+    background: #fff;
+    border: 1px solid rgba(var(--color-primario-oscuro-rgb), .08);
+    border-radius: 16px;
+    box-shadow: 0 10px 26px -18px rgba(var(--color-primario-oscuro-rgb), .3);
+}
+
+.tabla-posiciones.tabla-clasica {
+    border-collapse: collapse;
+    border-spacing: 0;
+    font-size: .92rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.tabla-posiciones.tabla-clasica thead th {
+    padding: .75rem .5rem .6rem;
+    border-bottom: 1px solid rgba(var(--color-primario-oscuro-rgb), .12);
+    white-space: nowrap;
+    background: #fff;
+    font-size: .72rem;
+}
+
+.tabla-posiciones.tabla-clasica tbody tr,
+.tabla-posiciones.tabla-clasica tbody tr:hover {
+    box-shadow: none;
+    transform: none;
+}
+
+.tabla-posiciones.tabla-clasica tbody tr:hover,
+.tabla-posiciones.tabla-clasica tbody tr:hover .col-fija { background: #f7f4ff; }
+
+.tabla-posiciones.tabla-clasica tbody tr td,
+.tabla-posiciones.tabla-clasica tbody tr td:first-child,
+.tabla-posiciones.tabla-clasica tbody tr td:last-child {
+    padding: .6rem .5rem;
+    border: 0;
+    border-bottom: 1px solid rgba(var(--color-primario-oscuro-rgb), .07);
+    border-radius: 0;
+    white-space: nowrap;
+}
+
+.tabla-posiciones.tabla-clasica tbody tr:last-child td { border-bottom: 0; }
+
+.tabla-clasica .col-pos { width: 40px; padding-left: .85rem !important; }
+.tabla-clasica .col-equipo { min-width: 170px; }
+.tabla-clasica .nombre-club { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.tabla-clasica .col-pts { font-weight: 800; color: var(--color-primario-oscuro); }
+.tabla-clasica thead .col-pts { color: var(--color-primario-oscuro); }
+
+/* Posición: número simple; el podio conserva su color pero en círculo pequeño. */
+.tabla-clasica .pos-num {
+    width: 24px;
+    height: 24px;
+    font-size: .8rem;
+    background: transparent;
+}
+.tabla-clasica .pos-num.oro,
+.tabla-clasica .pos-num.plata,
+.tabla-clasica .pos-num.bronce { animation: none; }
+.tabla-clasica .pos-num.oro { background: linear-gradient(135deg, #ffdf80, #ffb63c); }
+.tabla-clasica .pos-num.plata { background: linear-gradient(135deg, #eaeaf2, #c7c7d9); }
+.tabla-clasica .pos-num.bronce { background: linear-gradient(135deg, #e3ab7a, #c17a3f); }
+
+/* Zona de playoffs: franja a la izquierda de la fila. */
+.tabla-posiciones.tabla-clasica tr.zona-playoff td:first-child { box-shadow: inset 4px 0 0 var(--color-acento); }
+
+/* Últimos 5: círculos con ✓ / – / ✕ como en la tabla de Google. */
+.racha-icono {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 11px;
+    margin-right: 2px;
+    vertical-align: middle;
+}
+.racha-icono .bi { line-height: 1; -webkit-text-stroke: .6px; }
+.racha-icono.g { background: #22a55a; }
+.racha-icono.e { background: #9aa0a6; }
+.racha-icono.p { background: #e5484d; }
+
+.leyenda-racha {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem 1.1rem;
+    font-size: .82rem;
+    color: #6b5e8f;
+}
+
+@media (max-width: 767.98px) {
+    .tabla-posiciones.tabla-clasica { display: table; width: 100%; font-size: .85rem; }
+    .tabla-posiciones.tabla-clasica thead { display: table-header-group; }
+    .tabla-posiciones.tabla-clasica tbody { display: table-row-group; width: auto; }
+    .tabla-posiciones.tabla-clasica tr,
+    .tabla-posiciones.tabla-clasica tbody tr {
+        display: table-row;
+        width: auto;
+        padding: 0;
+        margin: 0;
+        border-radius: 0;
+    }
+    .tabla-posiciones.tabla-clasica th,
+    .tabla-posiciones.tabla-clasica td,
+    .tabla-posiciones.tabla-clasica tbody tr td,
+    .tabla-posiciones.tabla-clasica tbody tr td:first-child {
+        display: table-cell;
+        width: auto;
+        text-align: center;
+        padding: .55rem .35rem;
+        margin: 0;
+        order: 0;
+    }
+    .tabla-posiciones.tabla-clasica tbody tr td::before { content: none; }
+    .tabla-posiciones.tabla-clasica tr.zona-playoff { box-shadow: none; }
+    .tabla-posiciones.tabla-clasica tr.zona-playoff td:first-child { box-shadow: inset 4px 0 0 var(--color-acento); }
+
+    /* Posición y club quedan fijos al deslizar la tabla de lado. */
+    .tabla-clasica .col-fija { position: sticky; background: #fff; z-index: 2; }
+    .tabla-clasica .col-pos { left: 0; width: 34px; min-width: 34px; padding-left: .5rem !important; }
+    .tabla-clasica .col-equipo {
+        left: 34px;
+        min-width: 0;
+        text-align: left !important;
+        box-shadow: 6px 0 6px -6px rgba(0, 0, 0, .15);
+    }
+    .tabla-clasica .col-equipo a { flex-wrap: nowrap; gap: .4rem !important; }
+    .tabla-clasica .col-equipo a > :first-child,
+    .tabla-clasica .col-equipo a > :first-child svg { width: 24px !important; height: 24px !important; flex-shrink: 0; display: block; }
+    .tabla-clasica .nombre-club { display: block; min-width: 0; max-width: 104px; }
+    .tabla-clasica .pos-num { width: 22px; height: 22px; font-size: .75rem; }
+    .tabla-clasica .racha-icono { width: 16px; height: 16px; font-size: 10px; margin-right: 1px; }
+}

@@ -73,59 +73,61 @@
         <h4 class="mb-3">Tabla general</h4>
         <p class="small text-muted">Todos los equipos juntos, solo como referencia: la clasificación se define dentro de cada grupo.</p>
         <?php endif; ?>
-        <div class="table-responsive">
-            <table class="table tabla-posiciones align-middle mb-0">
+        <?php // Tabla clásica (como la de la Liga Nacional en Google): filas corridas en vez
+              // de una tarjeta por equipo. En el teléfono NO se apila: se lee de un
+              // vistazo, y si no cabe se desliza de lado con el equipo fijo a la izquierda.
+              // PTS va justo después de PP, que es donde el ojo lo busca. ?>
+        <div class="table-responsive tabla-clasica-marco">
+            <table class="table tabla-posiciones tabla-clasica align-middle mb-0">
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>Equipo</th>
+                        <th class="col-fija col-pos">#</th>
+                        <th class="col-fija col-equipo">Club</th>
                         <th class="text-center">PJ</th>
-                        <th class="text-center">PG</th>
-                        <?php if ($torneo['permite_empates']): ?><th class="text-center">PE</th><?php endif; ?>
-                        <th class="text-center">PP</th>
-                        <th class="text-center">%G</th>
+                        <th class="text-center">G</th>
+                        <?php if ($torneo['permite_empates']): ?><th class="text-center">E</th><?php endif; ?>
+                        <th class="text-center">P</th>
+                        <th class="text-center col-pts">Pts</th>
                         <th class="text-center"><?= e(etiqueta_gf($deporte)) ?></th>
                         <th class="text-center"><?= e(etiqueta_gc($deporte)) ?></th>
                         <th class="text-center">DIF</th>
-                        <th class="text-center" title="<?= e(etiqueta_faltas_leves($deporte)) ?>"><?= e(etiqueta_ta($deporte)) ?></th><th class="text-center" title="<?= e(etiqueta_faltas_graves($deporte)) ?>"><?= e(etiqueta_tr($deporte)) ?></th>
-                        <th class="text-center">PTS</th>
-                        <th>Racha</th>
+                        <th class="text-center d-none d-md-table-cell">%G</th>
+                        <th class="text-center d-none d-md-table-cell" title="<?= e(etiqueta_faltas_leves($deporte)) ?>"><?= e(etiqueta_ta($deporte)) ?></th><th class="text-center d-none d-md-table-cell" title="<?= e(etiqueta_faltas_graves($deporte)) ?>"><?= e(etiqueta_tr($deporte)) ?></th>
+                        <th class="text-center">Últimos</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($tabla as $fila): ?>
                     <tr class="fila-clicable <?= (!$esLiga && $fila['posicion'] <= 4) ? 'zona-playoff' : '' ?>" data-href="<?= e(url_copa('equipo.php?id=' . $fila['equipo']['id'])) ?>">
-                        <td data-label="#">
+                        <td class="col-fija col-pos">
                             <span class="pos-num <?= $fila['posicion'] === 1 ? 'oro' : ($fila['posicion'] === 2 ? 'plata' : ($fila['posicion'] === 3 ? 'bronce' : '')) ?>"><?= $fila['posicion'] ?></span>
                         </td>
-                        <td class="td-equipo">
-                            <a href="<?= url_copa('equipo.php?id=' . $fila['equipo']['id']) ?>" class="d-flex align-items-center gap-2 text-decoration-none text-dark">
-                                <?= logo_equipo($fila['equipo'], 38) ?>
-                                <div>
-                                    <div class="fw-semibold"><?= e($fila['equipo']['nombre']) ?></div>
-                                    <div class="small text-muted"><?= e($fila['equipo']['ciudad']) ?></div>
-                                </div>
+                        <td class="col-fija col-equipo">
+                            <a href="<?= url_copa('equipo.php?id=' . $fila['equipo']['id']) ?>" class="d-flex flex-nowrap align-items-center gap-2 text-decoration-none text-dark">
+                                <?= logo_equipo($fila['equipo'], 28) ?>
+                                <span class="nombre-club"><?= e($fila['equipo']['nombre']) ?></span>
                             </a>
                         </td>
-                        <td class="text-center" data-label="PJ"><?= $fila['pj'] ?></td>
-                        <td class="text-center" data-label="PG"><?= $fila['pg'] ?></td>
-                        <?php if ($torneo['permite_empates']): ?><td class="text-center" data-label="PE"><?= $fila['pe'] ?></td><?php endif; ?>
-                        <td class="text-center" data-label="PP"><?= $fila['pp'] ?></td>
-                        <td class="text-center" data-label="%G"><?= $fila['porcentaje'] ?>%</td>
-                        <td class="text-center" data-label="PF"><?= $fila['pf'] ?></td>
-                        <td class="text-center" data-label="PC"><?= $fila['pc'] ?></td>
-                        <td class="text-center fw-semibold <?= $fila['dif'] >= 0 ? 'text-success' : 'text-danger' ?>" data-label="DIF"><?= $fila['dif'] >= 0 ? '+' : '' ?><?= $fila['dif'] ?></td>
-                        <td class="text-center" data-label="<?= e(etiqueta_ta($deporte)) ?>"><?= $fila['tarjetas_amarillas'] ?></td>
-                        <td class="text-center" data-label="<?= e(etiqueta_tr($deporte)) ?>"><?= $fila['tarjetas_rojas'] ?></td>
-                        <td class="text-center fw-bold" data-label="PTS"><?= $fila['pts'] ?></td>
-                        <td data-label="Racha">
+                        <td class="text-center"><?= $fila['pj'] ?></td>
+                        <td class="text-center"><?= $fila['pg'] ?></td>
+                        <?php if ($torneo['permite_empates']): ?><td class="text-center"><?= $fila['pe'] ?></td><?php endif; ?>
+                        <td class="text-center"><?= $fila['pp'] ?></td>
+                        <td class="text-center col-pts"><?= $fila['pts'] ?></td>
+                        <td class="text-center"><?= $fila['pf'] ?></td>
+                        <td class="text-center"><?= $fila['pc'] ?></td>
+                        <td class="text-center"><?= $fila['dif'] > 0 ? '+' : '' ?><?= $fila['dif'] ?></td>
+                        <td class="text-center d-none d-md-table-cell"><?= $fila['porcentaje'] ?>%</td>
+                        <td class="text-center d-none d-md-table-cell"><?= $fila['tarjetas_amarillas'] ?></td>
+                        <td class="text-center d-none d-md-table-cell"><?= $fila['tarjetas_rojas'] ?></td>
+                        <td class="text-center col-racha">
                             <?php if (empty($fila['racha'])): ?>
                                 <span class="small text-muted">—</span>
                             <?php else: ?>
                                 <?php foreach ($fila['racha'] as $r): ?>
                                     <?php $claseRacha = $r === 'G' ? 'g' : ($r === 'E' ? 'e' : 'p'); ?>
-                                    <?php $tituloRacha = $r === 'G' ? 'Ganado' : ($r === 'E' ? 'Empatado' : 'Perdido'); ?>
-                                    <span class="racha-punto <?= $claseRacha ?>" title="<?= $tituloRacha ?>"></span>
+                                    <?php $tituloRacha = $r === 'G' ? 'Ganó' : ($r === 'E' ? 'Empate' : 'Perdió'); ?>
+                                    <?php $iconoRacha = $r === 'G' ? 'bi-check-lg' : ($r === 'E' ? 'bi-dash-lg' : 'bi-x-lg'); ?>
+                                    <span class="racha-icono <?= $claseRacha ?>" title="<?= $tituloRacha ?>"><i class="bi <?= $iconoRacha ?>"></i></span>
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </td>
@@ -133,6 +135,12 @@
                     <?php endforeach; ?>
                 </tbody>
             </table>
+        </div>
+        <div class="leyenda-racha mt-3">
+            <span class="fw-semibold">Últimos 5 partidos:</span>
+            <span><span class="racha-icono g"><i class="bi bi-check-lg"></i></span> Ganó</span>
+            <?php if ($torneo['permite_empates']): ?><span><span class="racha-icono e"><i class="bi bi-dash-lg"></i></span> Empate</span><?php endif; ?>
+            <span><span class="racha-icono p"><i class="bi bi-x-lg"></i></span> Perdió</span>
         </div>
         <div class="d-flex flex-wrap gap-4 mt-3">
             <?php if (!$esLiga): ?>
