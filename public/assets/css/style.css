@@ -2330,3 +2330,19 @@ main.flex-grow-1 {
     cursor: not-allowed;
     border-style: dashed;
 }
+
+/* Etiqueta "Jornada N" de las tarjetas de partido: es un enlace al calendario de esa
+   jornada. Se nota que se puede tocar (flecha y cambio de color) sin romper la tarjeta. */
+.badge-jornada--enlace {
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    transition: background-color .15s ease, color .15s ease;
+}
+.badge-jornada--enlace .bi { font-size: .7rem; }
+.badge-jornada--enlace:hover,
+.badge-jornada--enlace:focus-visible {
+    background: var(--color-primario);
+    color: #fff;
+}

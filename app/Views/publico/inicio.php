@@ -260,7 +260,8 @@
                     <?php foreach ($proximos as $p): $local = $equiposPorId[$p['equipo_local']]; $visit = $equiposPorId[$p['equipo_visitante']]; ?>
                     <div class="partido-card fila-clicable" data-href="<?= e(url_copa('partido.php?id=' . (int) $p['id'])) ?>">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="badge-jornada">Jornada <?= $p['jornada'] ?></span>
+                            <?php // La jornada lleva al calendario de esa jornada; el resto de la tarjeta abre el partido. ?>
+                            <a href="<?= e(url_copa('calendario.php?jornada=' . (int) $p['jornada'])) ?>" class="badge-jornada badge-jornada--enlace" title="Ver todos los partidos de la jornada <?= (int) $p['jornada'] ?>">Jornada <?= (int) $p['jornada'] ?> <i class="bi bi-chevron-right"></i></a>
                             <span class="small text-muted"><i class="bi bi-calendar3 me-1"></i><?= formatear_fecha_larga($p['fecha']) ?> · <?= e($p['hora']) ?></span>
                         </div>
                         <div class="d-flex align-items-center justify-content-between">
@@ -285,7 +286,8 @@
                     <?php foreach ($resultados as $p): $local = $equiposPorId[$p['equipo_local']]; $visit = $equiposPorId[$p['equipo_visitante']]; $ganoLocal = $p['marcador_local'] > $p['marcador_visitante']; ?>
                     <div class="partido-card fila-clicable" data-href="<?= e(url_copa('partido.php?id=' . (int) $p['id'])) ?>">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="badge-jornada">Jornada <?= $p['jornada'] ?></span>
+                            <?php // La jornada lleva al calendario de esa jornada; el resto de la tarjeta abre el partido. ?>
+                            <a href="<?= e(url_copa('calendario.php?jornada=' . (int) $p['jornada'])) ?>" class="badge-jornada badge-jornada--enlace" title="Ver todos los partidos de la jornada <?= (int) $p['jornada'] ?>">Jornada <?= (int) $p['jornada'] ?> <i class="bi bi-chevron-right"></i></a>
                             <span class="badge badge-estado-jugado rounded-pill px-3 py-2"><i class="bi bi-check-circle me-1"></i>Finalizado</span>
                         </div>
                         <div class="d-flex align-items-center justify-content-between">
