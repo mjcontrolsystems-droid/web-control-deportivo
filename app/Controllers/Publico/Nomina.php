@@ -71,10 +71,41 @@ usort($partidosDelEquipo, fn($a, $b) => strcmp((string) $a['fecha'] . $a['hora']
 $pendientes = array_values(array_filter($partidosDelEquipo, fn($p) => ($p['estado'] ?? '') !== 'jugado'));
 $jugadosDelEquipo = array_values(array_filter($partidosDelEquipo, fn($p) => ($p['estado'] ?? '') === 'jugado'));
 
+// --- Solo se habilita la jornada en curso ---
+// La nómina lleva quién está suspendido y quién debe multa, y eso depende de los
+// resultados y tarjetas de las fechas anteriores. Si se imprimía la de una jornada
+// futura, salía con datos que todavía no existían y el árbitro recibía una hoja vieja.
+// Por eso solo se abre la jornada que le toca al equipo (la primera que tiene sin
+// jugar, aunque tenga dos partidos en ella) y las ya jugadas, para reimprimir.
+// Las siguientes se ven bloqueadas y se habilitan solas al capturar la jornada actual.
+$jornadaHabilitada = $pendientes !== []
+    ? min(array_map(fn($p) => (int) ($p['jornada'] ?? 0), $pendientes))
+    : null;
+$nominaHabilitada = function (array $p) use ($jornadaHabilitada): bool {
+    if (($p['estado'] ?? '') === 'jugado') {
+        return true;
+    }
+    return $jornadaHabilitada !== null && (int) ($p['jornada'] ?? 0) === $jornadaHabilitada;
+};
+
+// Pidieron por enlace una jornada que todavía no toca: se muestra la de la jornada en
+// curso con un aviso, en vez de imprimir una hoja con tarjetas desactualizadas.
+$pedidoBloqueado = false;
+if ($partidoHoja !== null && !$nominaHabilitada($partidoHoja)) {
+    $pedidoBloqueado = true;
+    $partidoHoja = null;
+}
+
 if ($partidoHoja === null) {
-    // Sin encuentro pedido: el más próximo por jugar. Si ya se jugó todo, el último —
-    // así la hoja nunca sale en blanco al final de la temporada.
-    $partidoHoja = $pendientes[0] ?? (end($jugadosDelEquipo) ?: null);
+    // Sin encuentro pedido: el primero de la jornada en curso. Si ya se jugó todo, el
+    // último — así la hoja nunca sale en blanco al final de la temporada.
+    foreach ($pendientes as $p) {
+        if ($nominaHabilitada($p)) {
+            $partidoHoja = $p;
+            break;
+        }
+    }
+    $partidoHoja ??= end($jugadosDelEquipo) ?: null;
 }
 
 // Los dos últimos jugados van primero para poder reimprimir la fecha recién pasada, que
@@ -121,7 +152,10 @@ vista_publica('publico/nomina', compact(
     'deudores',
     'equipo',
     'equiposPorId',
+    'jornadaHabilitada',
     'jugadoresEnCancha',
+    'nominaHabilitada',
+    'pedidoBloqueado',
     'pagina_activa',
     'partidoHoja',
     'plantilla',

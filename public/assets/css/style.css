@@ -2322,3 +2322,11 @@ main.flex-grow-1 {
     .tabla-clasica .pos-num { width: 22px; height: 22px; font-size: .75rem; }
     .tabla-clasica .racha-icono { width: 16px; height: 16px; font-size: 10px; margin-right: 1px; }
 }
+
+/* Nómina: fechas de jornadas que todavía no tocan. Se ven para que el capitán sepa que
+   existen, pero no se abren hasta que se juegue la jornada en curso. */
+.nomina-bloqueada {
+    opacity: .45;
+    cursor: not-allowed;
+    border-style: dashed;
+}

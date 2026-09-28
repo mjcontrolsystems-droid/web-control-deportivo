@@ -38,6 +38,16 @@ $casilla = '<span style="display:inline-block;width:14px;height:14px;border:1.5p
             $rivalPP = $equiposPorId[$esLocalPP ? (int) $pp['equipo_visitante'] : (int) $pp['equipo_local']] ?? null;
             $yaJugado = ($pp['estado'] ?? '') === 'jugado';
             ?>
+            <?php if (!$nominaHabilitada($pp)): ?>
+            <?php // Jornada que todavía no toca: se ve, pero no se abre. ?>
+            <span class="btn btn-sm rounded-pill px-3 btn-outline-luz nomina-bloqueada"
+                  title="Se habilita cuando se juegue la jornada <?= (int) $jornadaHabilitada ?>" aria-disabled="true">
+                <i class="bi bi-lock-fill me-1"></i><?= e(formatear_fecha_corta((string) $pp['fecha'])) ?>
+                <?php if ($rivalPP !== null): ?>
+                <span class="opacity-75">· <?= e($rivalPP['nombre']) ?></span>
+                <?php endif; ?>
+            </span>
+            <?php continue; endif; ?>
             <a href="<?= url_copa('nomina.php?id=' . (int) $equipo['id'] . '&partido=' . (int) $pp['id']) ?>"
                class="btn btn-sm rounded-pill px-3 <?= $partidoHoja && (int) $partidoHoja['id'] === (int) $pp['id'] ? 'btn-degradado' : 'btn-outline-luz' ?>"
                title="Jornada <?= (int) ($pp['jornada'] ?? 0) ?><?= $yaJugado ? ' · ya jugado' : '' ?>">
@@ -48,6 +58,17 @@ $casilla = '<span style="display:inline-block;width:14px;height:14px;border:1.5p
                 <?php endif; ?>
             </a>
             <?php endforeach; ?>
+        </div>
+        <?php if ($jornadaHabilitada !== null): ?>
+        <p class="small mt-2 mb-0" style="color:rgba(255,255,255,.7);">
+            <i class="bi bi-info-circle me-1"></i>Solo se habilita la jornada en curso (Jornada <?= (int) $jornadaHabilitada ?>),
+            para que la nómina salga con las tarjetas y suspensiones al día. Las siguientes se abren al jugarse esta.
+        </p>
+        <?php endif; ?>
+        <?php endif; ?>
+        <?php if ($pedidoBloqueado): ?>
+        <div class="alert alert-warning rounded-4 border-0 mt-3 mb-0 py-2 small">
+            <i class="bi bi-lock-fill me-1"></i>Esa jornada todavía no está habilitada. Se muestra la nómina de la Jornada <?= (int) $jornadaHabilitada ?>.
         </div>
         <?php endif; ?>
     </div>
