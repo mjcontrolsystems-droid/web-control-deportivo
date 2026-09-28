@@ -115,7 +115,7 @@
                         <td class="text-center col-pts"><?= $fila['pts'] ?></td>
                         <td class="text-center"><?= $fila['pf'] ?></td>
                         <td class="text-center"><?= $fila['pc'] ?></td>
-                        <td class="text-center"><?= $fila['dif'] > 0 ? '+' : '' ?><?= $fila['dif'] ?></td>
+                        <td class="text-center fw-semibold <?= $fila['dif'] > 0 ? 'text-success' : ($fila['dif'] < 0 ? 'text-danger' : 'text-muted') ?>"><?= $fila['dif'] > 0 ? '+' : '' ?><?= $fila['dif'] ?></td>
                         <td class="text-center d-none d-md-table-cell"><?= $fila['porcentaje'] ?>%</td>
                         <td class="text-center d-none d-md-table-cell"><?= $fila['tarjetas_amarillas'] ?></td>
                         <td class="text-center d-none d-md-table-cell"><?= $fila['tarjetas_rojas'] ?></td>

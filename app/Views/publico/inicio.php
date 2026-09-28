@@ -123,7 +123,7 @@
                         <td class="text-center"><?= $fila['pg'] ?></td>
                         <td class="text-center"><?= $fila['pp'] ?></td>
                         <td class="text-center col-pts"><?= $fila['pts'] ?></td>
-                        <td class="text-center"><?= $fila['dif'] > 0 ? '+' : '' ?><?= $fila['dif'] ?></td>
+                        <td class="text-center fw-semibold <?= $fila['dif'] > 0 ? 'text-success' : ($fila['dif'] < 0 ? 'text-danger' : 'text-muted') ?>"><?= $fila['dif'] > 0 ? '+' : '' ?><?= $fila['dif'] ?></td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
