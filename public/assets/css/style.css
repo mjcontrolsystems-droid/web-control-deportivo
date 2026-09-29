@@ -2356,3 +2356,25 @@ main.flex-grow-1 {
     background: var(--color-primario);
     color: #fff;
 }
+
+/* Texto con degradado sobre los fondos oscuros (encabezados de cada página).
+   El degradado general usa el color secundario de la copa, y si el organizador eligió
+   uno oscuro (negro, azul marino) la última parte del título se perdía contra el fondo:
+   «I.A.V.H.C.» casi no se leía. Sobre fondo oscuro se usa un degradado que va de una
+   versión clara del color principal al principal y termina en el acento aclarado,
+   así siempre se lee, sin importar qué colores elija la copa. */
+.hero-copa .text-degradado,
+.bg-noche .text-degradado {
+    background: linear-gradient(120deg,
+        color-mix(in srgb, var(--color-primario) 55%, #fff) 0%,
+        var(--color-primario) 45%,
+        color-mix(in srgb, var(--color-acento) 55%, #fff) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+/* La descripción del encabezado de Inicio es larga: en el teléfono, a tamaño fs-5,
+   ocupaba toda la pantalla antes de llegar a los botones. */
+@media (max-width: 575.98px) {
+    .hero-copa .lead-hero { font-size: 1.02rem !important; line-height: 1.55; }
+}

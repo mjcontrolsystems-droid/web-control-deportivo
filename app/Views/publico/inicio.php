@@ -34,7 +34,11 @@
             <div class="col-lg-7">
                 <p class="kicker mb-3"><i class="bi bi-stars me-1"></i>Temporada <?= e($torneo['temporada']) ?></p>
                 <h1 class="text-white mb-3"><?= e($torneo['nombre']) ?> <span class="text-degradado d-block d-sm-inline"><?= e($torneo['subtitulo']) ?></span></h1>
-                <p class="fs-5 mb-4" style="color:rgba(255,255,255,.8);max-width:560px;"><?= e($torneo['hero_frase']) ?>. <?= e($torneo['descripcion']) ?></p>
+                <?php // La frase a veces ya viene con su punto (y hasta con comillas): antes se le
+                      // pegaba otro y salía «historia.".» — solo se agrega si le falta. ?>
+                <?php $fraseHero = trim((string) $torneo['hero_frase']); ?>
+                <?php $fraseHero .= ($fraseHero !== '' && !preg_match('/[.!?…]["»”\']?$/u', $fraseHero)) ? '.' : ''; ?>
+                <p class="fs-5 mb-4 lead-hero" style="color:rgba(255,255,255,.8);max-width:560px;"><?= e($fraseHero) ?> <?= e($torneo['descripcion']) ?></p>
                 <div class="d-flex flex-wrap gap-3 mb-5">
                     <a href="<?= url_copa('tabla.php') ?>" class="btn btn-degradado btn-lg rounded-pill px-4">Ver tabla de posiciones</a>
                     <a href="<?= url_copa('calendario.php') ?>" class="btn btn-outline-luz btn-lg rounded-pill px-4">Calendario completo</a>
