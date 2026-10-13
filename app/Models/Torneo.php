@@ -163,6 +163,16 @@ function torneos_obtener_predeterminado(): ?array
  */
 function torneos_accesibles(int $usuarioId, string $email = '', bool $soloActivos = false): array
 {
+    // El superadmin entra a todas las copas como dueño (ver acceso_en_copa() en auth.php);
+    // aquí además las ve todas en "Mis copas", para poder abrirlas sin que lo inviten.
+    // Las ajenas van marcadas como colaboración: no se le ofrece editarlas ni borrarlas desde la lista.
+    if (es_superadmin(usuarios_obtener_por_id($usuarioId))) {
+        return array_map(
+            fn(array $copa): array => (int) $copa['usuario_id'] === $usuarioId ? $copa : $copa + ['es_colaboracion' => true],
+            torneos_listar($soloActivos)
+        );
+    }
+
     $propias = torneos_listar($soloActivos, $usuarioId);
 
     $idsColaboro = colaborador_torneos_de($usuarioId, $email);

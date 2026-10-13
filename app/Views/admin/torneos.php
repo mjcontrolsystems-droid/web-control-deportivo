@@ -494,8 +494,11 @@
                 <div class="d-flex gap-2 mt-auto flex-wrap">
                     <a href="<?= url('admin/torneos.php?accion=entrar&id=' . $t['id']) ?>" class="btn btn-sm btn-degradado rounded-pill flex-grow-1">Entrar</a>
                     <a href="<?= e(url_copa_de($t)) ?>" target="_blank" class="btn btn-sm btn-outline-secondary" title="Ver"><i class="bi bi-box-arrow-up-right"></i></a>
+                    <?php // Editar y eliminar son solo del dueño; en una copa ajena (colaboración o soporte del superadmin) no se ofrecen. ?>
+                    <?php if (empty($t['es_colaboracion'])): ?>
                     <a href="<?= url('admin/torneos.php?accion=editar&id=' . $t['id']) ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-                    <?php if (!$t['es_predeterminado']): ?>
+                    <?php endif; ?>
+                    <?php if (!$t['es_predeterminado'] && empty($t['es_colaboracion'])): ?>
                     <form method="post" data-confirm="¿Eliminar &quot;<?= e($t['nombre']) ?>&quot;? Se borrarán todos sus equipos, partidos y patrocinadores, y no se puede deshacer.">
                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="accion" value="eliminar">
