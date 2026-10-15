@@ -1049,3 +1049,21 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 });
+
+// Encuentros: el título "Sigue: …" y el botón cambian según cuántos clasifican
+// (2 = final directa, 4 = semifinales, 8 = cuartos, 16 = octavos).
+document.addEventListener('DOMContentLoaded', function () {
+    var lista = document.getElementById('cuantosClasifican');
+    if (!lista || !lista.form) { return; }
+    var tarjeta = lista.closest('.card-suave');
+    var titulo = tarjeta ? tarjeta.querySelector('[data-fase-titulo]') : null;
+    var boton = tarjeta ? tarjeta.querySelector('[data-fase-boton]') : null;
+    lista.addEventListener('change', function () {
+        var opcion = lista.options[lista.selectedIndex];
+        var ronda = opcion ? opcion.getAttribute('data-fase') : '';
+        if (!ronda) { return; }
+        if (titulo) { titulo.textContent = ronda; }
+        if (boton) { boton.textContent = ronda.toLowerCase(); }
+        lista.form.setAttribute('data-confirm', 'Se van a crear los encuentros de ' + ronda + ' con las posiciones de ahora mismo. ¿Continuamos?');
+    });
+});

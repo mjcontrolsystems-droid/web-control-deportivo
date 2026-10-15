@@ -535,10 +535,16 @@
           // resultado — hay que darle al botón, para que se puedan revisar los cruces y
           // para que corregir un marcador no dispare partidos fantasma. ?>
     <?php if (!empty($pasoEliminacion['fase'])): ?>
+    <?php // Solo en la primera ronda de una liga se elige cuántos clasifican, y ese número
+          // decide la ronda: 2 = final directa, 4 = semifinales, 8 = cuartos, 16 = octavos.
+          $conSelector = $pasoEliminacion['origen'] === null && empty($tieneGrupos);
+          $opcionesCuadro = [2 => 'Final directa', 4 => 'Semifinales', 8 => 'Cuartos de final', 16 => 'Octavos de final'];
+          $clasificanElegido = ['final' => 2, 'semifinal' => 4, 'cuartos' => 8, 'octavos' => 16][$pasoEliminacion['fase']] ?? 4;
+          $tituloPaso = $conSelector ? $opcionesCuadro[$clasificanElegido] : $pasoEliminacion['label']; ?>
     <div class="card-suave p-4 mb-4">
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
             <div style="min-width:0;">
-                <h5 class="mb-1"><i class="bi bi-diagram-2 me-1"></i>Sigue: <?= e($pasoEliminacion['label']) ?></h5>
+                <h5 class="mb-1"><i class="bi bi-diagram-2 me-1"></i>Sigue: <span data-fase-titulo><?= e($tituloPaso) ?></span></h5>
                 <p class="small text-muted mb-0">
                     <?php if ($pasoEliminacion['origen'] === null): ?>
                         <?= !empty($tieneGrupos)
@@ -551,7 +557,7 @@
                     <?php endif; ?>
                 </p>
             </div>
-            <form method="post" class="d-flex align-items-center gap-2 flex-wrap" data-confirm="Se van a crear los encuentros de <?= e($pasoEliminacion['label']) ?> con las posiciones de ahora mismo. ¿Continuamos?">
+            <form method="post" class="d-flex align-items-center gap-2 flex-wrap" data-confirm="Se van a crear los encuentros de <?= e($tituloPaso) ?> con las posiciones de ahora mismo. ¿Continuamos?">
                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="accion" value="armar_cruces">
                 <?php if (!$pasoEliminacion['listo']): ?>
@@ -559,16 +565,15 @@
                 <?php endif; ?>
                 <?php // Cuántos entran al cuadro. Solo se pregunta en la primera ronda de
                       // una liga con fase final: en grupos ya está en la configuración. ?>
-                <?php if ($pasoEliminacion['origen'] === null && empty($tieneGrupos)): ?>
+                <?php if ($conSelector): ?>
                 <label class="small text-muted mb-0" for="cuantosClasifican">Clasifican</label>
                 <select name="clasifican" id="cuantosClasifican" class="form-select form-select-sm" style="width:auto;">
-                    <option value="2">Los 2 primeros</option>
-                    <option value="4" selected>Los 4 primeros</option>
-                    <option value="8">Los 8 primeros</option>
-                    <option value="16">Los 16 primeros</option>
+                    <?php foreach ($opcionesCuadro as $n => $nombreRonda): ?>
+                    <option value="<?= $n ?>" data-fase="<?= e($nombreRonda) ?>" <?= $n === $clasificanElegido ? 'selected' : '' ?>>Los <?= $n ?> primeros</option>
+                    <?php endforeach; ?>
                 </select>
                 <?php endif; ?>
-                <button type="submit" class="btn btn-degradado rounded-pill px-3"><i class="bi bi-diagram-2 me-1"></i>Armar <?= e(mb_strtolower($pasoEliminacion['label'])) ?></button>
+                <button type="submit" class="btn btn-degradado rounded-pill px-3"><i class="bi bi-diagram-2 me-1"></i>Armar <span data-fase-boton><?= e(mb_strtolower($tituloPaso)) ?></span></button>
             </form>
         </div>
 

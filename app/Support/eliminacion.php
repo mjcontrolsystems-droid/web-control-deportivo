@@ -229,8 +229,8 @@ function eliminacion_fila_partido(int $id, array $local, array $visitante, strin
  */
 function eliminacion_siguiente_paso(array $torneo, array $partidos, array $equiposPorId): array
 {
-    $fases = eliminacion_fases_ordenadas($torneo);
-    if (empty($fases)) {
+    $configuradas = eliminacion_fases_ordenadas($torneo);
+    if (empty($configuradas)) {
         return ['fase' => null, 'label' => '', 'origen' => null, 'listo' => false, 'motivo' => 'Esta competencia no tiene fase final configurada.'];
     }
 
@@ -240,15 +240,39 @@ function eliminacion_siguiente_paso(array $torneo, array $partidos, array $equip
         $conteoPorFase[$f] = ($conteoPorFase[$f] ?? 0) + 1;
     }
 
-    foreach ($fases as $i => $fase) {
+    // El tamaño del cuadro lo decide el organizador al armar la primera ronda ("Clasifican
+    // 2/4/8/16"), así que puede no coincidir con lo configurado en la copa. Manda la ronda
+    // que ya existe: las anteriores se saltan y las que falten hasta la final se agregan.
+    $fases = $configuradas;
+    $creadas = array_values(array_filter(
+        FASES_PLAYOFF_CATALOGO,
+        fn($f) => $f !== 'tercer_lugar' && !empty($conteoPorFase[$f])
+    ));
+    if (!empty($creadas)) {
+        $desde = (int) array_search($creadas[0], FASES_PLAYOFF_CATALOGO, true);
+        $fases = array_values(array_filter(
+            array_slice(FASES_PLAYOFF_CATALOGO, $desde),
+            fn($f) => $f !== 'tercer_lugar'
+                || (in_array('tercer_lugar', $configuradas, true) && $desde <= (int) array_search('semifinal', FASES_PLAYOFF_CATALOGO, true))
+                || !empty($conteoPorFase['tercer_lugar'])
+        ));
+    }
+    // Rondas que se juegan una tras otra (el tercer lugar no lleva a nadie a la final).
+    $rondas = array_values(array_diff($fases, ['tercer_lugar']));
+
+    foreach ($fases as $fase) {
         if (!empty($conteoPorFase[$fase])) {
             continue; // esa ronda ya está creada
         }
 
         $label = FASES_LABEL[$fase] ?? $fase;
 
-        // El tercer lugar sale de los PERDEDORES de la semifinal, no de los ganadores.
-        $faseOrigen = $fase === 'tercer_lugar' ? 'semifinal' : ($fases[$i - 1] ?? null);
+        // El tercer lugar sale de los PERDEDORES de la semifinal; las demás rondas, de los
+        // ganadores de la ronda anterior del cuadro.
+        $posRonda = array_search($fase, $rondas, true);
+        $faseOrigen = $fase === 'tercer_lugar'
+            ? 'semifinal'
+            : ($posRonda !== false && $posRonda > 0 ? $rondas[$posRonda - 1] : null);
 
         if ($faseOrigen === null || empty($conteoPorFase[$faseOrigen])) {
             // Primera ronda del cuadro: sale de la tabla (o de las tablas de grupo).
