@@ -577,6 +577,15 @@
             </form>
         </div>
 
+        <?php if ($conSelector): ?>
+        <?php // Guarda la elección apenas se cambia el select (ver app.js), sin armar nada. ?>
+        <form method="post" id="formElegirClasifican" class="d-none">
+            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="accion" value="elegir_clasifican">
+            <input type="hidden" name="clasifican" value="<?= (int) $clasificanElegido ?>">
+        </form>
+        <?php endif; ?>
+
         <?php if (!empty($pasoEliminacion['motivo'])): ?>
         <div class="alert alert-warning rounded-4 border-0 small mt-3 mb-0">
             <i class="bi bi-exclamation-triangle-fill me-1"></i><?= e($pasoEliminacion['motivo']) ?>

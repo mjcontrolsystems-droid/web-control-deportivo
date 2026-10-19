@@ -11,7 +11,7 @@ $torneo = admin_requerir_torneo_activo();
 //     porque de un botón puede salir un torneo entero distinto al que ya se anunció.
 requerir_permiso('partido_capturar');
 
-const PARTIDOS_ACCIONES_DE_DUENO = ['generar_fixture', 'borrar_desde_jornada', 'correr_calendario', 'armar_cruces'];
+const PARTIDOS_ACCIONES_DE_DUENO = ['generar_fixture', 'borrar_desde_jornada', 'correr_calendario', 'armar_cruces', 'elegir_clasifican'];
 const PARTIDOS_ACCIONES_DE_ASISTENTE = ['guardar', 'eliminar', 'alternar_jugado'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -103,6 +103,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Armar los cruces de eliminación con los clasificados de cada grupo. Se cruza el
     // primero de un grupo con el segundo de otro, y los dos clasificados de un mismo grupo
     // caen en mitades opuestas del cuadro: así no se reencuentran hasta la final.
+    // "Clasifican 2/4/8/16" se guarda en cuanto se elige, antes de armar el cuadro: así la
+    // zona de playoffs de la tabla pública, las pestañas y el título ya muestran el cuadro
+    // decidido. Se guarda como las fases de la copa (8 → cuartos, semifinal, final).
+    if (($_POST['accion'] ?? '') === 'elegir_clasifican') {
+        $cuantos = (int) ($_POST['clasifican'] ?? 0);
+        if (!in_array($cuantos, [2, 4, 8, 16], true) || torneo_es_liga($torneo) || torneo_tiene_grupos($torneo)) {
+            redirigir_con_mensaje(url('admin/partidos.php'), 'error', 'Esa cantidad de clasificados no es válida para esta competencia.');
+        }
+        if (eliminacion_primera_ronda_creada($partidos) !== null) {
+            redirigir_con_mensaje(url('admin/partidos.php'), 'error', 'El cuadro ya está armado: para cambiar cuántos clasifican borra primero esos encuentros.');
+        }
+        $desde = (int) array_search(grupos_fase_para_cantidad($cuantos), FASES_PLAYOFF_CATALOGO, true);
+        $conTercero = $cuantos >= 4 && in_array('tercer_lugar', torneo_fases_playoff($torneo), true);
+        $nuevasFases = array_values(array_filter(
+            array_slice(FASES_PLAYOFF_CATALOGO, $desde),
+            fn($f) => $f !== 'tercer_lugar' || $conTercero
+        ));
+        torneos_guardar(['id' => (int) $torneo['id'], 'fases_playoff' => $nuevasFases]);
+        bitacora_registrar('clasifican_elegido', "Clasifican los primeros {$cuantos} a la fase final", $torneo['id']);
+        redirigir_con_mensaje(url('admin/partidos.php'), 'success', "Listo: clasifican los primeros {$cuantos}. La tabla pública ya marca esa zona de playoffs.");
+    }
+
     if (($_POST['accion'] ?? '') === 'armar_cruces') {
         $paso = eliminacion_siguiente_paso($torneo, $partidos, $equiposPorId);
 

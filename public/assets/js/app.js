@@ -1065,5 +1065,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if (titulo) { titulo.textContent = ronda; }
         if (boton) { boton.textContent = ronda.toLowerCase(); }
         lista.form.setAttribute('data-confirm', 'Se van a crear los encuentros de ' + ronda + ' con las posiciones de ahora mismo. ¿Continuamos?');
+        // Se guarda de una vez para que la tabla pública y las pestañas lo reflejen.
+        var guardar = document.getElementById('formElegirClasifican');
+        if (guardar) {
+            guardar.querySelector('input[name="clasifican"]').value = lista.value;
+            lista.disabled = true;
+            guardar.submit();
+        }
     });
 });
