@@ -9,7 +9,7 @@
                     ? 'Clasifica el primero de cada grupo a la eliminación.'
                     : 'Clasifican los primeros ' . $cuantos . ' de cada grupo a la eliminación.';
             } else {
-                echo $esLiga ? 'El campeón es quien termine la temporada en el primer lugar.' : 'Los primeros lugares avanzan a la fase final.';
+                echo $esLiga ? 'El campeón es quien termine la temporada en el primer lugar.' : ($zonaPlayoff > 0 ? 'Los primeros ' . (int) $zonaPlayoff . ' avanzan a la fase final.' : 'Los primeros lugares avanzan a la fase final.');
             }
         ?></p>
     </div>
@@ -98,7 +98,7 @@
                 </thead>
                 <tbody>
                     <?php foreach ($tabla as $fila): ?>
-                    <tr class="fila-clicable <?= (!$esLiga && $fila['posicion'] <= 4) ? 'zona-playoff' : '' ?>" data-href="<?= e(url_copa('equipo.php?id=' . $fila['equipo']['id'])) ?>">
+                    <tr class="fila-clicable <?= (!$esLiga && $fila['posicion'] <= $zonaPlayoff) ? 'zona-playoff' : '' ?>" data-href="<?= e(url_copa('equipo.php?id=' . $fila['equipo']['id'])) ?>">
                         <td class="col-fija col-pos">
                             <span class="pos-num <?= $fila['posicion'] === 1 ? 'oro' : ($fila['posicion'] === 2 ? 'plata' : ($fila['posicion'] === 3 ? 'bronce' : '')) ?>"><?= $fila['posicion'] ?></span>
                         </td>
@@ -143,8 +143,8 @@
             <span><span class="racha-icono p"><i class="bi bi-x-lg"></i></span> Perdió</span>
         </div>
         <div class="d-flex flex-wrap gap-4 mt-3">
-            <?php if (!$esLiga): ?>
-            <p class="small text-muted mb-0"><span class="d-inline-block" style="width:10px;height:10px;background:var(--color-acento);border-radius:2px;"></span> Zona de Playoffs (Top 4)</p>
+            <?php if (!$esLiga && $zonaPlayoff > 0): ?>
+            <p class="small text-muted mb-0"><span class="d-inline-block" style="width:10px;height:10px;background:var(--color-acento);border-radius:2px;"></span> Zona de Playoffs (Top <?= (int) $zonaPlayoff ?>)</p>
             <?php endif; ?>
             <p class="small text-muted mb-0"><?= e($explicacionPuntos) ?></p>
         </div>

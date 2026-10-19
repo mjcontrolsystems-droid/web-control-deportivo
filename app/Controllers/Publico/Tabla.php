@@ -13,6 +13,9 @@ $tabla = calcular_tabla($equipos, $partidos, $torneo, $eventos);
 // En una liga el título se decide en esta misma tabla: no hay "zona de playoffs" que
 // resaltar ni cuadro final al que avanzar.
 $esLiga = torneo_es_liga($torneo);
+// Cuántos de la tabla entran al cuadro final: los que eligió el organizador al armar la
+// primera ronda ("Clasifican 2/4/8/16") o, si aún no la arma, lo configurado en la copa.
+$zonaPlayoff = $esLiga ? 0 : eliminacion_cuantos_clasifican($torneo, $partidos);
 
 // En el formato de grupos no hay una tabla única: cada grupo tiene la suya y lo que
 // importa es quién clasifica de cada uno.
@@ -35,5 +38,6 @@ vista_publica('publico/tabla', compact(
     'tablasGrupo',
     'tieneGrupos',
     'titulo_pagina',
-    'torneo'
+    'torneo',
+    'zonaPlayoff'
 ));

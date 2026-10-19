@@ -220,6 +220,82 @@ function eliminacion_fila_partido(int $id, array $local, array $visitante, strin
 }
 
 /**
+ * Fases del cuadro tal como se están jugando: las configuradas, ajustadas al tamaño de
+ * cuadro que se eligió al armar la primera ronda. Es lo que deben mostrar las pestañas.
+ *
+ * @return array<int, string>
+ */
+function eliminacion_fases_en_juego(array $torneo, array $partidos): array
+{
+    $configuradas = eliminacion_fases_ordenadas($torneo);
+    if (empty($configuradas)) {
+        return [];
+    }
+
+    $conteoPorFase = [];
+    foreach ($partidos as $p) {
+        $f = (string) ($p['fase'] ?? 'grupos');
+        $conteoPorFase[$f] = ($conteoPorFase[$f] ?? 0) + 1;
+    }
+
+    // El tamaño del cuadro lo decide el organizador al armar la primera ronda ("Clasifican
+    // 2/4/8/16"), así que puede no coincidir con lo configurado en la copa. Manda la ronda
+    // que ya existe: las anteriores se saltan y las que falten hasta la final se agregan.
+    $primera = eliminacion_primera_ronda_creada($partidos);
+    if ($primera === null) {
+        return $configuradas;
+    }
+    $desde = (int) array_search($primera, FASES_PLAYOFF_CATALOGO, true);
+    $hastaSemi = $desde <= (int) array_search('semifinal', FASES_PLAYOFF_CATALOGO, true);
+
+    return array_values(array_filter(
+        array_slice(FASES_PLAYOFF_CATALOGO, $desde),
+        fn($f) => $f !== 'tercer_lugar'
+            || ($hastaSemi && in_array('tercer_lugar', $configuradas, true))
+            || !empty($conteoPorFase['tercer_lugar'])
+    ));
+}
+
+/**
+ * Primera ronda del cuadro que ya tiene encuentros (sin contar el tercer lugar), o null.
+ */
+function eliminacion_primera_ronda_creada(array $partidos): ?string
+{
+    $presentes = array_flip(array_map(fn($p) => (string) ($p['fase'] ?? 'grupos'), $partidos));
+    foreach (FASES_PLAYOFF_CATALOGO as $f) {
+        if ($f !== 'tercer_lugar' && isset($presentes[$f])) {
+            return $f;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Cuántos equipos de la tabla entran al cuadro, para marcar la zona de playoffs.
+ *
+ * Si la primera ronda ya está armada, son los que la juegan (2 por encuentro): así refleja
+ * lo que el organizador eligió en "Clasifican". Si todavía no, sale de la primera fase
+ * configurada (semifinal = 4, cuartos = 8...). 0 cuando no hay fase final.
+ */
+function eliminacion_cuantos_clasifican(array $torneo, array $partidos): int
+{
+    $porFase = ['dieciseisavos' => 32, 'octavos' => 16, 'cuartos' => 8, 'semifinal' => 4, 'final' => 2];
+    $primera = eliminacion_primera_ronda_creada($partidos);
+    if ($primera !== null) {
+        $encuentros = count(array_filter($partidos, fn($p) => ($p['fase'] ?? '') === $primera));
+        return $encuentros * 2;
+    }
+    foreach (eliminacion_fases_ordenadas($torneo) as $f) {
+        if (isset($porFase[$f])) {
+            return $porFase[$f];
+        }
+    }
+
+    return 0;
+}
+
+/**
  * Qué ronda se puede armar ahora mismo, para saber qué botón ofrecerle al organizador.
  *
  * Recorre las fases en orden y devuelve la primera que todavía no tiene encuentros. Si esa
@@ -240,23 +316,7 @@ function eliminacion_siguiente_paso(array $torneo, array $partidos, array $equip
         $conteoPorFase[$f] = ($conteoPorFase[$f] ?? 0) + 1;
     }
 
-    // El tamaño del cuadro lo decide el organizador al armar la primera ronda ("Clasifican
-    // 2/4/8/16"), así que puede no coincidir con lo configurado en la copa. Manda la ronda
-    // que ya existe: las anteriores se saltan y las que falten hasta la final se agregan.
-    $fases = $configuradas;
-    $creadas = array_values(array_filter(
-        FASES_PLAYOFF_CATALOGO,
-        fn($f) => $f !== 'tercer_lugar' && !empty($conteoPorFase[$f])
-    ));
-    if (!empty($creadas)) {
-        $desde = (int) array_search($creadas[0], FASES_PLAYOFF_CATALOGO, true);
-        $fases = array_values(array_filter(
-            array_slice(FASES_PLAYOFF_CATALOGO, $desde),
-            fn($f) => $f !== 'tercer_lugar'
-                || (in_array('tercer_lugar', $configuradas, true) && $desde <= (int) array_search('semifinal', FASES_PLAYOFF_CATALOGO, true))
-                || !empty($conteoPorFase['tercer_lugar'])
-        ));
-    }
+    $fases = eliminacion_fases_en_juego($torneo, $partidos);
     // Rondas que se juegan una tras otra (el tercer lugar no lleva a nadie a la final).
     $rondas = array_values(array_diff($fases, ['tercer_lugar']));
 

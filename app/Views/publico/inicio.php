@@ -113,7 +113,7 @@
                 </thead>
                 <tbody>
                     <?php foreach ($top5 as $fila): ?>
-                    <tr class="fila-clicable <?= (!$esLiga && $fila['posicion'] <= 4) ? 'zona-playoff' : '' ?>" data-href="<?= e(url_copa('equipo.php?id=' . $fila['equipo']['id'])) ?>">
+                    <tr class="fila-clicable <?= (!$esLiga && $fila['posicion'] <= $zonaPlayoff) ? 'zona-playoff' : '' ?>" data-href="<?= e(url_copa('equipo.php?id=' . $fila['equipo']['id'])) ?>">
                         <td class="col-fija col-pos">
                             <span class="pos-num <?= $fila['posicion'] === 1 ? 'oro' : ($fila['posicion'] === 2 ? 'plata' : ($fila['posicion'] === 3 ? 'bronce' : '')) ?>"><?= $fila['posicion'] ?></span>
                         </td>
@@ -134,7 +134,9 @@
             </table>
         </div>
         <?php if (!$esLiga): ?>
-        <p class="small text-muted mt-3 mb-0"><span class="d-inline-block" style="width:10px;height:10px;background:var(--color-acento);border-radius:2px;"></span> Zona de Playoffs (Top 4)</p>
+        <?php if ($zonaPlayoff > 0): ?>
+        <p class="small text-muted mt-3 mb-0"><span class="d-inline-block" style="width:10px;height:10px;background:var(--color-acento);border-radius:2px;"></span> Zona de Playoffs (Top <?= (int) $zonaPlayoff ?>)</p>
+        <?php endif; ?>
         <?php else: ?>
         <p class="small text-muted mt-3 mb-0"><i class="bi bi-info-circle me-1"></i>Liga a puntos: el campeón es quien termine la temporada en el primer lugar.</p>
         <?php endif; ?>

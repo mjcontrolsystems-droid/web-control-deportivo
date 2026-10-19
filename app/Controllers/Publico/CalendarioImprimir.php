@@ -25,7 +25,9 @@ foreach ($equipos as $eq) {
 
 $jornadas = partidos_por_jornada($partidos);
 $esLiga = torneo_es_liga($torneo);
-$fasesTorneo = torneo_fases_playoff($torneo);
+// Las fases que se están jugando: si al armar el cuadro se eligió otro tamaño (8 → cuartos),
+// esa ronda también aparece aunque no estuviera en la configuración de la copa.
+$fasesTorneo = eliminacion_fases_en_juego($torneo, $partidos);
 $playoffsPorFase = partidos_playoffs_por_fase($partidos, $fasesTorneo);
 
 $alcance = (string) ($_GET['alcance'] ?? '');

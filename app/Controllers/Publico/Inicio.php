@@ -25,6 +25,9 @@ $deporte = $torneo['deporte'] ?? null;
 $basketball = es_basketball($deporte);
 // Liga = solo tabla de puntos: sin zona de playoffs marcada en la clasificación.
 $esLiga = torneo_es_liga($torneo);
+// Cuántos de la tabla entran al cuadro final: los que eligió el organizador al armar la
+// primera ronda ("Clasifican 2/4/8/16") o, si aún no la arma, lo configurado en la copa.
+$zonaPlayoff = $esLiga ? 0 : eliminacion_cuantos_clasifican($torneo, $partidos);
 $jugadores = jugadores_listar($torneo['id']);
 $eventos = eventos_de_torneo($torneo['id']);
 $topGoleadores = array_slice(calcular_goleadores($eventos, $jugadores, $equiposPorId, $deporte), 0, 5);
@@ -65,5 +68,6 @@ vista_publica('publico/inicio', compact(
     'topGoleadores',
     'topPorterias',
     'torneo',
-    'totalJugados'
+    'totalJugados',
+    'zonaPlayoff'
 ));
