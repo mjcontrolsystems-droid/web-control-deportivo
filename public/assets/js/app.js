@@ -1074,3 +1074,38 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
+
+// Ojo para ver la contraseña: a cada campo de contraseña (login, restablecer, perfil) se le
+// agrega un botón que alterna entre mostrar y ocultar lo que se escribe. Se hace aquí y no
+// en cada vista para que todos los formularios se comporten igual.
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('input[type="password"]:not([data-sin-ojo])').forEach(function (campo) {
+        var grupo = document.createElement('div');
+        grupo.className = 'input-group' + (campo.classList.contains('form-control-lg') ? ' input-group-lg' : '');
+        campo.parentNode.insertBefore(grupo, campo);
+        grupo.appendChild(campo);
+
+        var boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'btn btn-outline-secondary';
+        boton.setAttribute('aria-label', 'Mostrar contraseña');
+        boton.setAttribute('title', 'Mostrar contraseña');
+        boton.innerHTML = '<i class="bi bi-eye"></i>';
+        grupo.appendChild(boton);
+
+        boton.addEventListener('click', function () {
+            var mostrar = campo.type === 'password';
+            campo.type = mostrar ? 'text' : 'password';
+            var texto = mostrar ? 'Ocultar contraseña' : 'Mostrar contraseña';
+            boton.setAttribute('aria-label', texto);
+            boton.setAttribute('title', texto);
+            boton.innerHTML = mostrar ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
+            campo.focus();
+        });
+        // Al enviar se vuelve a ocultar, para que el navegador no la guarde como texto
+        // visible en el historial del formulario.
+        if (campo.form) {
+            campo.form.addEventListener('submit', function () { campo.type = 'password'; });
+        }
+    });
+});
