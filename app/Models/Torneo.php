@@ -290,7 +290,10 @@ function torneos_guardar(array $datos, ?int $usuarioIdCreador = null): int
         } elseif ($v === null) {
             // Las columnas de texto del esquema son NOT NULL DEFAULT '': una copa nueva que
             // todavía no tiene redes ni reglamento guarda cadena vacía, no NULL.
-            $v = in_array($c, ['num_equipos', 'num_grupos', 'clasifican_por_grupo'], true) ? $v : '';
+            // Las columnas enteras que admiten NULL lo conservan: un '' en una columna
+            // INTEGER hace fallar el guardado entero (pasaba al guardar cualquier ajuste
+            // parcial de una copa sin minutos por periodo personalizados).
+            $v = in_array($c, ['num_equipos', 'num_grupos', 'clasifican_por_grupo', 'duracion_periodo_min'], true) ? $v : '';
         }
         $valores[$c] = $v;
     }

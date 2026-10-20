@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirigir_con_mensaje($urlLista,'error', 'Indica qué equipo gana por default.');
         }
 
-        [$ganador, $perdedor] = marcador_por_default($torneo['deporte'] ?? null);
+        [$ganador, $perdedor] = marcador_por_default($torneo['deporte'] ?? null, $torneo);
         foreach ($partidos as &$p) {
             if ((int) $p['id'] === $partidoId) {
                 $p['por_default'] = true;
@@ -101,6 +101,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         partidos_guardar_todos($partidos, $torneo['id']);
         bitacora_registrar('fecha_adelantada', 'Encuentro #' . $partidoId . ' adelantado a ' . date('Y-m-d'), $torneo['id']);
         redirigir_con_mensaje($urlLista, 'success', 'Fecha del encuentro actualizada a hoy.');
+    }
+
+    // Voleibol: el resultado se carga set por set ("25-20", "22-25"...). Se valida contra
+    // las reglas FIVB de la modalidad (a 25 o 21, el decisivo a 15, siempre por 2) y el
+    // marcador del partido pasa a ser los sets ganados. "Guardar y finalizar" además lo da
+    // por jugado, pero solo si alguien ya llegó a los sets que hacen falta para ganar.
+    if ($accion === 'guardar_sets') {
+        if (!es_voleibol($deporte)) {
+            redirigir_con_mensaje($urlLista, 'error', 'Los sets solo aplican a copas de voleibol.');
+        }
+        $maximos = voleibol_sets_maximos($torneo);
+        $locales = (array) ($_POST['set_local'] ?? []);
+        $visitas = (array) ($_POST['set_visitante'] ?? []);
+        $sets = [];
+        $huboVacio = false;
+        for ($i = 0; $i < $maximos; $i++) {
+            $a = trim((string) ($locales[$i] ?? ''));
+            $b = trim((string) ($visitas[$i] ?? ''));
+            $numero = $i + 1;
+            if ($a === '' && $b === '') {
+                $huboVacio = true;
+                continue;
+            }
+            if ($huboVacio) {
+                redirigir_con_mensaje($urlLista, 'error', "Hay un set vacío antes del set {$numero}: los sets se cargan en orden.");
+            }
+            if (!ctype_digit($a) || !ctype_digit($b) || (int) $a > 99 || (int) $b > 99) {
+                redirigir_con_mensaje($urlLista, 'error', "Completa los puntos de los dos equipos en el set {$numero}.");
+            }
+            $sets[] = [(int) $a, (int) $b];
+        }
+
+        $revision = voleibol_validar_sets($sets, $torneo);
+        if (!empty($revision['errores'])) {
+            redirigir_con_mensaje($urlLista, 'error', $revision['errores'][0]);
+        }
+        $finalizar = !empty($_POST['finalizar']);
+        if ($finalizar && !$revision['terminado']) {
+            redirigir_con_mensaje($urlLista, 'error', 'Todavía no hay ganador: el partido se gana con ' . voleibol_sets_para_ganar($torneo) . ' sets. No se guardó nada: usa "Guardar sets" para guardar cómo va.');
+        }
+        [$setsLocal, $setsVisita] = $revision['marcador'];
+
+        foreach ($partidos as &$p) {
+            if ((int) $p['id'] !== $partidoId) {
+                continue;
+            }
+            $p['sets'] = voleibol_sets_a_texto($sets);
+            $p['marcador_local'] = empty($sets) ? null : $setsLocal;
+            $p['marcador_visitante'] = empty($sets) ? null : $setsVisita;
+            // El "periodo" en voleibol es el set en juego: los puntos y tarjetas que se
+            // carguen después quedan como "Set 3", igual que "2do Tiempo" en fútbol.
+            $p['cronometro_periodo'] = $revision['terminado'] ? max(1, count($sets)) : min($maximos, count($sets) + 1);
+            if ($finalizar) {
+                $p['estado'] = 'jugado';
+                $p['cronometro_estado'] = 'finalizado';
+            }
+        }
+        unset($p);
+        partidos_guardar_todos($partidos, $torneo['id']);
+
+        $textoSets = voleibol_sets_a_texto($sets) ?: 'sin sets';
+        bitacora_registrar($finalizar ? 'partido_jugado' : 'sets_guardados', "Encuentro #{$partidoId}: sets {$textoSets} ({$setsLocal}-{$setsVisita})" . ($finalizar ? ', finalizado' : ''), $torneo['id']);
+        redirigir_con_mensaje($urlLista, 'success', $finalizar
+            ? "Encuentro finalizado {$setsLocal}-{$setsVisita} en sets. El resultado ya cuenta en la tabla."
+            : "Sets guardados: van {$setsLocal}-{$setsVisita}.");
     }
 
     // Cronómetro del partido: controla qué minuto se sugiere al cargar un evento (ver
@@ -393,7 +458,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'jugador_id' => $jid === 0 ? null : $jid,
                             'jugador_entra_id' => null,
                             'minuto' => null,
-                            'tipo_gol' => $tipo === 'gol' ? TIPOS_GOL_CATALOGO[0] : null,
+                            'tipo_gol' => $tipo === 'gol' ? tipos_anotacion_catalogo($deporte)[0] : null,
                             'asistencia_jugador_id' => null,
                             'motivo' => $tipo === 'roja' ? $motivoRoja : null,
                             'periodo' => $periodoActual,
@@ -436,7 +501,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        $nombres = ['gol' => ['gol', 'goles'], 'amarilla' => ['amarilla', 'amarillas'], 'roja' => ['roja', 'rojas']];
+        $nombres = [
+            'gol' => [mb_strtolower(etiqueta_anotacion($deporte)), mb_strtolower(etiqueta_anotaciones($deporte))],
+            'amarilla' => es_voleibol($deporte) ? ['amonestación', 'amonestaciones'] : ['amarilla', 'amarillas'],
+            'roja' => es_voleibol($deporte) ? ['sanción', 'sanciones'] : ['roja', 'rojas'],
+        ];
         $resumen = [];
         foreach (['+' => $agregados, '-' => $quitados] as $signo => $lista) {
             foreach (array_count_values(array_column($lista, 'tipo')) as $tipo => $n) {
@@ -596,12 +665,20 @@ foreach ($alineacion as $filaAlineacion) {
 
 // Marcador en vivo calculado directamente desde los goles registrados. Es la fuente de
 // verdad del resultado: cada gol que se agrega abajo se refleja aquí y en la tabla.
-[$marcadorLocalVivo, $marcadorVisitanteVivo] = marcador_desde_eventos(
-    $eventos,
-    (int) $partido['equipo_local'],
-    (int) $partido['equipo_visitante'],
-    $deporte
-);
+// En voleibol el marcador son los sets ganados (y un W.O. conserva el suyo).
+$setsPartido = es_voleibol($deporte) ? voleibol_sets_de_partido($partido) : [];
+if (es_voleibol($deporte)) {
+    [$marcadorLocalVivo, $marcadorVisitanteVivo] = !empty($partido['por_default'])
+        ? [(int) $partido['marcador_local'], (int) $partido['marcador_visitante']]
+        : voleibol_sets_ganados($setsPartido);
+} else {
+    [$marcadorLocalVivo, $marcadorVisitanteVivo] = marcador_desde_eventos(
+        $eventos,
+        (int) $partido['equipo_local'],
+        (int) $partido['equipo_visitante'],
+        $deporte
+    );
+}
 
 // El encuentro se está registrando antes de su fecha programada: se ofrece (vía modal)
 // adelantar la fecha a hoy o seguir registrando eventos sin tocar la fecha.
@@ -646,6 +723,7 @@ vista_admin('admin/partido_eventos', compact(
     'partidoId',
     'resultadoBloqueado',
     'seccion_activa',
+    'setsPartido',
     'titularesPorEquipoActual',
     'titulo_pagina',
     'torneo'

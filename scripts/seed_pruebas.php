@@ -343,6 +343,68 @@ foreach ([$equiposLiga[0], $equiposLiga[1]] as $eq) {
     }
 }
 
+// --- Voleibol: liga con fase final a cinco sets (reglas FIVB) ------------------------
+$voleyId = crearTorneo($pdo, $usuarioId, [
+    'slug' => 'liga-voley',
+    'nombre' => 'Liga de Voleibol',
+    'subtitulo' => 'Mixto 2026',
+    'temporada' => '2026',
+    'descripcion' => 'Todos contra todos a cinco sets y fase final.',
+    'sede_principal' => 'Coliseo',
+    'logo' => '',
+    'color_primario' => '#1848aa',
+    'color_secundario' => '#fac81e',
+    'color_acento' => '#fac81e',
+    'fecha_inicio' => '2026-05-01',
+    'fecha_fin' => '2026-09-30',
+    'formato' => 'Liga + fase final',
+    'hero_frase' => 'Cada punto cuenta',
+    'deporte' => 'voleibol',
+    'genero' => 'mixto',
+    'modo' => 'copa',
+    'vueltas' => 1,
+    'modalidad' => 'voley6_5',
+    'duracion_periodo_min' => null,
+    'num_equipos' => 4,
+    'fases_playoff' => '{semifinal,final}',
+    'permite_empates' => 'false',
+    'puntos_victoria' => 3,
+    'puntos_empate' => 0,
+    'puntos_derrota' => 0,
+    'es_predeterminado' => 'false',
+    'activo' => 'true',
+]);
+$equiposVoley = crearEquipos($pdo, $voleyId, ['Halcones', 'Tiburones', 'Panteras', 'Cóndores'], $equipoId);
+$posVoley = ['armador', 'opuesto', 'central', 'central', 'punta', 'punta', 'libero', 'punta'];
+$plantillasVoley = [];
+foreach ($equiposVoley as $eq) {
+    $plantillasVoley[$eq] = crearPlantilla($pdo, $voleyId, $eq, $posVoley, $jugadorId);
+}
+$pVoleyJugado = crearPartido($stmtPartido, $partidoId, [
+    'torneo' => $voleyId, 'jornada' => 1, 'local' => $equiposVoley[0], 'visitante' => $equiposVoley[1],
+    'fecha' => '2026-05-02', 'estado' => 'jugado', 'ml' => 3, 'mv' => 1, 'periodo' => 4, 'crono' => 'finalizado',
+]);
+$pVoleyJugado2 = crearPartido($stmtPartido, $partidoId, [
+    'torneo' => $voleyId, 'jornada' => 1, 'local' => $equiposVoley[2], 'visitante' => $equiposVoley[3],
+    'fecha' => '2026-05-02', 'estado' => 'jugado', 'ml' => 2, 'mv' => 3, 'periodo' => 5, 'crono' => 'finalizado',
+]);
+$pVoleyPendiente = crearPartido($stmtPartido, $partidoId, [
+    'torneo' => $voleyId, 'jornada' => 2, 'local' => $equiposVoley[0], 'visitante' => $equiposVoley[2],
+    'fecha' => '2026-05-09',
+]);
+$stmtSets = $pdo->prepare('UPDATE partidos SET sets = :s WHERE id = :id');
+$stmtSets->execute([':s' => '25-20,22-25,25-18,25-21', ':id' => $pVoleyJugado]);
+$stmtSets->execute([':s' => '25-23,20-25,25-22,18-25,13-15', ':id' => $pVoleyJugado2]);
+// Puntos de un par de jugadores en el partido jugado (estadística, no marcador).
+foreach ([[$plantillasVoley[$equiposVoley[0]][1], 'ataque'], [$plantillasVoley[$equiposVoley[0]][1], 'saque'], [$plantillasVoley[$equiposVoley[0]][2], 'bloqueo']] as [$jid, $tg]) {
+    $eventoId++;
+    $stmtEvento->execute([
+        ':id' => $eventoId, ':t' => $voleyId, ':p' => $pVoleyJugado, ':tipo' => 'gol',
+        ':e' => $equiposVoley[0], ':j' => $jid, ':je' => null, ':min' => null,
+        ':tg' => $tg, ':asis' => null, ':mot' => null, ':per' => 1,
+    ]);
+}
+
 // --- Patrocinadores y comentarios -------------------------------------------------
 $stmtPatro = $pdo->prepare('INSERT INTO patrocinadores (id, torneo_id, nombre, nivel, url, logo, orden) VALUES (:id, :t, :n, :niv, :u, :l, :o)');
 $niveles = ['oficial', 'oro', 'plata'];
@@ -366,4 +428,5 @@ echo "  Copa Estrellas (basketball, CAMPEONATO, con playoffs): /copa-estrellas\n
 echo "  Partido jugado con ficha y alineación: id={$pJugado}\n";
 echo "  Partido EN VIVO (cronómetro corriendo + 2 min extra): id={$pEnVivo}\n";
 echo "  Partido de copa jugado: id={$pCopa}\n";
+echo "  Liga de Voleibol (FIVB, cinco sets): /liga-voley — partido pendiente id={$pVoleyPendiente}\n";
 echo "  Login: prueba@local.test / prueba123\n";

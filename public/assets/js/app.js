@@ -412,7 +412,17 @@ document.addEventListener('DOMContentLoaded', function () {
         var presets = {
             basketball: { empates: false, victoria: 2, empate: 0, derrota: 1 },
             futbol: { empates: true, victoria: 3, empate: 1, derrota: 0 },
+            voleibol: { empates: false, victoria: 3, empate: 0, derrota: 0 },
         };
+        // Voleibol no usa reloj, empates ni puntos fijos por resultado (tabla FIVB): esos
+        // campos se ocultan y aparece la explicación del sistema FIVB en su lugar.
+        var ajustarPorDeporte = function () {
+            var esVoleibol = selectDeporte.value === 'voleibol';
+            document.querySelectorAll('[data-solo-con-reloj]').forEach(function (el) { el.classList.toggle('d-none', esVoleibol); });
+            document.querySelectorAll('[data-solo-voleibol]').forEach(function (el) { el.classList.toggle('d-none', !esVoleibol); });
+        };
+        selectDeporte.addEventListener('change', ajustarPorDeporte);
+        ajustarPorDeporte();
         selectDeporte.addEventListener('change', function () {
             var preset = presets[selectDeporte.value];
             if (!preset) { return; }
@@ -1152,4 +1162,49 @@ document.addEventListener('DOMContentLoaded', function () {
     window.addEventListener('beforeunload', function (evento) {
         if (!enviando && hayCambios()) { evento.preventDefault(); evento.returnValue = ''; }
     });
+});
+
+// Sets de voleibol en la ficha del partido: cuenta los sets ganados mientras se escriben y
+// avisa si un set no es un resultado posible (a 25 o 21, el decisivo a 15, siempre por 2).
+// Es solo una ayuda: la validación que manda es la del servidor (app/Support/voleibol.php).
+document.addEventListener('DOMContentLoaded', function () {
+    var form = document.querySelector('form[data-sets-voleibol]');
+    if (!form) { return; }
+    var paraGanar = parseInt(form.getAttribute('data-sets-para-ganar'), 10) || 3;
+    var maximos = paraGanar * 2 - 1;
+    var puntosSet = parseInt(form.getAttribute('data-puntos-set'), 10) || 25;
+    var puntosDecisivo = parseInt(form.getAttribute('data-puntos-decisivo'), 10) || 15;
+    var aviso = form.querySelector('[data-aviso-sets]');
+    var valor = function (lado, i) {
+        var campo = form.querySelector('input[data-lado="' + lado + '"][data-set="' + i + '"]');
+        return campo && campo.value !== '' ? parseInt(campo.value, 10) : null;
+    };
+    var setValido = function (a, b, objetivo) {
+        var g = Math.max(a, b), p = Math.min(a, b);
+        return p <= objetivo - 2 ? g === objetivo : g === p + 2;
+    };
+    var refrescar = function () {
+        var local = 0, visita = 0, problema = '';
+        for (var i = 0; i < maximos; i++) {
+            var a = valor('local', i), b = valor('visitante', i);
+            if (a === null && b === null) { continue; }
+            if (a === null || b === null) { problema = problema || 'Falta un puntaje en el set ' + (i + 1) + '.'; continue; }
+            var objetivo = i === maximos - 1 ? puntosDecisivo : puntosSet;
+            if (a === b || !setValido(a, b, objetivo)) {
+                problema = problema || 'El set ' + (i + 1) + ' (' + a + '-' + b + ') no es válido: se gana a ' + objetivo + ' por 2.';
+                continue;
+            }
+            if (a > b) { local++; } else { visita++; }
+        }
+        var tl = form.querySelector('[data-total-sets="local"]');
+        var tv = form.querySelector('[data-total-sets="visitante"]');
+        if (tl) { tl.textContent = String(local); }
+        if (tv) { tv.textContent = String(visita); }
+        if (aviso) {
+            aviso.textContent = problema || (local === paraGanar || visita === paraGanar ? 'Partido definido: ya puedes finalizarlo.' : '');
+            aviso.classList.toggle('text-danger', problema !== '');
+        }
+    };
+    form.querySelectorAll('input.campo-set').forEach(function (campo) { campo.addEventListener('input', refrescar); });
+    refrescar();
 });

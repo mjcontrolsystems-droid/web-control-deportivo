@@ -34,8 +34,9 @@
             <div class="col-md-6">
                 <label class="form-label small fw-semibold">Deporte</label>
                 <select name="deporte" id="selectDeporte" class="form-select">
-                    <option value="basketball" <?= $deportePorDefecto === 'basketball' ? 'selected' : '' ?>>Basketball</option>
-                    <option value="futbol" <?= $deportePorDefecto === 'futbol' ? 'selected' : '' ?>>Fútbol</option>
+                    <?php foreach (DEPORTES as $claveDeporte => $datosDeporte): ?>
+                    <option value="<?= e($claveDeporte) ?>" <?= $deportePorDefecto === $claveDeporte ? 'selected' : '' ?>><?= e($datosDeporte['nombre']) ?></option>
+                    <?php endforeach; ?>
                 </select>
                 <div class="form-text">Define los valores iniciales de empates y puntos abajo, y el catálogo de eventos (goles/puntos, tarjetas/faltas) de cada partido.</div>
             </div>
@@ -64,9 +65,9 @@
                     <option value="<?= e($clave) ?>" data-deporte="<?= e($dep) ?>" data-duracion="<?= (int) $m['duracion_min'] ?>" <?= $modalidadActual === $clave ? 'selected' : '' ?>><?= e($m['label']) ?></option>
                     <?php endforeach; endforeach; ?>
                 </select>
-                <div class="form-text">Fútbol: 11, 7 o sala/5. Basketball: FIBA o estilo NBA. Define los tiempos reglamentarios.</div>
+                <div class="form-text">Fútbol: 11, 7 o sala/5. Basketball: FIBA o estilo NBA. Voleibol: 6x6 a 5 o 3 sets, o playa.</div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-6" data-solo-con-reloj>
                 <label class="form-label small fw-semibold">Minutos por tiempo/cuarto</label>
                 <input type="number" name="duracion_periodo_min" id="campoDuracionPeriodo" class="form-control" min="1" max="90" value="<?= $duracionActual > 0 ? $duracionActual : '' ?>" placeholder="Reglamentario de la modalidad">
                 <div class="form-text">Déjalo vacío para usar el reglamentario. Cámbialo si tu liga juega tiempos distintos (ej. cuartos de 15 min).</div>
@@ -167,14 +168,24 @@
                 </select>
                 <div class="form-text">Ida y vuelta: cada par juega dos veces, uno de local en cada partido.</div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-4" data-solo-con-reloj>
                 <label class="form-label small fw-semibold">¿Permite empates?</label>
                 <div class="form-check form-switch mt-2">
                     <input class="form-check-input" type="checkbox" role="switch" id="checkEmpates" name="permite_empates" <?= !empty($torneoEditar['permite_empates']) ? 'checked' : '' ?>>
                     <label class="form-check-label small" for="checkEmpates">Sí, esta copa o liga admite empates</label>
                 </div>
             </div>
-            <div class="col-12">
+            <?php // Voleibol: la tabla se puntúa con el sistema FIVB, no con puntos fijos por
+                  // resultado. El JS de app.js muestra este bloque en lugar del de puntos. ?>
+            <div class="col-12 d-none" data-solo-voleibol>
+                <div class="alert alert-info rounded-4 border-0 small mb-0">
+                    <i class="bi bi-info-circle me-1"></i><strong>Tabla con el sistema FIVB:</strong>
+                    ganar 3-0 o 3-1 da 3 puntos y el perdedor 0; ganar 3-2 da 2 puntos y el perdedor se lleva 1
+                    (igual a tres sets: 2-0 = 3 y 0, 2-1 = 2 y 1). Desempate: partidos ganados, puntos,
+                    cociente de sets y cociente de puntos. No hay empates.
+                </div>
+            </div>
+            <div class="col-12" data-solo-con-reloj>
                 <label class="form-label small fw-semibold">Puntos por resultado</label>
                 <div class="row g-2">
                     <div class="col-4">
@@ -453,63 +464,115 @@
     </div>
     <?php endif; ?>
 
-    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
-        <?php foreach ($torneos as $t): ?>
-        <div class="col">
-            <div class="card-suave p-3 h-100 d-flex flex-column <?= ($_SESSION['torneo_activo_id'] ?? null) === $t['id'] ? 'border border-2' : '' ?>" style="<?= ($_SESSION['torneo_activo_id'] ?? null) === $t['id'] ? 'border-color:var(--color-primario) !important;' : '' ?>">
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <span class="badge rounded-pill text-bg-light border small"><?= $t['deporte'] === 'futbol' ? '⚽ Fútbol' : '🏀 Basketball' ?></span>
-                    <span class="badge rounded-pill text-bg-light border small"><?= torneo_es_liga($t) ? '<i class="bi bi-list-ol me-1"></i>Liga' : '<i class="bi bi-trophy me-1"></i>Liga con fase final' ?></span>
-                    <?php if (torneo_vueltas($t) === 2): ?><span class="badge rounded-pill text-bg-light border small"><i class="bi bi-arrow-left-right me-1"></i>Ida y vuelta</span><?php endif; ?>
-                    <?php if (($t['genero'] ?? 'mixto') !== 'mixto'): ?><span class="badge rounded-pill text-bg-light border small"><?= $t['genero'] === 'femenino' ? 'Femenino' : 'Masculino' ?></span><?php endif; ?>
-                    <?php if (!$t['activo']): ?><span class="badge rounded-pill text-bg-secondary small">Inactiva</span><?php endif; ?>
-                    <?php if ($t['es_predeterminado']): ?><span class="badge rounded-pill text-bg-warning small">Predeterminada</span><?php endif; ?>
+    <?php
+    // "Mis copas" agrupadas por deporte: una card por deporte con su balón y, al tocarla, se
+    // despliegan sus copas como antes. Con muchas copas la lista plana se volvía larga y
+    // mezclaba deportes. Se abre sola la del deporte de la copa activa, o la única que haya.
+    $copasPorDeporte = [];
+    foreach (array_keys(DEPORTES) as $claveDeporte) {
+        foreach ($torneos as $t) {
+            if (deporte_clave($t['deporte'] ?? null) === $claveDeporte) {
+                $copasPorDeporte[$claveDeporte][] = $t;
+            }
+        }
+    }
+    $deporteAbierto = null;
+    foreach ($torneos as $t) {
+        if (($_SESSION['torneo_activo_id'] ?? null) === $t['id']) {
+            $deporteAbierto = deporte_clave($t['deporte'] ?? null);
+        }
+    }
+    if ($deporteAbierto === null && count($copasPorDeporte) === 1) {
+        $deporteAbierto = array_key_first($copasPorDeporte);
+    }
+    ?>
+    <?php if (empty($copasPorDeporte)): ?>
+    <div class="card-suave p-4 text-center text-muted">Todavía no tienes copas ni ligas. Crea la primera con el botón de arriba.</div>
+    <?php else: ?>
+    <div id="gruposDeporte">
+        <div class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-3 mb-4">
+            <?php foreach ($copasPorDeporte as $claveDeporte => $copasDeporte): $abierto = $deporteAbierto === $claveDeporte; ?>
+            <div class="col">
+                <button type="button" class="card-suave card-deporte w-100 h-100 <?= $abierto ? '' : 'collapsed' ?>"
+                        data-bs-toggle="collapse" data-bs-target="#copas-<?= e($claveDeporte) ?>"
+                        aria-expanded="<?= $abierto ? 'true' : 'false' ?>" aria-controls="copas-<?= e($claveDeporte) ?>">
+                    <?= icono_balon_img($claveDeporte, 56, 'card-deporte__balon') ?>
+                    <span class="card-deporte__nombre"><?= e(DEPORTES[$claveDeporte]['nombre']) ?></span>
+                    <span class="card-deporte__cuenta"><?= count($copasDeporte) ?> <?= count($copasDeporte) === 1 ? 'copa o liga' : 'copas y ligas' ?></span>
+                    <i class="bi bi-chevron-down card-deporte__flecha"></i>
+                </button>
+            </div>
+            <?php endforeach; ?>
+        </div>
+
+        <?php foreach ($copasPorDeporte as $claveDeporte => $copasDeporte): ?>
+        <div class="collapse <?= $deporteAbierto === $claveDeporte ? 'show' : '' ?>" id="copas-<?= e($claveDeporte) ?>" data-bs-parent="#gruposDeporte">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <h5 class="mb-0 d-flex align-items-center gap-2"><?= icono_balon_img($claveDeporte, 24) ?><?= e(DEPORTES[$claveDeporte]['nombre']) ?></h5>
+                <?php if ($puedeCrearTorneo): ?>
+                <a href="<?= url('admin/torneos.php?accion=nuevo&deporte=' . $claveDeporte) ?>" class="btn btn-sm btn-outline-secondary rounded-pill"><i class="bi bi-plus-lg me-1"></i>Nueva de <?= e(DEPORTES[$claveDeporte]['nombre_minuscula']) ?></a>
+                <?php endif; ?>
+            </div>
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mb-4">
+                <?php foreach ($copasDeporte as $t): ?>
+                <div class="col">
+                    <div class="card-suave p-3 h-100 d-flex flex-column <?= ($_SESSION['torneo_activo_id'] ?? null) === $t['id'] ? 'border border-2' : '' ?>" style="<?= ($_SESSION['torneo_activo_id'] ?? null) === $t['id'] ? 'border-color:var(--color-primario) !important;' : '' ?>">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge rounded-pill text-bg-light border small"><?= torneo_es_liga($t) ? '<i class="bi bi-list-ol me-1"></i>Liga' : '<i class="bi bi-trophy me-1"></i>Liga con fase final' ?></span>
+                            <?php if (torneo_vueltas($t) === 2): ?><span class="badge rounded-pill text-bg-light border small"><i class="bi bi-arrow-left-right me-1"></i>Ida y vuelta</span><?php endif; ?>
+                            <?php if (($t['genero'] ?? 'mixto') !== 'mixto'): ?><span class="badge rounded-pill text-bg-light border small"><?= $t['genero'] === 'femenino' ? 'Femenino' : 'Masculino' ?></span><?php endif; ?>
+                            <?php if (!$t['activo']): ?><span class="badge rounded-pill text-bg-secondary small">Inactiva</span><?php endif; ?>
+                            <?php if ($t['es_predeterminado']): ?><span class="badge rounded-pill text-bg-warning small">Predeterminada</span><?php endif; ?>
+                        </div>
+                        <div class="fw-semibold mb-1"><?= e($t['nombre']) ?></div>
+                        <?php // min-width:0 en el <code> es lo que permite que la URL larga se
+                              // trunque con "..." dentro de la tarjeta: sin él, un flex item no
+                              // encoge por debajo de su contenido y la URL empujaba el ancho de
+                              // toda la página en el teléfono (se veía cortada y con scroll lateral). ?>
+                        <?php // Los estilos de truncado van INLINE a propósito: son la garantía de que
+                              // la URL larga jamás ensanche la tarjeta en el teléfono, aunque el
+                              // navegador tenga una hoja de estilos vieja en caché. ?>
+                        <div class="d-flex align-items-center gap-1 mb-1" style="min-width:0;max-width:100%;">
+                            <code class="small flex-grow-1" style="display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= e(url_copa_de($t)) ?></code>
+                            <button type="button" class="btn btn-sm btn-link p-0 ms-1 flex-shrink-0 btn-copiar-url" data-url="<?= e(url_copa_de($t)) ?>" title="Copiar enlace"><i class="bi bi-clipboard"></i></button>
+                        </div>
+                        <div class="d-flex align-items-center gap-1 mb-3">
+                            <span class="small text-muted">Código:</span>
+                            <code class="small fw-bold"><?= e($t['codigo']) ?></code>
+                            <button type="button" class="btn btn-sm btn-link p-0 ms-1 btn-copiar-url" data-url="<?= e($t['codigo']) ?>" title="Copiar código"><i class="bi bi-clipboard"></i></button>
+                            <?php // Las comillas van como &quot; y NO como \" — la barra invertida
+                                  // es un escape de PHP, no de HTML: el navegador cerraba el
+                                  // atributo en la primera comilla y el mensaje se cortaba. ?>
+                            <form method="post" data-confirm="¿Generar un código nuevo para &quot;<?= e($t['nombre']) ?>&quot;? El código anterior dejará de funcionar." class="d-inline">
+                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                <input type="hidden" name="accion" value="regenerar_codigo">
+                                <input type="hidden" name="id" value="<?= $t['id'] ?>">
+                                <button type="submit" class="btn btn-sm btn-link p-0 ms-1 text-muted" title="Generar código nuevo"><i class="bi bi-arrow-repeat"></i></button>
+                            </form>
+                        </div>
+                        <div class="d-flex gap-2 mt-auto flex-wrap">
+                            <a href="<?= url('admin/torneos.php?accion=entrar&id=' . $t['id']) ?>" class="btn btn-sm btn-degradado rounded-pill flex-grow-1">Entrar</a>
+                            <a href="<?= e(url_copa_de($t)) ?>" target="_blank" class="btn btn-sm btn-outline-secondary" title="Ver"><i class="bi bi-box-arrow-up-right"></i></a>
+                            <?php // Editar y eliminar son solo del dueño; en una copa ajena (colaboración o soporte del superadmin) no se ofrecen. ?>
+                            <?php if (empty($t['es_colaboracion'])): ?>
+                            <a href="<?= url('admin/torneos.php?accion=editar&id=' . $t['id']) ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                            <?php endif; ?>
+                            <?php if (!$t['es_predeterminado'] && empty($t['es_colaboracion'])): ?>
+                            <form method="post" data-confirm="¿Eliminar &quot;<?= e($t['nombre']) ?>&quot;? Se borrarán todos sus equipos, partidos y patrocinadores, y no se puede deshacer.">
+                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                <input type="hidden" name="accion" value="eliminar">
+                                <input type="hidden" name="id" value="<?= $t['id'] ?>">
+                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                 </div>
-                <div class="fw-semibold mb-1"><?= e($t['nombre']) ?></div>
-                <?php // min-width:0 en el <code> es lo que permite que la URL larga se
-                      // trunque con "..." dentro de la tarjeta: sin él, un flex item no
-                      // encoge por debajo de su contenido y la URL empujaba el ancho de
-                      // toda la página en el teléfono (se veía cortada y con scroll lateral). ?>
-                <?php // Los estilos de truncado van INLINE a propósito: son la garantía de que
-                      // la URL larga jamás ensanche la tarjeta en el teléfono, aunque el
-                      // navegador tenga una hoja de estilos vieja en caché. ?>
-                <div class="d-flex align-items-center gap-1 mb-1" style="min-width:0;max-width:100%;">
-                    <code class="small flex-grow-1" style="display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= e(url_copa_de($t)) ?></code>
-                    <button type="button" class="btn btn-sm btn-link p-0 ms-1 flex-shrink-0 btn-copiar-url" data-url="<?= e(url_copa_de($t)) ?>" title="Copiar enlace"><i class="bi bi-clipboard"></i></button>
-                </div>
-                <div class="d-flex align-items-center gap-1 mb-3">
-                    <span class="small text-muted">Código:</span>
-                    <code class="small fw-bold"><?= e($t['codigo']) ?></code>
-                    <button type="button" class="btn btn-sm btn-link p-0 ms-1 btn-copiar-url" data-url="<?= e($t['codigo']) ?>" title="Copiar código"><i class="bi bi-clipboard"></i></button>
-                    <?php // Las comillas van como &quot; y NO como \" — la barra invertida
-                          // es un escape de PHP, no de HTML: el navegador cerraba el
-                          // atributo en la primera comilla y el mensaje se cortaba. ?>
-                    <form method="post" data-confirm="¿Generar un código nuevo para &quot;<?= e($t['nombre']) ?>&quot;? El código anterior dejará de funcionar." class="d-inline">
-                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                        <input type="hidden" name="accion" value="regenerar_codigo">
-                        <input type="hidden" name="id" value="<?= $t['id'] ?>">
-                        <button type="submit" class="btn btn-sm btn-link p-0 ms-1 text-muted" title="Generar código nuevo"><i class="bi bi-arrow-repeat"></i></button>
-                    </form>
-                </div>
-                <div class="d-flex gap-2 mt-auto flex-wrap">
-                    <a href="<?= url('admin/torneos.php?accion=entrar&id=' . $t['id']) ?>" class="btn btn-sm btn-degradado rounded-pill flex-grow-1">Entrar</a>
-                    <a href="<?= e(url_copa_de($t)) ?>" target="_blank" class="btn btn-sm btn-outline-secondary" title="Ver"><i class="bi bi-box-arrow-up-right"></i></a>
-                    <?php // Editar y eliminar son solo del dueño; en una copa ajena (colaboración o soporte del superadmin) no se ofrecen. ?>
-                    <?php if (empty($t['es_colaboracion'])): ?>
-                    <a href="<?= url('admin/torneos.php?accion=editar&id=' . $t['id']) ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-                    <?php endif; ?>
-                    <?php if (!$t['es_predeterminado'] && empty($t['es_colaboracion'])): ?>
-                    <form method="post" data-confirm="¿Eliminar &quot;<?= e($t['nombre']) ?>&quot;? Se borrarán todos sus equipos, partidos y patrocinadores, y no se puede deshacer.">
-                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                        <input type="hidden" name="accion" value="eliminar">
-                        <input type="hidden" name="id" value="<?= $t['id'] ?>">
-                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                    </form>
-                    <?php endif; ?>
-                </div>
+                <?php endforeach; ?>
             </div>
         </div>
         <?php endforeach; ?>
     </div>
+    <?php endif; ?>
 
 <?php endif; ?>

@@ -82,6 +82,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // El marcador se toma de los goles registrados en Eventos (fuente de verdad). Si
         // no hay goles queda 0-0, salvo que la copa no permita empates. Se conserva un
         // marcador histórico si ya estaba capturado y todavía no hay goles que lo sustituyan.
+        // Voleibol: el resultado son los sets; sin un ganador por sets no se cierra.
+        if (es_voleibol($torneo['deporte'] ?? null) && ($errorSets = voleibol_error_al_cerrar($partidoActual, $torneo)) !== '') {
+            redirigir_con_mensaje(url('admin/partido_eventos.php?partido_id=' . $id), 'error', $errorSets);
+        }
         [$mLocal, $mVisit] = marcador_jugado_desde_eventos($torneo['id'], $partidoActual, $torneo['deporte'] ?? null);
         if ($mLocal === $mVisit && empty($torneo['permite_empates'])) {
             redirigir_con_mensaje(url('admin/partido_eventos.php?partido_id=' . $id), 'error', 'Esta copa no permite empates: registra los ' . mb_strtolower(etiqueta_anotaciones($torneo['deporte'] ?? null)) . ' en Eventos para definir un ganador antes de marcar el encuentro como jugado.');
@@ -690,7 +694,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // (conservando un marcador histórico si aún no hay goles); uno nuevo empieza 0-0.
         $partidoExistente = $id > 0 ? db_buscar_por_id($partidos, $id) : null;
         if ($porDefault !== '') {
-            [$ganador, $perdedor] = marcador_por_default($torneo['deporte'] ?? null);
+            [$ganador, $perdedor] = marcador_por_default($torneo['deporte'] ?? null, $torneo);
             $marcadorLocal = $porDefault === 'local' ? $ganador : $perdedor;
             $marcadorVisitante = $porDefault === 'visitante' ? $ganador : $perdedor;
             $estado = 'jugado'; // un default ES un resultado en firme
@@ -703,7 +707,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $marcadorVisitante = 0;
         }
 
-        if ($porDefault === '' && $estado === 'jugado' && $marcadorLocal === $marcadorVisitante && empty($torneo['permite_empates'])) {
+        if ($porDefault === '' && $estado === 'jugado' && es_voleibol($torneo['deporte'] ?? null)) {
+            $errorSets = $partidoExistente !== null ? voleibol_error_al_cerrar($partidoExistente, $torneo) : 'Guarda el encuentro como "Programado", carga los sets en la ficha del partido y luego márcalo como jugado.';
+            if ($errorSets !== '') {
+                $errores[] = $errorSets;
+            }
+        } elseif ($porDefault === '' && $estado === 'jugado' && $marcadorLocal === $marcadorVisitante && empty($torneo['permite_empates'])) {
             $txtAnot = mb_strtolower(etiqueta_anotaciones($torneo['deporte'] ?? null));
             if ($partidoExistente !== null) {
                 $errores[] = "Esta copa no permite empates: registra los {$txtAnot} en la ficha de Eventos para definir un ganador antes de marcar el encuentro como jugado.";

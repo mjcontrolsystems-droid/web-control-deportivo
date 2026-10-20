@@ -69,7 +69,7 @@
         <div class="row g-3 mb-4">
             <div class="col-6 col-md-3">
                 <div class="stat-tile text-center h-100">
-                    <div class="text-muted small mb-1">⚽ <?= e(etiqueta_anotaciones($deporte)) ?></div>
+                    <div class="text-muted small mb-1"><?= DEPORTES[deporte_clave($deporte)]['emoji'] ?> <?= e(etiqueta_anotaciones($deporte)) ?></div>
                     <div class="fs-2 fw-bold"><?= (int) $totalPuntos ?></div>
                 </div>
             </div>

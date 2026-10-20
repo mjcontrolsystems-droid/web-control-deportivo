@@ -2387,3 +2387,20 @@ main.flex-grow-1 {
 .contador-planilla input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .contador-planilla input.cambiado { border-color: var(--color-acento); font-weight: 700; }
 .tabla-planilla td, .tabla-planilla th { white-space: nowrap; }
+
+/* "Mis copas" agrupadas por deporte: card con el balón que despliega las copas. */
+.card-deporte { display: flex; flex-direction: column; align-items: center; gap: .35rem; padding: 1.25rem .75rem; border: 2px solid transparent; text-align: center; cursor: pointer; transition: transform .15s ease, border-color .15s ease; }
+.card-deporte:hover { transform: translateY(-2px); }
+.card-deporte:not(.collapsed) { border-color: var(--color-primario); }
+.card-deporte__balon { filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .18)); }
+.card-deporte__nombre { font-weight: 700; font-size: 1.05rem; }
+.card-deporte__cuenta { font-size: .85rem; color: var(--bs-secondary-color, #6c757d); }
+.card-deporte__flecha { transition: transform .2s ease; color: var(--bs-secondary-color, #6c757d); }
+.card-deporte:not(.collapsed) .card-deporte__flecha { transform: rotate(180deg); }
+
+/* Sets de voleibol en la ficha del partido. */
+.tabla-sets .campo-set { width: 3.4rem; margin: 0 auto; -moz-appearance: textfield; }
+.tabla-sets .campo-set::-webkit-outer-spin-button,
+.tabla-sets .campo-set::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.marcador-sets .badge { font-size: .8rem; margin: 0 .1rem; }
+.sets-vivo { font-size: 1.1rem; font-weight: 600; opacity: .85; letter-spacing: .02em; }

@@ -33,7 +33,8 @@ $eventos = eventos_de_torneo($torneo['id']);
 $topGoleadores = array_slice(calcular_goleadores($eventos, $jugadores, $equiposPorId, $deporte), 0, 5);
 // El premio defensivo: en fútbol la portería menos vencida, en basketball la mejor
 // defensa (misma cuenta: menos puntos recibidos por partido).
-$topPorterias = array_slice(calcular_porteria_menos_vencida($equiposPorId, $partidos, $jugadores), 0, 5);
+// En voleibol no hay portería ni "puntos recibidos" comparables (se gana por sets): no aplica.
+$topPorterias = es_voleibol($deporte) ? [] : array_slice(calcular_porteria_menos_vencida($equiposPorId, $partidos, $jugadores), 0, 5);
 
 // Podio de cierre: solo si el organizador ya lo publicó. Se recalcula en vivo, así que si
 // corrige el marcador de la final el campeón cambia sin tener que volver a publicar.

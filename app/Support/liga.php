@@ -1,6 +1,41 @@
 <?php
 declare(strict_types=1);
 
+// ---------------------------------------------------------------------------
+// Catálogo de deportes. Es la ÚNICA lista de deportes de la plataforma: el formulario de
+// la copa, "Mis copas", los balones y las reglas por deporte salen de aquí. Antes el
+// código decidía con "si no es basketball, es fútbol", y un tercer deporte habría caído
+// en las reglas del fútbol sin que nadie se diera cuenta.
+// ---------------------------------------------------------------------------
+const DEPORTES = [
+    'futbol' => ['nombre' => 'Fútbol', 'nombre_minuscula' => 'fútbol', 'balon' => 'balon-futbol.png', 'emoji' => '⚽'],
+    'basketball' => ['nombre' => 'Basketball', 'nombre_minuscula' => 'basketball', 'balon' => 'balon-basketball.png', 'emoji' => '🏀'],
+    'voleibol' => ['nombre' => 'Voleibol', 'nombre_minuscula' => 'voleibol', 'balon' => 'balon-voleibol.png', 'emoji' => '🏐'],
+];
+
+/**
+ * Clave del deporte para buscar en los catálogos. Un valor desconocido (o null, en las
+ * llamadas sin copa) se trata como fútbol, que es lo que el código hacía hasta ahora.
+ */
+function deporte_clave(?string $deporte): string
+{
+    return isset(DEPORTES[$deporte ?? '']) ? (string) $deporte : 'futbol';
+}
+
+function es_voleibol(?string $deporte): bool
+{
+    return $deporte === 'voleibol';
+}
+
+/**
+ * Deportes que se juegan contra reloj (tiempos o cuartos). El voleibol no: se juega por
+ * sets y puntos, así que no lleva cronómetro ni minuto en los eventos.
+ */
+function deporte_usa_cronometro(?string $deporte): bool
+{
+    return !es_voleibol($deporte);
+}
+
 // Catálogos del modo liga para fútbol. Se reutilizan las mismas columnas de
 // partido_eventos ('gol'/'amarilla'/'roja'/'cambio') para basketball más abajo,
 // cambiando solo los catálogos y las etiquetas según $torneo['deporte'].
@@ -45,6 +80,25 @@ const MOTIVOS_FALTA_LABEL = [
     'descalificante' => 'Falta descalificante',
 ];
 
+// Voleibol: 'gol' se reutiliza como el punto que anotó un jugador (solo estadística: el
+// marcador del partido sale de los SETS, no de estos eventos); 'amarilla' es la
+// amonestación y 'roja' la sanción, con su grado según la escala FIVB (regla 21).
+const TIPOS_PUNTO_VOLEIBOL_CATALOGO = ['ataque', 'bloqueo', 'saque'];
+
+const TIPOS_PUNTO_VOLEIBOL_LABEL = [
+    'ataque' => 'Ataque',
+    'bloqueo' => 'Bloqueo',
+    'saque' => 'Saque (ace)',
+];
+
+const MOTIVOS_SANCION_VOLEIBOL_CATALOGO = ['penalizacion', 'expulsion', 'descalificacion'];
+
+const MOTIVOS_SANCION_VOLEIBOL_LABEL = [
+    'penalizacion' => 'Penalización (punto al rival)',
+    'expulsion' => 'Expulsión (resto del set)',
+    'descalificacion' => 'Descalificación (resto del partido)',
+];
+
 // Regla FIBA (la más usada en ligas amateur): al llegar a esta cantidad de faltas
 // personales en un mismo partido, el jugador queda expulsado del resto del encuentro.
 const LIMITE_FALTAS_EXPULSION = 5;
@@ -60,7 +114,13 @@ const LIMITE_AMARILLAS_EXPULSION_FUTBOL = 2;
  */
 function limite_faltas_expulsion(?string $deporte): int
 {
-    return es_basketball($deporte) ? LIMITE_FALTAS_EXPULSION : LIMITE_AMARILLAS_EXPULSION_FUTBOL;
+    // Voleibol: la amonestación no se acumula hasta expulsar (la escala de sanciones la
+    // aplica el árbitro con la tarjeta roja), así que nunca hay expulsión automática.
+    return match (deporte_clave($deporte)) {
+        'basketball' => LIMITE_FALTAS_EXPULSION,
+        'voleibol' => PHP_INT_MAX,
+        default => LIMITE_AMARILLAS_EXPULSION_FUTBOL,
+    };
 }
 
 /**
@@ -80,34 +140,58 @@ function es_basketball(?string $deporte): bool
 
 function tipos_anotacion_catalogo(?string $deporte): array
 {
-    return es_basketball($deporte) ? TIPOS_PUNTO_CATALOGO : TIPOS_GOL_CATALOGO;
+    return match (deporte_clave($deporte)) {
+        'basketball' => TIPOS_PUNTO_CATALOGO,
+        'voleibol' => TIPOS_PUNTO_VOLEIBOL_CATALOGO,
+        default => TIPOS_GOL_CATALOGO,
+    };
 }
 
 function tipos_anotacion_label(?string $deporte): array
 {
-    return es_basketball($deporte) ? TIPOS_PUNTO_LABEL : TIPOS_GOL_LABEL;
+    return match (deporte_clave($deporte)) {
+        'basketball' => TIPOS_PUNTO_LABEL,
+        'voleibol' => TIPOS_PUNTO_VOLEIBOL_LABEL,
+        default => TIPOS_GOL_LABEL,
+    };
 }
 
 function motivos_falta_grave_catalogo(?string $deporte): array
 {
-    return es_basketball($deporte) ? MOTIVOS_FALTA_CATALOGO : MOTIVOS_ROJA_CATALOGO;
+    return match (deporte_clave($deporte)) {
+        'basketball' => MOTIVOS_FALTA_CATALOGO,
+        'voleibol' => MOTIVOS_SANCION_VOLEIBOL_CATALOGO,
+        default => MOTIVOS_ROJA_CATALOGO,
+    };
 }
 
 function motivos_falta_grave_label(?string $deporte): array
 {
-    return es_basketball($deporte) ? MOTIVOS_FALTA_LABEL : MOTIVOS_ROJA_LABEL;
+    return match (deporte_clave($deporte)) {
+        'basketball' => MOTIVOS_FALTA_LABEL,
+        'voleibol' => MOTIVOS_SANCION_VOLEIBOL_LABEL,
+        default => MOTIVOS_ROJA_LABEL,
+    };
 }
 
 // Textos según deporte, usados en los encabezados de admin/partido_eventos.php, la
 // ficha pública partido.php y la tabla de posiciones (columnas TA/TR).
 function etiqueta_anotacion(?string $deporte): string
 {
-    return es_basketball($deporte) ? 'Punto' : 'Gol';
+    return match (deporte_clave($deporte)) {
+        'basketball' => 'Punto',
+        'voleibol' => 'Punto',
+        default => 'Gol',
+    };
 }
 
 function etiqueta_anotaciones(?string $deporte): string
 {
-    return es_basketball($deporte) ? 'Puntos' : 'Goles';
+    return match (deporte_clave($deporte)) {
+        'basketball' => 'Puntos',
+        'voleibol' => 'Puntos',
+        default => 'Goles',
+    };
 }
 
 /**
@@ -117,42 +201,74 @@ function etiqueta_anotaciones(?string $deporte): string
  */
 function etiqueta_gf(?string $deporte): string
 {
-    return es_basketball($deporte) ? 'PF' : 'GF';
+    return match (deporte_clave($deporte)) {
+        'basketball' => 'PF',
+        'voleibol' => 'SG',
+        default => 'GF',
+    };
 }
 
 function etiqueta_gc(?string $deporte): string
 {
-    return es_basketball($deporte) ? 'PC' : 'GC';
+    return match (deporte_clave($deporte)) {
+        'basketball' => 'PC',
+        'voleibol' => 'SP',
+        default => 'GC',
+    };
 }
 
 function etiqueta_falta_leve(?string $deporte): string
 {
-    return es_basketball($deporte) ? 'Falta personal' : 'Tarjeta amarilla';
+    return match (deporte_clave($deporte)) {
+        'basketball' => 'Falta personal',
+        'voleibol' => 'Amonestación',
+        default => 'Tarjeta amarilla',
+    };
 }
 
 function etiqueta_faltas_leves(?string $deporte): string
 {
-    return es_basketball($deporte) ? 'Faltas personales' : 'Tarjetas amarillas';
+    return match (deporte_clave($deporte)) {
+        'basketball' => 'Faltas personales',
+        'voleibol' => 'Amonestaciones',
+        default => 'Tarjetas amarillas',
+    };
 }
 
 function etiqueta_falta_grave(?string $deporte): string
 {
-    return es_basketball($deporte) ? 'Falta descalificante' : 'Tarjeta roja';
+    return match (deporte_clave($deporte)) {
+        'basketball' => 'Falta descalificante',
+        'voleibol' => 'Sanción',
+        default => 'Tarjeta roja',
+    };
 }
 
 function etiqueta_faltas_graves(?string $deporte): string
 {
-    return es_basketball($deporte) ? 'Faltas descalificantes' : 'Tarjetas rojas';
+    return match (deporte_clave($deporte)) {
+        'basketball' => 'Faltas descalificantes',
+        'voleibol' => 'Sanciones',
+        default => 'Tarjetas rojas',
+    };
 }
 
 function etiqueta_ta(?string $deporte): string
 {
-    return es_basketball($deporte) ? 'FP' : 'TA';
+    return match (deporte_clave($deporte)) {
+        'basketball' => 'FP',
+        'voleibol' => 'TA',
+        default => 'TA',
+    };
 }
 
 function etiqueta_tr(?string $deporte): string
 {
-    return es_basketball($deporte) ? 'FD' : 'TR';
+    return match (deporte_clave($deporte)) {
+        'basketball' => 'FD',
+        'voleibol' => 'TR',
+        default => 'TR',
+    };
 }
 
 /**
@@ -230,6 +346,7 @@ function faltas_por_jugador(array $eventos): array
 function evento_descripcion(array $evento, array $jugadoresPorId, ?string $deporte = null): string
 {
     $basketball = es_basketball($deporte);
+    $voleibol = es_voleibol($deporte);
     $minuto = $evento['minuto'] !== null ? $evento['minuto'] . "' " : '';
     $jugador = $jugadoresPorId[(int) ($evento['jugador_id'] ?? 0)] ?? null;
     $nombreJugador = jugador_nombre($jugador);
@@ -237,7 +354,9 @@ function evento_descripcion(array $evento, array $jugadoresPorId, ?string $depor
     switch ($evento['tipo']) {
         case 'gol':
             $tipoLabel = tipos_anotacion_label($deporte)[$evento['tipo_gol'] ?? ''] ?? '';
-            if ($basketball) {
+            if ($voleibol) {
+                $texto = $minuto . 'Punto' . ($tipoLabel !== '' ? ' de ' . mb_strtolower($tipoLabel) : '') . ' - ' . $nombreJugador;
+            } elseif ($basketball) {
                 // El label del tipo de canasta ya se lee bien solo ("Triple (3 pts)"), a
                 // diferencia de fútbol donde "Gol" es el sustantivo y el tipo es un extra.
                 $texto = $minuto . ($tipoLabel !== '' ? $tipoLabel : 'Punto') . ' - ' . $nombreJugador;
@@ -302,7 +421,7 @@ function marcador_desde_eventos(array $eventos, int $equipoLocalId, int $equipoV
         $valor = $basketball ? (TIPOS_PUNTO_VALOR[$ev['tipo_gol'] ?? ''] ?? 1) : 1;
 
         // Autogol (solo fútbol): el punto va al equipo contrario al del jugador.
-        $esAutogol = !$basketball && ($ev['tipo_gol'] ?? '') === 'autogol';
+        $esAutogol = deporte_clave($deporte) === 'futbol' && ($ev['tipo_gol'] ?? '') === 'autogol';
         $equipoAcreditado = $esAutogol
             ? ($equipoId === $equipoLocalId ? $equipoVisitanteId : $equipoLocalId)
             : $equipoId;
@@ -332,8 +451,13 @@ function marcador_desde_eventos(array $eventos, int $equipoLocalId, int $equipoV
  *
  * @return array{0:int,1:int} [puntos del ganador, puntos del perdedor]
  */
-function marcador_por_default(?string $deporte): array
+function marcador_por_default(?string $deporte, ?array $torneo = null): array
 {
+    // Voleibol (FIVB): el que no se presenta pierde por todos los sets que hacían falta
+    // para ganar (3-0 a cinco sets, 2-0 a tres), cada set 25-0.
+    if (es_voleibol($deporte)) {
+        return [$torneo !== null ? voleibol_sets_para_ganar($torneo) : 3, 0];
+    }
     return es_basketball($deporte) ? [20, 0] : [3, 0];
 }
 
@@ -351,13 +475,18 @@ function partido_recalcular_marcador(int $torneoId, int $partidoId, array &$part
         return [(int) $partido['marcador_local'], (int) $partido['marcador_visitante']];
     }
 
-    $eventos = db_leer_eventos_partido($torneoId, $partidoId);
-    [$local, $visitante] = marcador_desde_eventos(
-        $eventos,
-        (int) $partido['equipo_local'],
-        (int) $partido['equipo_visitante'],
-        $deporte
-    );
+    // Voleibol: el marcador son los sets ganados, no los puntos de los jugadores.
+    if (es_voleibol($deporte)) {
+        [$local, $visitante] = voleibol_sets_ganados(voleibol_sets_de_partido($partido));
+    } else {
+        $eventos = db_leer_eventos_partido($torneoId, $partidoId);
+        [$local, $visitante] = marcador_desde_eventos(
+            $eventos,
+            (int) $partido['equipo_local'],
+            (int) $partido['equipo_visitante'],
+            $deporte
+        );
+    }
 
     foreach ($partidos as &$p) {
         if ((int) $p['id'] === $partidoId) {
@@ -418,11 +547,18 @@ const MODALIDADES_POR_DEPORTE = [
         'fiba' => ['label' => 'FIBA 5v5 (4 cuartos de 10 min)', 'duracion_min' => 10],
         'nba' => ['label' => 'Estilo NBA (4 cuartos de 12 min)', 'duracion_min' => 12],
     ],
+    // Voleibol no tiene duración: se juega por sets. 'duracion_min' queda en 0 solo para
+    // que el catálogo tenga la misma forma; las reglas de cada set están en VOLEIBOL_REGLAS.
+    'voleibol' => [
+        'voley6_5' => ['label' => 'Voleibol 6x6 al mejor de 5 sets (FIVB)', 'duracion_min' => 0],
+        'voley6_3' => ['label' => 'Voleibol 6x6 al mejor de 3 sets', 'duracion_min' => 0],
+        'playa' => ['label' => 'Voleibol de playa 2x2 (mejor de 3, sets a 21)', 'duracion_min' => 0],
+    ],
 ];
 
 // Modalidad que se asume cuando la copa no declaró ninguna (copas creadas antes de que
 // existiera este campo): la más común de cada deporte.
-const MODALIDAD_POR_DEFECTO = ['futbol' => 'futbol11', 'basketball' => 'fiba'];
+const MODALIDAD_POR_DEFECTO = ['futbol' => 'futbol11', 'basketball' => 'fiba', 'voleibol' => 'voley6_5'];
 
 // Compatibilidad con código previo que usaba una constante fija para basketball.
 const DURACION_CUARTO_BASKETBALL_MIN = 10;
@@ -519,11 +655,18 @@ const POSICIONES_POR_DEPORTE = [
         'ala_pivot' => ['label' => 'Ala-pívot', 'corta' => 'AP'],
         'pivot' => ['label' => 'Pívot', 'corta' => 'P'],
     ],
+    'voleibol' => [
+        'armador' => ['label' => 'Armador', 'corta' => 'ARM'],
+        'opuesto' => ['label' => 'Opuesto', 'corta' => 'OPU'],
+        'central' => ['label' => 'Central', 'corta' => 'CEN'],
+        'punta' => ['label' => 'Punta (receptor)', 'corta' => 'PUN'],
+        'libero' => ['label' => 'Líbero', 'corta' => 'LIB'],
+    ],
 ];
 
 function posiciones_catalogo(?string $deporte): array
 {
-    return POSICIONES_POR_DEPORTE[es_basketball($deporte) ? 'basketball' : 'futbol'];
+    return POSICIONES_POR_DEPORTE[deporte_clave($deporte)];
 }
 
 function posicion_label(?string $deporte, ?string $clave, bool $corta = false): string
@@ -543,11 +686,14 @@ const JUGADORES_EN_CANCHA_POR_MODALIDAD = [
     'futbol5' => 5,
     'fiba' => 5,
     'nba' => 5,
+    'voley6_5' => 6,
+    'voley6_3' => 6,
+    'playa' => 2,
 ];
 
 function torneo_jugadores_en_cancha(array $torneo): int
 {
-    $deporte = es_basketball($torneo['deporte'] ?? null) ? 'basketball' : 'futbol';
+    $deporte = deporte_clave($torneo['deporte'] ?? null);
     $modalidad = (string) ($torneo['modalidad'] ?? '');
     if (!isset(MODALIDADES_POR_DEPORTE[$deporte][$modalidad])) {
         $modalidad = MODALIDAD_POR_DEFECTO[$deporte];
@@ -603,7 +749,7 @@ function alineacion_de_equipo(array $alineacion, array $jugadoresPorId, int $equ
 
 function modalidades_catalogo(?string $deporte): array
 {
-    return MODALIDADES_POR_DEPORTE[es_basketball($deporte) ? 'basketball' : 'futbol'];
+    return MODALIDADES_POR_DEPORTE[deporte_clave($deporte)];
 }
 
 /**
@@ -617,7 +763,7 @@ function torneo_duracion_periodo_min(array $torneo): int
     if ($personalizada > 0) {
         return $personalizada;
     }
-    $deporte = es_basketball($torneo['deporte'] ?? null) ? 'basketball' : 'futbol';
+    $deporte = deporte_clave($torneo['deporte'] ?? null);
     $modalidad = (string) ($torneo['modalidad'] ?? '');
     $catalogo = MODALIDADES_POR_DEPORTE[$deporte];
     if (!isset($catalogo[$modalidad])) {
@@ -693,11 +839,18 @@ function partido_finalizado(array $partido): bool
  */
 function partido_periodo_maximo(?string $deporte): int
 {
-    return es_basketball($deporte) ? 4 : 2;
+    return match (deporte_clave($deporte)) {
+        'basketball' => 4,
+        'voleibol' => 5,
+        default => 2,
+    };
 }
 
 function partido_periodo_etiqueta(?string $deporte, int $periodo): string
 {
+    if (es_voleibol($deporte)) {
+        return 'Set ' . max(1, $periodo);
+    }
     if (es_basketball($deporte)) {
         return 'Cuarto ' . max(1, $periodo);
     }
@@ -718,6 +871,11 @@ function marcador_jugado_desde_eventos(int $torneoId, array $partido, ?string $d
     // Un W.O. no se deriva de goles: su marcador es reglamentario y no se toca.
     if (!empty($partido['por_default'])) {
         return [(int) $partido['marcador_local'], (int) $partido['marcador_visitante']];
+    }
+
+    // Voleibol: el resultado son los sets ganados.
+    if (es_voleibol($deporte)) {
+        return voleibol_sets_ganados(voleibol_sets_de_partido($partido));
     }
 
     $eventos = db_leer_eventos_partido($torneoId, (int) $partido['id']);
@@ -756,7 +914,7 @@ function calcular_goleadores(array $eventos, array $jugadores, array $equiposPor
         if ($evento['tipo'] !== 'gol') {
             continue;
         }
-        if (!$basketball && ($evento['tipo_gol'] ?? '') === 'autogol') {
+        if (deporte_clave($deporte) === 'futbol' && ($evento['tipo_gol'] ?? '') === 'autogol') {
             continue;
         }
         $jugadorId = (int) ($evento['jugador_id'] ?? 0);

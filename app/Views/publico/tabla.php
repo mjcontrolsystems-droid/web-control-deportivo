@@ -90,8 +90,13 @@
                         <th class="text-center col-pts">Pts</th>
                         <th class="text-center"><?= e(etiqueta_gf($deporte)) ?></th>
                         <th class="text-center"><?= e(etiqueta_gc($deporte)) ?></th>
+                        <?php if (es_voleibol($deporte)): ?>
+                        <th class="text-center" title="Cociente de sets (ganados / perdidos)">C. sets</th>
+                        <th class="text-center d-none d-md-table-cell" title="Cociente de puntos (a favor / en contra)">C. pts</th>
+                        <?php else: ?>
                         <th class="text-center">DIF</th>
                         <th class="text-center d-none d-md-table-cell">%G</th>
+                        <?php endif; ?>
                         <th class="text-center d-none d-md-table-cell" title="<?= e(etiqueta_faltas_leves($deporte)) ?>"><?= e(etiqueta_ta($deporte)) ?></th><th class="text-center d-none d-md-table-cell" title="<?= e(etiqueta_faltas_graves($deporte)) ?>"><?= e(etiqueta_tr($deporte)) ?></th>
                         <th class="text-center">Últimos</th>
                     </tr>
@@ -115,8 +120,13 @@
                         <td class="text-center col-pts"><?= $fila['pts'] ?></td>
                         <td class="text-center"><?= $fila['pf'] ?></td>
                         <td class="text-center"><?= $fila['pc'] ?></td>
+                        <?php if (es_voleibol($deporte)): ?>
+                        <td class="text-center fw-semibold"><?= e(voleibol_formato_cociente($fila['cociente_sets'])) ?></td>
+                        <td class="text-center d-none d-md-table-cell"><?= e(voleibol_formato_cociente($fila['cociente_puntos'])) ?></td>
+                        <?php else: ?>
                         <td class="text-center fw-semibold <?= $fila['dif'] > 0 ? 'text-success' : ($fila['dif'] < 0 ? 'text-danger' : 'text-muted') ?>"><?= $fila['dif'] > 0 ? '+' : '' ?><?= $fila['dif'] ?></td>
                         <td class="text-center d-none d-md-table-cell"><?= $fila['porcentaje'] ?>%</td>
+                        <?php endif; ?>
                         <td class="text-center d-none d-md-table-cell"><?= $fila['tarjetas_amarillas'] ?></td>
                         <td class="text-center d-none d-md-table-cell"><?= $fila['tarjetas_rojas'] ?></td>
                         <td class="text-center col-racha">

@@ -38,7 +38,18 @@
             <div class="small fw-semibold mt-1 nombre"><?= $equipoVisitante ? e($equipoVisitante['nombre']) : '?' ?></div>
         </div>
     </div>
+    <?php if (es_voleibol($deporte)): ?>
+    <?php if (!empty($setsPartido)): ?>
+    <p class="text-center mb-0 mt-2 marcador-sets">
+        <?php foreach ($setsPartido as $iSet => [$sl, $sv]): ?>
+        <span class="badge rounded-pill text-bg-light border" title="Set <?= $iSet + 1 ?>"><?= $sl ?>-<?= $sv ?></span>
+        <?php endforeach; ?>
+    </p>
+    <?php endif; ?>
+    <p class="text-center small text-muted mb-0 mt-2">El marcador son los sets ganados. Carga el resultado de cada set en «Sets del partido».</p>
+    <?php else: ?>
     <p class="text-center small text-muted mb-0 mt-2">El marcador se calcula automáticamente con los <?= e(mb_strtolower(etiqueta_anotaciones($deporte))) ?> que registres abajo.</p>
+    <?php endif; ?>
 
     <?php // Triunfo por default, aquí porque es AQUÍ donde se descubre que un equipo no
           // llegó. Fija el marcador reglamentario, no asigna goles a nadie y excluye el
@@ -48,16 +59,16 @@
         <span class="badge rounded-pill text-bg-warning"><i class="bi bi-flag me-1"></i>Ganado por default (W.O.) — marcador reglamentario, sin goles individuales</span>
     </p>
     <?php elseif (!$resultadoBloqueado && puede('partidos_editar', $torneo)): ?>
-    <?php [$ptsWo] = marcador_por_default($deporte); ?>
+    <?php [$ptsWo] = marcador_por_default($deporte, $torneo); ?>
     <div class="d-flex justify-content-center gap-2 mt-2 flex-wrap">
-        <form method="post" class="mb-0" data-confirm="¿El rival no se presentó? Se registrará <?= $ptsWo ?>-0 a favor de <?= e($equipoLocal['nombre'] ?? 'local') ?>, sin goles para nadie, y el encuentro quedará jugado.">
+        <form method="post" class="mb-0" data-confirm="¿El rival no se presentó? Se registrará <?= $ptsWo ?>-0 a favor de <?= e($equipoLocal['nombre'] ?? 'local') ?>, sin <?= e(mb_strtolower(etiqueta_anotaciones($deporte))) ?> para nadie, y el encuentro quedará jugado.">
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="accion" value="marcar_default">
             <input type="hidden" name="partido_id" value="<?= $partidoId ?>">
             <input type="hidden" name="lado" value="local">
             <button type="submit" class="btn btn-sm btn-outline-warning rounded-pill px-3"><i class="bi bi-flag me-1"></i>W.O. a favor de <?= e($equipoLocal['nombre'] ?? 'Local') ?></button>
         </form>
-        <form method="post" class="mb-0" data-confirm="¿El rival no se presentó? Se registrará <?= $ptsWo ?>-0 a favor de <?= e($equipoVisitante['nombre'] ?? 'visitante') ?>, sin goles para nadie, y el encuentro quedará jugado.">
+        <form method="post" class="mb-0" data-confirm="¿El rival no se presentó? Se registrará <?= $ptsWo ?>-0 a favor de <?= e($equipoVisitante['nombre'] ?? 'visitante') ?>, sin <?= e(mb_strtolower(etiqueta_anotaciones($deporte))) ?> para nadie, y el encuentro quedará jugado.">
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="accion" value="marcar_default">
             <input type="hidden" name="partido_id" value="<?= $partidoId ?>">
@@ -99,7 +110,64 @@ $cronometroAgotado = $cronometroSegundosMostrados === 0 && $cronometroEstado !==
 $cronometroPeriodo = (int) ($partido['cronometro_periodo'] ?? 1);
 $cronometroPeriodoMaximo = partido_periodo_maximo($deporte);
 ?>
-<?php if (!$resultadoBloqueado): ?>
+<?php // ---------- Sets del partido (voleibol) ----------
+      // En voleibol no hay cronómetro: el partido avanza set por set. Aquí se carga el
+      // resultado de cada set; el servidor valida las reglas FIVB de la modalidad. ?>
+<?php if (es_voleibol($deporte) && !$resultadoBloqueado && empty($partido['por_default'])): ?>
+<?php $reglasSets = voleibol_reglas($torneo); $setsMaximos = voleibol_sets_maximos($torneo); ?>
+<div class="card-suave p-4 mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+        <div>
+            <h5 class="mb-1"><?= icono_balon_img($deporte, 20) ?> Sets del partido</h5>
+            <p class="small text-muted mb-0">
+                Al mejor de <?= $setsMaximos ?> sets: gana quien llegue a <?= $reglasSets['sets_para_ganar'] ?>.
+                Cada set a <?= $reglasSets['puntos_set'] ?> puntos y el decisivo a <?= $reglasSets['puntos_decisivo'] ?>, siempre con 2 de diferencia.
+            </p>
+        </div>
+    </div>
+    <form method="post" data-sets-voleibol data-sets-para-ganar="<?= $reglasSets['sets_para_ganar'] ?>"
+          data-puntos-set="<?= $reglasSets['puntos_set'] ?>" data-puntos-decisivo="<?= $reglasSets['puntos_decisivo'] ?>">
+        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="accion" value="guardar_sets">
+        <input type="hidden" name="partido_id" value="<?= $partidoId ?>">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0 tabla-sets">
+                <thead>
+                    <tr class="small text-muted">
+                        <th>Equipo</th>
+                        <?php for ($iSet = 0; $iSet < $setsMaximos; $iSet++): ?>
+                        <th class="text-center">Set <?= $iSet + 1 ?></th>
+                        <?php endfor; ?>
+                        <th class="text-center">Sets</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach (['local' => $equipoLocal, 'visitante' => $equipoVisitante] as $ladoSets => $equipoSets): $col = $ladoSets === 'local' ? 0 : 1; ?>
+                    <tr>
+                        <td class="small fw-semibold text-nowrap"><?= e($equipoSets['nombre'] ?? ucfirst($ladoSets)) ?></td>
+                        <?php for ($iSet = 0; $iSet < $setsMaximos; $iSet++): ?>
+                        <td class="text-center">
+                            <input type="number" min="0" max="99" inputmode="numeric" class="form-control form-control-sm text-center campo-set"
+                                   name="set_<?= $ladoSets ?>[<?= $iSet ?>]" value="<?= isset($setsPartido[$iSet]) ? (int) $setsPartido[$iSet][$col] : '' ?>"
+                                   data-set="<?= $iSet ?>" data-lado="<?= $ladoSets ?>" aria-label="Set <?= $iSet + 1 ?> de <?= e($equipoSets['nombre'] ?? $ladoSets) ?>">
+                        </td>
+                        <?php endfor; ?>
+                        <td class="text-center fw-bold fs-5" data-total-sets="<?= $ladoSets ?>"><?= $ladoSets === 'local' ? (int) $marcadorLocalVivo : (int) $marcadorVisitanteVivo ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <div class="d-flex align-items-center gap-2 mt-3 flex-wrap">
+            <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-3"><i class="bi bi-save me-1"></i>Guardar sets</button>
+            <button type="submit" name="finalizar" value="1" class="btn btn-sm btn-degradado rounded-pill px-3"><i class="bi bi-flag-fill me-1"></i>Guardar y finalizar encuentro</button>
+            <span class="small text-muted" data-aviso-sets></span>
+        </div>
+    </form>
+</div>
+<?php endif; ?>
+
+<?php if (!$resultadoBloqueado && deporte_usa_cronometro($deporte)): ?>
 <div class="card-suave p-3 mb-4 d-flex flex-row align-items-center justify-content-between flex-wrap gap-3"
     id="cronometroPartido" data-estado="<?= e($cronometroEstado) ?>"
     data-segundos="<?= (int) ($partido['cronometro_segundos'] ?? 0) ?>"
@@ -460,9 +528,11 @@ foreach ($equiposDelPartido as $eid) {
                         <?php endforeach; endforeach; ?>
                     </select>
                 </div>
+                <?php if (deporte_usa_cronometro($deporte)): ?>
                 <div class="col-4">
                     <input type="number" min="0" name="minuto" class="form-control form-control-sm" placeholder="Min.">
                 </div>
+                <?php endif; ?>
                 <div class="col-8">
                     <select name="tipo_gol" class="form-select form-select-sm" data-aviso-autogol="avisoAutogol">
                         <?php foreach (tipos_anotacion_catalogo($deporte) as $tg): ?>
@@ -526,9 +596,11 @@ foreach ($equiposDelPartido as $eid) {
                         <?php endforeach; endforeach; ?>
                     </select>
                 </div>
+                <?php if (deporte_usa_cronometro($deporte)): ?>
                 <div class="col-4">
                     <input type="number" min="0" name="minuto" class="form-control form-control-sm" placeholder="Min.">
                 </div>
+                <?php endif; ?>
                 <div class="col-6">
                     <select name="color" class="form-select form-select-sm">
                         <option value="amarilla"><?= e(etiqueta_falta_leve($deporte)) ?></option>
@@ -578,9 +650,11 @@ foreach ($equiposDelPartido as $eid) {
                         <?php endforeach; endforeach; ?>
                     </select>
                 </div>
+                <?php if (deporte_usa_cronometro($deporte)): ?>
                 <div class="col-4">
                     <input type="number" min="0" name="minuto" class="form-control form-control-sm" placeholder="Min.">
                 </div>
+                <?php endif; ?>
                 <div class="col-8 d-flex align-items-end">
                     <button type="submit" class="btn btn-sm btn-degradado rounded-pill px-3 w-100">Agregar cambio</button>
                 </div>

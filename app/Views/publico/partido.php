@@ -41,6 +41,9 @@ if (!function_exists('ficha_enlace_jugador')) {
                 <?php else: ?>
                     VS
                 <?php endif; ?>
+                <?php if (es_voleibol($deporte) && voleibol_texto_sets($partido) !== ''): ?>
+                <div class="fs-6 fw-normal opacity-75"><?= e(voleibol_texto_sets($partido)) ?></div>
+                <?php endif; ?>
             </div>
             <a href="<?= url_copa('equipo.php?id=' . $visit['id']) ?>" class="d-flex flex-column align-items-center gap-2 text-decoration-none text-white partido-hero-equipo">
                 <?= logo_equipo($visit, 72) ?>
@@ -205,7 +208,7 @@ if (!function_exists('ficha_enlace_jugador')) {
         <?php endif; ?>
     </table>
 
-    <h3><?= $basketball ? '🏀' : '⚽' ?> <?= e(etiqueta_anotaciones($deporte)) ?></h3>
+    <h3><?= DEPORTES[deporte_clave($deporte)]['emoji'] ?> <?= e(etiqueta_anotaciones($deporte)) ?></h3>
     <table class="ficha-tabla">
         <thead><tr><th>Min.</th><th>Equipo</th><th>Jugador</th><th>Tipo</th><th>Asistencia</th></tr></thead>
         <tbody>

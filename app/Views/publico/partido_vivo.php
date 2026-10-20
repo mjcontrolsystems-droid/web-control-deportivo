@@ -35,8 +35,10 @@
             <span class="punto-en-vivo"></span>
             <span id="estadoPartido" class="fw-heading text-uppercase small"><?= $finalizado ? 'Finalizado' : 'En vivo' ?></span>
             <span class="opacity-50">·</span>
+            <?php if (deporte_usa_cronometro($deporte)): ?>
             <i class="bi bi-stopwatch"></i>
             <span id="cronometroVivo" class="cronometro-vivo font-monospace">00:00</span>
+            <?php endif; ?>
             <span id="periodoVivo" class="badge rounded-pill bg-light text-dark"><?= e(partido_periodo_etiqueta($deporte, (int) ($partido['cronometro_periodo'] ?? 1))) ?></span>
             <span id="extraVivo" class="badge rounded-pill bg-warning text-dark<?= $minutosExtra > 0 ? '' : ' d-none' ?>">+<?= $minutosExtra ?> min</span>
         </div>
@@ -68,6 +70,9 @@
             <span class="marcador-vivo-nombre"><?= e($visit['nombre']) ?></span>
         </div>
     </div>
+    <?php if (es_voleibol($deporte)): ?>
+    <p id="setsVivo" class="sets-vivo text-center mb-0"><?= e(voleibol_texto_sets($partido)) ?></p>
+    <?php endif; ?>
 
     <?php
     // Cartel de cierre bajo el marcador. Se pinta ya visible si el partido llegó terminado;

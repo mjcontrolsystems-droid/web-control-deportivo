@@ -265,11 +265,16 @@ HTML;
     // flex-nowrap: la regla de móvil que deja envolver los d-flex de las tarjetas (para
     // que los BOTONES bajen de línea) alcanzaba también esta fila y la del marcador, y un
     // equipo terminaba dibujado DEBAJO del otro. Estas dos filas jamás deben partirse.
+    // Voleibol: el detalle de los sets va debajo del marcador ("25-20 · 22-25").
+    $setsHtml = ($p['sets'] ?? '') !== '' ? '<div class="small text-muted text-center">' . e(voleibol_texto_sets($p)) . '</div>' : '';
     $marcadorDisplay = <<<HTML
+<div class="d-flex flex-column align-items-center">
 <div class="d-flex flex-nowrap align-items-center gap-2" title="El marcador se calcula desde los {$txtAnotaciones} registrados en Eventos">
     <span class="fs-3 fw-bold" style="min-width:34px;text-align:center;">{$valorLocal}</span>
     <span class="text-muted">-</span>
     <span class="fs-3 fw-bold" style="min-width:34px;text-align:center;">{$valorVisit}</span>
+</div>
+{$setsHtml}
 </div>
 HTML;
 
@@ -367,6 +372,16 @@ function icono_futbol(int $size = 24): string
 SVG;
 }
 
+function icono_voleibol(int $size = 24): string
+{
+    return <<<SVG
+<svg width="{$size}" height="{$size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="10.5" stroke="currentColor" stroke-width="1.6"/>
+    <path d="M12 1.5c-1.8 3.5-1.8 7.5 0 10.5M12 12c3.5.2 7-1.5 9.4-4.6M12 12c-1.7 3-5 5.4-9 5.6M6.8 3.4c3.4 1.4 5.2 4.9 5.2 8.6M20.6 16.2c-3.4.9-7.1-.4-8.6-4.2M8 21.6c.6-3.6 2.4-6.8 4-9.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+</svg>
+SVG;
+}
+
 /**
  * Logo oficial de la plataforma (círculo con los 4 balones), usado en navbar, footer,
  * login y registro cuando no hay una copa concreta detrás — no tendría sentido mostrar
@@ -385,7 +400,7 @@ function icono_multideporte(int $size = 24): string
  */
 function icono_balon_img(?string $deporte, int $size = 20, string $clase = ''): string
 {
-    $archivo = ($deporte === 'futbol') ? 'balon-futbol.png' : 'balon-basketball.png';
+    $archivo = DEPORTES[$deporte ?? '']['balon'] ?? 'balon-basketball.png';
     $src = e(url('assets/img/' . $archivo));
     return "<img src=\"{$src}\" width=\"{$size}\" height=\"{$size}\" class=\"{$clase}\" style=\"object-fit:contain;vertical-align:-0.18em;\" alt=\"\">";
 }
@@ -400,7 +415,11 @@ function icono_deporte(?string $deporte, int $size = 24): string
     if ($deporte === null) {
         return icono_multideporte($size);
     }
-    return $deporte === 'futbol' ? icono_futbol($size) : icono_balon($size);
+    return match ($deporte) {
+        'futbol' => icono_futbol($size),
+        'voleibol' => icono_voleibol($size),
+        default => icono_balon($size),
+    };
 }
 
 /**
@@ -432,7 +451,7 @@ function logo_torneo(?array $torneo, int $size = 42, string $clase = ''): string
  */
 function nombre_deporte(?string $deporte): string
 {
-    return $deporte === 'futbol' ? 'fútbol' : 'basketball';
+    return DEPORTES[$deporte ?? '']['nombre_minuscula'] ?? 'basketball';
 }
 
 /**

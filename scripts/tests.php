@@ -21,6 +21,7 @@ if (PHP_SAPI !== 'cli') {
 // que no cargan el bootstrap completo (ver config/bootstrap.php).
 require_once __DIR__ . '/../app/Support/tabla.php';
 require_once __DIR__ . '/../app/Support/liga.php';
+require_once __DIR__ . '/../app/Support/voleibol.php';
 require_once __DIR__ . '/../app/Support/fixture.php';
 
 $fallos = 0;
@@ -335,6 +336,74 @@ check('el resumen coincide con el fixture real (9 equipos, ida y vuelta)', [
 check('vueltas del torneo: 2 se respeta', torneo_vueltas(['vueltas' => 2]), 2);
 check('vueltas del torneo: copa vieja sin el campo juega una vuelta', torneo_vueltas([]), 1);
 check('vueltas del torneo: valor raro cae a una vuelta', torneo_vueltas(['vueltas' => 7]), 1);
+
+// ---------------------------------------------------------------------------
+echo "\n== Voleibol (reglas FIVB) ==\n";
+$v5 = ['deporte' => 'voleibol', 'modalidad' => 'voley6_5'];
+$v3 = ['deporte' => 'voleibol', 'modalidad' => 'voley6_3'];
+$playa = ['deporte' => 'voleibol', 'modalidad' => 'playa'];
+
+check('set 25-23 es válido', voleibol_set_valido(25, 23, 25), true);
+check('set 25-24 no es válido (falta diferencia de 2)', voleibol_set_valido(25, 24, 25), false);
+check('set 26-24 es válido (deuce)', voleibol_set_valido(26, 24, 25), true);
+check('set 30-27 no es válido (pasado el deuce gana por 2 justo)', voleibol_set_valido(30, 27, 25), false);
+check('set 24-20 no es válido (no llegó a 25)', voleibol_set_valido(24, 20, 25), false);
+check('set decisivo 15-13 es válido', voleibol_set_valido(15, 13, 15), true);
+check('set de playa 21-19 es válido', voleibol_set_valido(21, 19, 21), true);
+
+$r = voleibol_validar_sets([[25, 20], [22, 25], [25, 18], [25, 21]], $v5);
+check('3-1 a cinco sets: sin errores y terminado', [$r['errores'], $r['terminado'], $r['marcador']], [[], true, [3, 1]]);
+$r = voleibol_validar_sets([[25, 20], [22, 25], [25, 18], [20, 25], [15, 12]], $v5);
+check('3-2 con quinto set a 15: válido', [$r['errores'], $r['marcador']], [[], [3, 2]]);
+$r = voleibol_validar_sets([[25, 20], [22, 25], [25, 18], [20, 25], [25, 15]], $v5);
+check('quinto set 25-15 no es válido (el decisivo se cierra en 15)', count($r['errores']), 1);
+$r = voleibol_validar_sets([[25, 20], [25, 18], [25, 21], [25, 10]], $v5);
+check('un set de más después de 3-0 es error', count($r['errores']), 1);
+$r = voleibol_validar_sets([[25, 20], [22, 25]], $v5);
+check('partido a medias: sin errores pero no terminado', [$r['errores'], $r['terminado']], [[], false]);
+$r = voleibol_validar_sets([[25, 20], [20, 25], [15, 10]], $v3);
+check('a tres sets: el tercero es el decisivo a 15', [$r['errores'], $r['terminado'], $r['marcador']], [[], true, [2, 1]]);
+$r = voleibol_validar_sets([[21, 18], [21, 19]], $playa);
+check('playa: 2-0 con sets a 21', [$r['errores'], $r['terminado']], [[], true]);
+
+check('puntos FIVB 3-0: 3 y 0', voleibol_puntos_tabla(3, 0), [3, 0]);
+check('puntos FIVB 3-1: 3 y 0', voleibol_puntos_tabla(3, 1), [3, 0]);
+check('puntos FIVB 3-2: 2 y 1', voleibol_puntos_tabla(3, 2), [2, 1]);
+check('puntos FIVB 2-1 (a tres sets): 2 y 1', voleibol_puntos_tabla(2, 1), [2, 1]);
+check('puntos FIVB por default: 3 y 0', voleibol_puntos_tabla(3, 0, true), [3, 0]);
+check('texto de sets ida y vuelta', voleibol_sets_a_texto(voleibol_parsear_sets('25-20, 22-25,basura,15-13')), '25-20,22-25,15-13');
+check('W.O. de voleibol a cinco sets es 3-0', marcador_por_default('voleibol', $v5), [3, 0]);
+check('W.O. de voleibol a tres sets es 2-0', marcador_por_default('voleibol', $v3), [2, 0]);
+check('voleibol no tiene expulsión por acumular amarillas', limite_faltas_expulsion('voleibol') > 100, true);
+check('posiciones de voleibol incluyen el líbero', isset(posiciones_catalogo('voleibol')['libero']), true);
+check('6 en cancha en voleibol 6x6', torneo_jugadores_en_cancha($v5), 6);
+check('2 en cancha en voleibol de playa', torneo_jugadores_en_cancha($playa), 2);
+check('fútbol sigue con sus posiciones', isset(posiciones_catalogo('futbol')['portero']), true);
+check('un deporte desconocido sigue tratándose como fútbol', deporte_clave('ajedrez'), 'futbol');
+
+// Tabla FIVB: A gana 3-0 a B y 3-2 a C; B gana 3-1 a C.
+// A: 2 ganados, 3+2 = 5 pts. B: 1 ganado, 0+3 = 3 pts. C: 0 ganados, 1+0 = 1 pt.
+$eqV = [['id' => 1, 'nombre' => 'A'], ['id' => 2, 'nombre' => 'B'], ['id' => 3, 'nombre' => 'C']];
+$pV = [
+    ['id' => 1, 'equipo_local' => 1, 'equipo_visitante' => 2, 'marcador_local' => 3, 'marcador_visitante' => 0, 'estado' => 'jugado', 'fase' => 'grupos', 'fecha' => '2026-01-01', 'hora' => '10:00', 'sets' => '25-20,25-20,25-20'],
+    ['id' => 2, 'equipo_local' => 1, 'equipo_visitante' => 3, 'marcador_local' => 3, 'marcador_visitante' => 2, 'estado' => 'jugado', 'fase' => 'grupos', 'fecha' => '2026-01-02', 'hora' => '10:00', 'sets' => '25-20,20-25,25-20,20-25,15-13'],
+    ['id' => 3, 'equipo_local' => 2, 'equipo_visitante' => 3, 'marcador_local' => 3, 'marcador_visitante' => 1, 'estado' => 'jugado', 'fase' => 'grupos', 'fecha' => '2026-01-03', 'hora' => '10:00', 'sets' => '25-20,25-20,20-25,25-20'],
+];
+$tV = calcular_tabla($eqV, $pV, $v5 + ['permite_empates' => true]);
+check('tabla FIVB: orden A, B, C', array_map(fn($f) => $f['equipo']['nombre'], $tV), ['A', 'B', 'C']);
+check('tabla FIVB: puntos 5, 3, 1', array_map(fn($f) => $f['pts'], $tV), [5, 3, 1]);
+check('tabla FIVB: el voleibol ignora "permite empates"', array_sum(array_map(fn($f) => $f['pe'], $tV)), 0);
+check('tabla FIVB: sets a favor y en contra de A', [$tV[0]['pf'], $tV[0]['pc']], [6, 2]);
+check('tabla FIVB: cociente de sets de A', $tV[0]['cociente_sets'], 3.0);
+
+// Desempate: X y Y con 1 ganado y 3 pts cada uno; X tiene mejor cociente de sets.
+$eqD = [['id' => 1, 'nombre' => 'X'], ['id' => 2, 'nombre' => 'Y'], ['id' => 3, 'nombre' => 'Z'], ['id' => 4, 'nombre' => 'W']];
+$pD = [
+    ['id' => 1, 'equipo_local' => 1, 'equipo_visitante' => 3, 'marcador_local' => 3, 'marcador_visitante' => 0, 'estado' => 'jugado', 'fase' => 'grupos', 'fecha' => '2026-01-01', 'hora' => '', 'sets' => '25-10,25-10,25-10'],
+    ['id' => 2, 'equipo_local' => 2, 'equipo_visitante' => 4, 'marcador_local' => 3, 'marcador_visitante' => 1, 'estado' => 'jugado', 'fase' => 'grupos', 'fecha' => '2026-01-01', 'hora' => '', 'sets' => '25-10,10-25,25-10,25-10'],
+];
+$tD = calcular_tabla($eqD, $pD, $v5);
+check('desempate FIVB por cociente de sets: X antes que Y', [$tD[0]['equipo']['nombre'], $tD[1]['equipo']['nombre']], ['X', 'Y']);
 
 // ---------------------------------------------------------------------------
 echo "\n============================\n";

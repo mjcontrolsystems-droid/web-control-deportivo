@@ -32,7 +32,10 @@ const FASES_LABEL = [
  */
 function calcular_tabla(array $equipos, array $partidos, array $reglas, array $eventos = []): array
 {
-    $permiteEmpates = !empty($reglas['permite_empates']);
+    // Voleibol: no hay empates y los puntos no son fijos por resultado (FIVB: 3-0 / 2-1
+    // según si se ganó en el set decisivo). Ver app/Support/voleibol.php.
+    $voleibol = es_voleibol($reglas['deporte'] ?? null);
+    $permiteEmpates = !$voleibol && !empty($reglas['permite_empates']);
     $ptsVictoria = (int) ($reglas['puntos_victoria'] ?? 2);
     $ptsEmpate = (int) ($reglas['puntos_empate'] ?? 0);
     $ptsDerrota = (int) ($reglas['puntos_derrota'] ?? 1);
@@ -53,6 +56,11 @@ function calcular_tabla(array $equipos, array $partidos, array $reglas, array $e
             'tarjetas_amarillas' => 0,
             'tarjetas_rojas' => 0,
             'racha' => [],
+            // Solo voleibol: puntos de tabla acumulados partido a partido y puntos de
+            // juego (los del marcador de cada set) para el cociente de puntos.
+            'pts_voleibol' => 0,
+            'puntos_favor' => 0,
+            'puntos_contra' => 0,
         ];
     }
 
@@ -76,6 +84,23 @@ function calcular_tabla(array $equipos, array $partidos, array $reglas, array $e
         $stats[$localId]['pc'] += $pv;
         $stats[$visitId]['pf'] += $pv;
         $stats[$visitId]['pc'] += $pl;
+
+        if ($voleibol && $pl !== $pv) {
+            $ganadorId = $pl > $pv ? $localId : $visitId;
+            $perdedorId = $pl > $pv ? $visitId : $localId;
+            [$ptsGanador, $ptsPerdedor] = voleibol_puntos_tabla(max($pl, $pv), min($pl, $pv), !empty($partido['por_default']));
+            $stats[$ganadorId]['pts_voleibol'] += $ptsGanador;
+            $stats[$perdedorId]['pts_voleibol'] += $ptsPerdedor;
+            // Por default no hubo sets jugados: FIVB los cuenta 25-0 cada uno.
+            $sets = !empty($partido['por_default'])
+                ? array_fill(0, max($pl, $pv), $pl > $pv ? [25, 0] : [0, 25])
+                : voleibol_sets_de_partido($partido);
+            [$puntosLocal, $puntosVisita] = voleibol_puntos_totales($sets);
+            $stats[$localId]['puntos_favor'] += $puntosLocal;
+            $stats[$localId]['puntos_contra'] += $puntosVisita;
+            $stats[$visitId]['puntos_favor'] += $puntosVisita;
+            $stats[$visitId]['puntos_contra'] += $puntosLocal;
+        }
 
         if ($pl === $pv && $permiteEmpates) {
             $stats[$localId]['pe']++;
@@ -117,13 +142,23 @@ function calcular_tabla(array $equipos, array $partidos, array $reglas, array $e
     $tabla = [];
     foreach ($stats as $fila) {
         $fila['dif'] = $fila['pf'] - $fila['pc'];
-        $fila['pts'] = $fila['pg'] * $ptsVictoria + $fila['pe'] * $ptsEmpate + $fila['pp'] * $ptsDerrota;
+        $fila['pts'] = $voleibol
+            ? $fila['pts_voleibol']
+            : $fila['pg'] * $ptsVictoria + $fila['pe'] * $ptsEmpate + $fila['pp'] * $ptsDerrota;
+        // Cocientes FIVB (a favor / en contra). Sin nada en contra el cociente es "infinito":
+        // se guarda como un número enorme para ordenar y la vista lo muestra como MAX.
+        $fila['cociente_sets'] = $fila['pc'] > 0 ? round($fila['pf'] / $fila['pc'], 3) : ($fila['pf'] > 0 ? 999.0 : 0.0);
+        $fila['cociente_puntos'] = $fila['puntos_contra'] > 0 ? round($fila['puntos_favor'] / $fila['puntos_contra'], 3) : ($fila['puntos_favor'] > 0 ? 999.0 : 0.0);
         $fila['porcentaje'] = $fila['pj'] > 0 ? round(($fila['pg'] / $fila['pj']) * 100) : 0;
         $fila['racha'] = array_slice(array_reverse($fila['racha']), 0, 5);
         $tabla[] = $fila;
     }
 
-    usort($tabla, function ($a, $b) {
+    // FIVB: partidos ganados, puntos, cociente de sets y cociente de puntos.
+    $ordenVoleibol = fn($a, $b) => [$b['pg'], $b['pts'], $b['cociente_sets'], $b['cociente_puntos'], $a['equipo']['nombre']]
+        <=> [$a['pg'], $a['pts'], $a['cociente_sets'], $a['cociente_puntos'], $b['equipo']['nombre']];
+
+    usort($tabla, $voleibol ? $ordenVoleibol : function ($a, $b) {
         if ($a['pts'] !== $b['pts']) {
             return $b['pts'] <=> $a['pts'];
         }

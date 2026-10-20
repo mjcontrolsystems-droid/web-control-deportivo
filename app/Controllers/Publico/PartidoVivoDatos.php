@@ -52,6 +52,13 @@ if ($marcadorLocal === 0 && $marcadorVisitante === 0
     $marcadorVisitante = (int) $partido['marcador_visitante'];
 }
 
+// Voleibol: el marcador grande son los sets ganados y debajo va el detalle set por set.
+if (es_voleibol($deporte)) {
+    [$marcadorLocal, $marcadorVisitante] = !empty($partido['por_default'])
+        ? [(int) $partido['marcador_local'], (int) $partido['marcador_visitante']]
+        : voleibol_sets_ganados(voleibol_sets_de_partido($partido));
+}
+
 $eventosSalida = array_map(function (array $ev) use ($jugadoresPorId, $equiposPorId, $deporte) {
     return [
         'id' => (int) $ev['id'],
@@ -80,4 +87,5 @@ echo json_encode([
     'duracion_segundos' => partido_duracion_periodo_segundos($partido, $torneo),
     'minutos_extra' => partido_minutos_extra($partido),
     'periodo_etiqueta' => partido_periodo_etiqueta($deporte, (int) ($partido['cronometro_periodo'] ?? 1)),
+    'sets_texto' => es_voleibol($deporte) ? voleibol_texto_sets($partido) : '',
 ], JSON_UNESCAPED_UNICODE);

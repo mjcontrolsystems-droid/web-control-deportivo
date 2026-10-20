@@ -8,7 +8,7 @@ const TABLAS_SINGLETON = ['organizador'];
 
 const COLUMNAS_POR_TABLA = [
     'equipos' => ['id', 'torneo_id', 'nombre', 'ciudad', 'sede', 'entrenador', 'fundacion', 'color_primario', 'color_secundario', 'logo', 'descripcion', 'grupo', 'cabeza_serie', 'siglas'],
-    'partidos' => ['id', 'torneo_id', 'jornada', 'equipo_local', 'equipo_visitante', 'fecha', 'hora', 'cancha', 'estado', 'marcador_local', 'marcador_visitante', 'fase', 'arbitro', 'observaciones', 'por_default', 'cronometro_estado', 'cronometro_inicio', 'cronometro_segundos', 'cronometro_periodo', 'cronometro_extra_min'],
+    'partidos' => ['id', 'torneo_id', 'jornada', 'equipo_local', 'equipo_visitante', 'fecha', 'hora', 'cancha', 'estado', 'marcador_local', 'marcador_visitante', 'fase', 'arbitro', 'observaciones', 'por_default', 'cronometro_estado', 'cronometro_inicio', 'cronometro_segundos', 'cronometro_periodo', 'cronometro_extra_min', 'sets'],
     'patrocinadores' => ['id', 'torneo_id', 'nombre', 'nivel', 'url', 'logo', 'orden'],
     'comentarios' => ['id', 'torneo_id', 'mensaje', 'fecha', 'leido'],
     'jugadores' => ['id', 'torneo_id', 'equipo_id', 'dorsal', 'nombre', 'activo', 'posicion', 'foto'],
@@ -27,6 +27,13 @@ const COLUMNAS_ENTERAS_POR_TABLA = [
 // Columnas boolean reales (no INTEGER 0/1 como comentarios.leido): con prepares emulados,
 // Postgres no castea implícitamente un entero a boolean, así que estas se mandan como texto
 // 'true'/'false', igual que ya hace torneos_guardar() con sus columnas booleanas.
+// Columnas de texto NOT NULL DEFAULT '' que no todo el código conoce: quien arma un
+// registro sin esa clave (un encuentro creado por el generador de calendario no sabe
+// nada de sets de voleibol) guarda cadena vacía en vez de un NULL que Postgres rechaza.
+const COLUMNAS_TEXTO_VACIO_POR_TABLA = [
+    'partidos' => ['sets'],
+];
+
 const COLUMNAS_BOOLEANAS_POR_TABLA = [
     'jugadores' => ['activo'],
     'equipos' => ['cabeza_serie'],
@@ -222,6 +229,8 @@ function db_guardar_coleccion(PDO $pdo, string $tabla, array $registros, int $to
                 $valor = $col === 'torneo_id' ? $torneoId : ($registro[$col] ?? null);
                 if (in_array($col, COLUMNAS_BOOLEANAS_POR_TABLA[$tabla] ?? [], true)) {
                     $valor = !empty($valor) ? 'true' : 'false';
+                } elseif ($valor === null && in_array($col, COLUMNAS_TEXTO_VACIO_POR_TABLA[$tabla] ?? [], true)) {
+                    $valor = '';
                 }
                 db_bind($stmt, ":{$col}", $valor);
             }
@@ -531,6 +540,10 @@ function db_migrar_automatico(): void
                 ON movimientos_equipo (torneo_id, equipo_id, origen, COALESCE(referencia, 0))
              WHERE origen IN ('inscripcion', 'arbitraje')"
         );
+
+        // Voleibol: detalle de los sets del partido ("25-20,22-25,25-18"). El marcador
+        // (sets ganados) sigue en marcador_local / marcador_visitante.
+        $pdo->exec("ALTER TABLE partidos ADD COLUMN IF NOT EXISTS sets TEXT NOT NULL DEFAULT ''");
 
         // Se limpian las marcas de versiones anteriores para que la sesión no acumule una
         // clave por cada cambio del archivo a lo largo de la vida del proyecto.

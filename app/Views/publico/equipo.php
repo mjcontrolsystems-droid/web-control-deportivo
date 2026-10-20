@@ -8,7 +8,7 @@
                       // no se sienta vacío. ?>
                 <div class="col-auto">
                     <div class="escudo-hero">
-                        <img src="<?= url('assets/img/' . (($torneo['deporte'] ?? '') === 'futbol' ? 'balon-futbol.png' : 'balon-basketball.png')) ?>" class="escudo-hero-balon" alt="">
+                        <img src="<?= url('assets/img/' . (DEPORTES[$torneo['deporte'] ?? '']['balon'] ?? 'balon-basketball.png')) ?>" class="escudo-hero-balon" alt="">
                         <div class="escudo-hero-plato">
                             <?php if (!empty($equipo['logo'])): ?>
                                 <img src="<?= e(url_imagen((string) $equipo['logo'])) ?>" alt="<?= e($equipo['nombre']) ?>">
@@ -62,8 +62,8 @@
         <?php if ($filaEquipo): ?>
         <div class="row g-4 mb-5">
             <div class="col-6 col-md-2"><div class="stat-tile text-center"><span class="stat-icono"><?= icono_balon_img($torneo['deporte'] ?? null, 18) ?></span><div class="fs-4 fw-bold"><?= $filaEquipo['pj'] ?></div><div class="small text-muted">Jugados</div></div></div>
-            <div class="col-6 col-md-2"><div class="stat-tile text-center"><span class="stat-icono"><i class="bi bi-graph-up-arrow"></i></span><div class="fs-4 fw-bold"><?= $filaEquipo['pf'] ?></div><div class="small text-muted"><?= e(etiqueta_anotaciones($torneo['deporte'] ?? null)) ?> a favor</div></div></div>
-            <div class="col-6 col-md-2"><div class="stat-tile text-center"><span class="stat-icono"><i class="bi bi-graph-down-arrow"></i></span><div class="fs-4 fw-bold"><?= $filaEquipo['pc'] ?></div><div class="small text-muted"><?= e(etiqueta_anotaciones($torneo['deporte'] ?? null)) ?> en contra</div></div></div>
+            <div class="col-6 col-md-2"><div class="stat-tile text-center"><span class="stat-icono"><i class="bi bi-graph-up-arrow"></i></span><div class="fs-4 fw-bold"><?= $filaEquipo['pf'] ?></div><div class="small text-muted"><?= e(etiqueta_unidad_marcador($torneo['deporte'] ?? null)) ?> a favor</div></div></div>
+            <div class="col-6 col-md-2"><div class="stat-tile text-center"><span class="stat-icono"><i class="bi bi-graph-down-arrow"></i></span><div class="fs-4 fw-bold"><?= $filaEquipo['pc'] ?></div><div class="small text-muted"><?= e(etiqueta_unidad_marcador($torneo['deporte'] ?? null)) ?> en contra</div></div></div>
             <div class="col-6 col-md-2"><div class="stat-tile text-center"><span class="stat-icono"><i class="bi bi-plus-slash-minus"></i></span><div class="fs-4 fw-bold <?= $filaEquipo['dif'] >= 0 ? 'text-success' : 'text-danger' ?>"><?= $filaEquipo['dif'] >= 0 ? '+' : '' ?><?= $filaEquipo['dif'] ?></div><div class="small text-muted">Diferencia</div></div></div>
             <div class="col-6 col-md-2"><div class="stat-tile text-center"><span class="stat-icono"><i class="bi bi-percent"></i></span><div class="fs-4 fw-bold"><?= $filaEquipo['porcentaje'] ?>%</div><div class="small text-muted">% Victorias</div></div></div>
             <div class="col-6 col-md-2"><div class="stat-tile text-center"><span class="stat-icono"><i class="bi bi-star-fill"></i></span><div class="fs-4 fw-bold"><?= $filaEquipo['pts'] ?></div><div class="small text-muted">Puntos tabla</div></div></div>

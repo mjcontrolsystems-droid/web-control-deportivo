@@ -22,9 +22,11 @@ $zonaPlayoff = $esLiga ? 0 : eliminacion_cuantos_clasifican($torneo, $partidos);
 $tieneGrupos = torneo_tiene_grupos($torneo);
 $tablasGrupo = $tieneGrupos ? grupos_tablas($equipos, $partidos, $torneo, $eventos) : [];
 
-$explicacionPuntos = $torneo['permite_empates']
+$explicacionPuntos = es_voleibol($deporte)
+    ? 'Sistema FIVB: ganar 3-0 o 3-1 = 3 pts (perdedor 0); ganar 3-2 = 2 pts (perdedor 1). Orden: ganados, puntos, cociente de sets y de puntos.'
+    : ($torneo['permite_empates']
     ? "PTS = {$torneo['puntos_victoria']} por victoria + {$torneo['puntos_empate']} por empate + {$torneo['puntos_derrota']} por derrota"
-    : "PTS = {$torneo['puntos_victoria']} por victoria + {$torneo['puntos_derrota']} por derrota jugada";
+    : "PTS = {$torneo['puntos_victoria']} por victoria + {$torneo['puntos_derrota']} por derrota jugada");
 
 $titulo_pagina = 'Tabla de Posiciones — ' . $torneo['nombre'];
 $pagina_activa = 'tabla';

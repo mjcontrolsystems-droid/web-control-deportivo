@@ -128,6 +128,10 @@ ALTER TABLE partidos ADD COLUMN IF NOT EXISTS cronometro_periodo INTEGER NOT NUL
 -- minutos); se reinicia a 0 al pasar de periodo, igual que cronometro_segundos.
 -- Ver partido_duracion_periodo_segundos() en app/Support/liga.php.
 ALTER TABLE partidos ADD COLUMN IF NOT EXISTS cronometro_extra_min INTEGER NOT NULL DEFAULT 0;
+-- Voleibol: detalle de cada set, "25-20,22-25,25-18" (local-visitante). El resultado del
+-- partido (sets ganados) va en marcador_local / marcador_visitante como en todo deporte.
+-- Ver app/Support/voleibol.php.
+ALTER TABLE partidos ADD COLUMN IF NOT EXISTS sets TEXT NOT NULL DEFAULT '';
 
 -- Alineación de cada encuentro: quién sale de titular, quién de banca y en qué posición
 -- juega ese día. Cuántos titulares admite cada equipo lo define la modalidad de la copa

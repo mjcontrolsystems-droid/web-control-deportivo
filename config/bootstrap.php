@@ -27,6 +27,7 @@ foreach ([
     'correo',   // envío de correos
     'filtro',   // saneado de texto público
     'liga',     // reglas por deporte, cronómetro, alineaciones, formato liga/copa
+    'voleibol', // sets, validación FIVB y puntos de tabla del voleibol (usa liga)
     'tabla',    // tabla de posiciones y fases
     'fixture',  // generación automática de calendario
     'calendario', // reparto en días, fechas, horas y canchas (usa fixture)

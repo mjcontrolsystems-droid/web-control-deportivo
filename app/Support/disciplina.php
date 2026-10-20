@@ -123,6 +123,11 @@ function disciplina_castigos_desde_eventos(array $eventos, array $torneo, array 
         if (!in_array($tipo, ['amarilla', 'roja'], true)) {
             continue;
         }
+        // Voleibol: la roja de penalización (punto al rival) o de expulsión (resto del set)
+        // se cumple dentro del mismo partido. Solo la descalificación arrastra suspensión.
+        if ($tipo === 'roja' && !disciplina_roja_suspende($ev, $torneo)) {
+            continue;
+        }
         $jugadorId = (int) ($ev['jugador_id'] ?? 0);
         $partidoId = (int) ($ev['partido_id'] ?? 0);
         if ($jugadorId <= 0 || !isset($partidosPorId[$partidoId])) {
@@ -441,7 +446,7 @@ function disciplina_aviso_por_tarjeta(int $torneoId, array $torneo, array $event
         return '';
     }
 
-    if ($tipo === 'roja' && torneo_partidos_suspension_roja($torneo) > 0) {
+    if ($tipo === 'roja' && torneo_partidos_suspension_roja($torneo) > 0 && disciplina_roja_suspende($evento, $torneo)) {
         $n = torneo_partidos_suspension_roja($torneo);
         return ' ' . jugador_nombre($jug) . ' queda suspendido ' . $n . ' partido' . ($n === 1 ? '' : 's') . ' por la roja.';
     }
@@ -462,4 +467,18 @@ function disciplina_aviso_por_tarjeta(int $torneoId, array $torneo, array $event
     }
 
     return '';
+}
+
+/**
+ * ¿Esta roja suspende para los partidos siguientes? En fútbol y basketball, siempre que la
+ * copa lo tenga configurado. En voleibol solo la descalificación: la penalización y la
+ * expulsión se cumplen dentro del mismo partido (reglas FIVB 21.3).
+ */
+function disciplina_roja_suspende(array $evento, array $torneo): bool
+{
+    if (!es_voleibol($torneo['deporte'] ?? null)) {
+        return true;
+    }
+
+    return ($evento['motivo'] ?? '') === 'descalificacion';
 }

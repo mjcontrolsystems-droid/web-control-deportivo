@@ -63,7 +63,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'guard
     }
     $nombre = trim((string) $_POST['nombre']);
     $slug = torneos_slugificar((string) ($_POST['slug'] ?: $nombre));
-    $deporte = (string) $_POST['deporte'] === 'futbol' ? 'futbol' : 'basketball';
+    $deporteEnviado = (string) ($_POST['deporte'] ?? '');
+    $deporte = isset(DEPORTES[$deporteEnviado]) ? $deporteEnviado : 'basketball';
     $genero = in_array($_POST['genero'] ?? '', ['femenino', 'masculino'], true) ? $_POST['genero'] : 'mixto';
 
     // Modalidad válida para el deporte elegido (fútbol 11/7/5 o basketball FIBA/NBA);
@@ -73,7 +74,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'guard
     if (!isset(MODALIDADES_POR_DEPORTE[$deporte][$modalidad])) {
         $modalidad = MODALIDAD_POR_DEFECTO[$deporte];
     }
-    $duracionPeriodo = ($_POST['duracion_periodo_min'] ?? '') !== '' ? max(1, min(90, (int) $_POST['duracion_periodo_min'])) : null;
+    // El voleibol no se juega contra reloj: no lleva minutos por periodo.
+    $duracionPeriodo = deporte_usa_cronometro($deporte) && ($_POST['duracion_periodo_min'] ?? '') !== ''
+        ? max(1, min(90, (int) $_POST['duracion_periodo_min']))
+        : null;
     // Vueltas de la temporada regular: solo ida (1) o ida y vuelta (2).
     $vueltas = ((int) ($_POST['vueltas'] ?? 1)) === 2 ? 2 : 1;
 
@@ -164,7 +168,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'guard
             // El podio se publica desde el dashboard, no desde este formulario: se
             // conserva tal cual estaba para que editar la copa no lo baje sin querer.
             'podio_publicado' => !empty($torneoEditar['podio_publicado']),
-            'permite_empates' => isset($_POST['permite_empates']),
+            // En voleibol no existe el empate (alguien siempre gana los sets).
+            'permite_empates' => !es_voleibol($deporte) && isset($_POST['permite_empates']),
             'puntos_victoria' => (int) $_POST['puntos_victoria'],
             'puntos_empate' => (int) $_POST['puntos_empate'],
             'puntos_derrota' => (int) $_POST['puntos_derrota'],
@@ -234,7 +239,8 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST') && ($_POST['accion'] ?? '') === 'reg
     }
 }
 
-$deportePorDefecto = $torneoEditar['deporte'] ?? 'basketball';
+// Una copa nueva creada desde la card de un deporte en "Mis copas" ya trae ese deporte.
+$deportePorDefecto = $torneoEditar['deporte'] ?? (isset(DEPORTES[$_GET['deporte'] ?? '']) ? (string) $_GET['deporte'] : 'basketball');
 $generoPorDefecto = $torneoEditar['genero'] ?? 'mixto';
 // Las copas creadas antes de que existiera el selector de formato quedan como campeonato
 // (mismo comportamiento que tenían), no como liga.

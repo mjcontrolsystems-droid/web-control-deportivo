@@ -302,6 +302,11 @@
                 if (periodoEl && datos.periodo_etiqueta) {
                     periodoEl.textContent = datos.periodo_etiqueta;
                 }
+                // Voleibol: detalle de los sets debajo del marcador ("25-20 · 22-25").
+                var setsEl = document.getElementById('setsVivo');
+                if (setsEl && datos.sets_texto !== undefined) {
+                    setsEl.textContent = datos.sets_texto;
+                }
 
                 datos.eventos.forEach(function (ev) {
                     if (idsVistos[ev.id]) {

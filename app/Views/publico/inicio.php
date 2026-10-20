@@ -74,7 +74,7 @@
                     // Si la copa subió su logo, ÉL preside el hero sobre su disco blanco,
                     // con el balón del deporte asomando detrás para que el fondo no se
                     // sienta vacío. Sin logo, el balón solo, como siempre.
-                    $balonHero = url('assets/img/' . (($torneo['deporte'] ?? 'basketball') === 'futbol' ? 'balon-futbol.png' : 'balon-basketball.png'));
+                    $balonHero = url('assets/img/' . (DEPORTES[$torneo['deporte'] ?? '']['balon'] ?? 'balon-basketball.png'));
                     ?>
                     <?php if (!empty($torneo['logo'])): ?>
                     <img src="<?= e($balonHero) ?>" alt="" class="balon-real balon-flotante-2 balon-detras-logo">
@@ -150,7 +150,7 @@
         <div class="d-flex flex-wrap justify-content-between align-items-end mb-4 seccion-titulo">
             <div>
                 <p class="eyebrow mb-1"><?= e(forma_genero($torneo['genero'] ?? null, 'Máximos anotadores', 'Máximas anotadoras')) ?></p>
-                <h2 class="mb-0">Tabla de <?= e($basketball ? 'anotación' : forma_genero($torneo['genero'] ?? null, 'goleadores', 'goleadoras')) ?></h2>
+                <h2 class="mb-0">Tabla de <?= e($basketball || es_voleibol($deporte) ? 'anotación' : forma_genero($torneo['genero'] ?? null, 'goleadores', 'goleadoras')) ?></h2>
             </div>
         </div>
         <div class="table-responsive">

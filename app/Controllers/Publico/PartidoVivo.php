@@ -28,11 +28,15 @@ if (!$partido || !$local || !$visit) {
 $deporte = $torneo['deporte'] ?? null;
 $basketball = es_basketball($deporte);
 $urlDatos = e(url_copa('partido_vivo_datos.php?id=' . $id));
-$balonImg = $basketball ? 'balon-basketball.png' : 'balon-futbol.png';
+$balonImg = DEPORTES[deporte_clave($deporte)]['balon'];
 $urlBalon = e(url('assets/img/' . $balonImg));
 // Texto del banner de reacción para cada tipo de evento (goles/puntos, tarjetas o faltas
 // según el deporte, y cambios). Ver assets/js/partido_vivo.js para cómo se dispara cada uno.
-$textoGol = $basketball ? '¡CANASTA!' : '¡GOL!';
+$textoGol = match (deporte_clave($deporte)) {
+    'basketball' => '¡CANASTA!',
+    'voleibol' => '¡PUNTO!',
+    default => '¡GOL!',
+};
 $textoAmarilla = mb_strtoupper(etiqueta_falta_leve($deporte));
 $textoRoja = mb_strtoupper(etiqueta_falta_grave($deporte));
 $textoCambio = 'CAMBIO';
@@ -45,6 +49,9 @@ $colorVisit = color_hex_valido($visit['color_primario'] ?? null, '#ff6b35');
 $finalizado = partido_finalizado($partido);
 $marcadorLocalActual = (int) ($partido['marcador_local'] ?? 0);
 $marcadorVisitanteActual = (int) ($partido['marcador_visitante'] ?? 0);
+if (es_voleibol($deporte) && empty($partido['por_default'])) {
+    [$marcadorLocalActual, $marcadorVisitanteActual] = voleibol_sets_ganados(voleibol_sets_de_partido($partido));
+}
 $minutosExtra = partido_minutos_extra($partido);
 
 // Alineaciones del encuentro (titulares y banca de cada equipo, con su posición).

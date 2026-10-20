@@ -119,6 +119,15 @@ for r in "" "/tabla.php" "/calendario.php" "/calendario.php?fase=semifinal" \
 done
 
 echo ""
+echo "== Liga de Voleibol (FIVB · cinco sets · fase final) =="
+for r in "" "/tabla.php" "/calendario.php" "/equipos.php" "/equipo.php?id=9" \
+         "/partido.php?id=6" "/partido_vivo.php?id=6" "/partido_vivo_datos.php?id=6" "/partido_imagen.php?id=6"; do
+    probar "/liga-voley$r"
+done
+verificar "la tabla de voleibol usa sets y cocientes" "/liga-voley/tabla.php" "C. sets"
+verificar "el partido muestra el detalle de sets" "/liga-voley/partido.php?id=6" "25-20 · 22-25 · 25-18 · 25-21"
+
+echo ""
 echo "== Recursos y sesión cerrada =="
 probar "/assets/css/style.css"
 probar "/assets/js/app.js"
@@ -135,9 +144,9 @@ done
 # ---------------------------------------------------------------------------
 echo ""
 echo "== Panel del organizador =="
-curl -s -c "$GALLETAS" "$BASE/login.php" > /dev/null
+token_login=$(csrf_de "/login.php")
 codigo=$(curl -s -b "$GALLETAS" -c "$GALLETAS" -o /dev/null -w "%{http_code}" \
-    -d "usuario=prueba&password=prueba123" "$BASE/login.php")
+    -d "csrf_token=${token_login}&usuario=prueba&password=prueba123" "$BASE/login.php")
 if [ "$codigo" != "302" ]; then
     echo " FALLA | login devolvió $codigo (esperaba 302). Se cancela el resto."
     exit 1
@@ -189,15 +198,33 @@ echo "== Generador de calendario =="
 # Esta liga tiene un encuentro jugado CON ficha: rehacer el calendario debe quedar
 # bloqueado y no borrar nada. Es la red de seguridad, no un error.
 postear "se niega a pisar resultados en firme" "/admin/partidos.php?accion=generar" \
-    "accion=generar_fixture&vueltas=2&fecha_inicio=2026-09-01&hora=19%3A00&dias_entre_jornadas=7&cancha=A&reemplazar=1"
+    "accion=generar_fixture&vueltas=2&fecha_inicio=2026-04-14&que_hacer=reemplazar&dia_activo%5B%5D=2&dia_partidos%5B2%5D=2&dia_hora%5B2%5D=19%3A00&dia_intervalo%5B2%5D=90&canchas=A"
 verificar "no borró los encuentros existentes" "/admin/partidos.php" "Encuentros (3)"
 
 curl -s -b "$GALLETAS" -c "$GALLETAS" -o /dev/null "$BASE/admin/torneos.php?accion=entrar&id=2"
 postear "reabrir el jugado de la copa" "/admin/partidos.php" "accion=alternar_jugado&id=4"
 postear "generar (4 equipos, ida y vuelta)" "/admin/partidos.php?accion=generar" \
-    "accion=generar_fixture&vueltas=2&fecha_inicio=2026-09-01&hora=19%3A00&dias_entre_jornadas=7&cancha=A&reemplazar=1"
+    "accion=generar_fixture&vueltas=2&fecha_inicio=2026-04-14&que_hacer=reemplazar&dia_activo%5B%5D=2&dia_partidos%5B2%5D=2&dia_hora%5B2%5D=19%3A00&dia_intervalo%5B2%5D=90&canchas=A"
 # 12 de temporada regular + la semifinal, que el generador no toca
 verificar "12 generados y la semifinal intacta" "/admin/partidos.php" "Encuentros (13)"
+
+echo ""
+echo "== Voleibol: sets del partido =="
+curl -s -b "$GALLETAS" -c "$GALLETAS" -o /dev/null "$BASE/admin/torneos.php?accion=entrar&id=3"
+probar "/admin/partido_eventos.php?partido_id=8"
+postear "un set imposible (25-24) se rechaza" "/admin/partido_eventos.php?partido_id=8" \
+    "accion=guardar_sets&partido_id=8&set_local%5B0%5D=25&set_visitante%5B0%5D=24"
+verificar "el set rechazado no quedó guardado" "/liga-voley/partido.php?id=8" "VS"
+postear "finalizar sin ganador se rechaza" "/admin/partido_eventos.php?partido_id=8" \
+    "accion=guardar_sets&partido_id=8&set_local%5B0%5D=25&set_visitante%5B0%5D=20&finalizar=1"
+postear "guardar y finalizar 3-2 con quinto set a 15" "/admin/partido_eventos.php?partido_id=8" \
+    "accion=guardar_sets&partido_id=8&set_local%5B0%5D=25&set_visitante%5B0%5D=20&set_local%5B1%5D=20&set_visitante%5B1%5D=25&set_local%5B2%5D=25&set_visitante%5B2%5D=23&set_local%5B3%5D=23&set_visitante%5B3%5D=25&set_local%5B4%5D=16&set_visitante%5B4%5D=14&finalizar=1"
+verificar "el partido quedó 3-2 con sus sets" "/liga-voley/partido.php?id=8" "16-14"
+postear "reabrir el partido jugado para corregirlo" "/admin/partido_eventos.php?partido_id=6" \
+    "accion=reabrir_correccion&partido_id=6"
+postear "cargar 5 puntos a un jugador" "/admin/partido_eventos.php?partido_id=6" \
+    "accion=guardar_planilla&partido_id=6&planilla%5B9%5D%5B66%5D%5Bgol%5D=5"
+verificar "los puntos aparecen en la ficha" "/admin/partido_eventos.php?partido_id=6" "Punto de ataque"
 
 echo ""
 echo "== Subida de imágenes =="

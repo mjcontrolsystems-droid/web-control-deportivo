@@ -38,6 +38,9 @@ $clicable = true;
                 <?php else: ?>
                     <span class="text-muted fs-5">VS</span>
                 <?php endif; ?>
+                <?php if (($p['sets'] ?? '') !== ''): ?>
+                <div class="small text-muted fw-normal"><?= e(voleibol_texto_sets($p)) ?></div>
+                <?php endif; ?>
             </div>
             <a href="<?= url_copa('equipo.php?id=' . $visit['id']) ?>" class="equipo-col text-decoration-none text-dark">
                 <?= logo_equipo($visit, 56) ?>
