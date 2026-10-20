@@ -342,6 +342,96 @@ foreach ($equiposDelPartido as $eid) {
     <?php endif; ?>
 </div>
 
+<?php // ---------- Planilla rápida (fútbol / futsal) ----------
+      // Para no cargar gol por gol: cada jugador con su conteo de goles y tarjetas, se
+      // ajusta con + / − (o escribiendo el número) y se guarda todo junto. El formulario
+      // detallado de abajo queda para autogoles o para un gol con minuto y asistencia. ?>
+<?php if (!$resultadoBloqueado && !$basketball): ?>
+<div class="card-suave p-4 mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+        <div>
+            <h5 class="mb-1"><i class="bi bi-lightning-charge me-1"></i>Planilla rápida</h5>
+            <p class="small text-muted mb-0">Ajusta cuántos goles y tarjetas lleva cada <?= e(mb_strtolower($etJugador)) ?> y guarda una sola vez. No hace falta el minuto. Los autogoles se cargan abajo.</p>
+        </div>
+    </div>
+    <form method="post" data-planilla>
+        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="accion" value="guardar_planilla">
+        <input type="hidden" name="partido_id" value="<?= $partidoId ?>">
+        <div class="row g-3">
+            <?php foreach ($equiposDelPartido as $eid): $equipoLado = $equiposPorId[$eid] ?? null; if (!$equipoLado) { continue; } ?>
+            <?php
+                $conteoEquipo = $conteoPlanilla[$eid] ?? [];
+                // Se listan los activos y, aunque estén de baja, los que ya tienen algo
+                // registrado en este partido (para poder corregirlos).
+                $filasPlanilla = array_values(array_filter(
+                    $jugadoresPorEquipo[$eid] ?? [],
+                    fn($j) => !empty($j['activo']) || !empty($conteoEquipo[(int) $j['id']])
+                ));
+                $totalGolesEquipo = array_sum(array_map(fn($c) => (int) ($c['gol'] ?? 0), $conteoEquipo));
+            ?>
+            <div class="col-lg-6" data-planilla-equipo>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0 d-flex align-items-center gap-2"><?= logo_equipo($equipoLado, 24) ?><?= e($equipoLado['nombre']) ?></h6>
+                    <span class="badge rounded-pill text-bg-primary"><?= e(etiqueta_anotaciones($deporte)) ?>: <span data-planilla-total><?= $totalGolesEquipo ?></span></span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0 tabla-planilla">
+                        <thead>
+                            <tr class="small text-muted">
+                                <th><?= e($etJugador) ?></th>
+                                <th class="text-center"><?= e(etiqueta_anotaciones($deporte)) ?></th>
+                                <th class="text-center"><i class="bi bi-square-fill text-warning"></i></th>
+                                <th class="text-center"><i class="bi bi-square-fill text-danger"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($filasPlanilla as $j): $jid = (int) $j['id']; $c = $conteoEquipo[$jid] ?? []; ?>
+                            <tr>
+                                <td class="small"><span class="text-muted">#<?= e((string) $j['dorsal']) ?></span> <?= e($j['nombre']) ?></td>
+                                <?php foreach (['gol', 'amarilla', 'roja'] as $tipoPlanilla): $valor = (int) ($c[$tipoPlanilla] ?? 0); ?>
+                                <td>
+                                    <div class="contador-planilla" data-contador>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-paso="-1" aria-label="Restar"><i class="bi bi-dash"></i></button>
+                                        <input type="number" min="0" max="99" inputmode="numeric" class="form-control form-control-sm text-center"
+                                               name="planilla[<?= $eid ?>][<?= $jid ?>][<?= $tipoPlanilla ?>]" value="<?= $valor ?>"
+                                               data-original="<?= $valor ?>" <?= $tipoPlanilla === 'gol' ? 'data-cuenta-gol' : '' ?>
+                                               aria-label="<?= e($tipoPlanilla) ?> de <?= e($j['nombre']) ?>">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-paso="1" aria-label="Sumar"><i class="bi bi-plus"></i></button>
+                                    </div>
+                                </td>
+                                <?php endforeach; ?>
+                            </tr>
+                            <?php endforeach; ?>
+                            <?php $sinIdentificar = (int) ($conteoEquipo[0]['gol'] ?? 0); ?>
+                            <tr>
+                                <td class="small text-muted fst-italic">Sin identificar</td>
+                                <td>
+                                    <div class="contador-planilla" data-contador>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-paso="-1" aria-label="Restar"><i class="bi bi-dash"></i></button>
+                                        <input type="number" min="0" max="99" inputmode="numeric" class="form-control form-control-sm text-center"
+                                               name="planilla[<?= $eid ?>][0][gol]" value="<?= $sinIdentificar ?>" data-original="<?= $sinIdentificar ?>" data-cuenta-gol
+                                               aria-label="Goles sin identificar">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-paso="1" aria-label="Sumar"><i class="bi bi-plus"></i></button>
+                                    </div>
+                                </td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <div class="d-flex align-items-center gap-2 mt-3 flex-wrap">
+            <button type="submit" class="btn btn-sm btn-degradado rounded-pill px-4"><i class="bi bi-check2 me-1"></i>Guardar planilla</button>
+            <span class="small text-warning-emphasis d-none" data-planilla-pendiente><i class="bi bi-exclamation-circle me-1"></i>Hay cambios sin guardar</span>
+        </div>
+    </form>
+</div>
+<?php endif; ?>
+
 <div class="row g-4">
     <?php if (!$resultadoBloqueado): ?>
     <div class="col-lg-5">

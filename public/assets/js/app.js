@@ -1109,3 +1109,47 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
+
+// Planilla rápida de la ficha del partido: los botones + / − de cada contador, el total de
+// goles por equipo al momento y el aviso de "cambios sin guardar" (también al salir).
+document.addEventListener('DOMContentLoaded', function () {
+    var planilla = document.querySelector('form[data-planilla]');
+    if (!planilla) { return; }
+    var pendiente = planilla.querySelector('[data-planilla-pendiente]');
+    var enviando = false;
+
+    var hayCambios = function () {
+        return Array.prototype.some.call(planilla.querySelectorAll('input[type="number"]'), function (campo) {
+            return String(parseInt(campo.value, 10) || 0) !== campo.getAttribute('data-original');
+        });
+    };
+    var refrescar = function () {
+        planilla.querySelectorAll('[data-planilla-equipo]').forEach(function (bloque) {
+            var total = 0;
+            bloque.querySelectorAll('input[data-cuenta-gol]').forEach(function (campo) { total += Math.max(0, parseInt(campo.value, 10) || 0); });
+            var marca = bloque.querySelector('[data-planilla-total]');
+            if (marca) { marca.textContent = String(total); }
+        });
+        planilla.querySelectorAll('input[type="number"]').forEach(function (campo) {
+            campo.classList.toggle('cambiado', String(parseInt(campo.value, 10) || 0) !== campo.getAttribute('data-original'));
+        });
+        if (pendiente) { pendiente.classList.toggle('d-none', !hayCambios()); }
+    };
+
+    planilla.querySelectorAll('[data-contador]').forEach(function (contador) {
+        var campo = contador.querySelector('input');
+        contador.querySelectorAll('[data-paso]').forEach(function (boton) {
+            boton.addEventListener('click', function () {
+                var valor = (parseInt(campo.value, 10) || 0) + parseInt(boton.getAttribute('data-paso'), 10);
+                campo.value = String(Math.max(0, Math.min(99, valor)));
+                refrescar();
+            });
+        });
+        campo.addEventListener('input', refrescar);
+    });
+
+    planilla.addEventListener('submit', function () { enviando = true; });
+    window.addEventListener('beforeunload', function (evento) {
+        if (!enviando && hayCambios()) { evento.preventDefault(); evento.returnValue = ''; }
+    });
+});

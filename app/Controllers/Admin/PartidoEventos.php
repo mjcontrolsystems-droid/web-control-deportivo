@@ -341,6 +341,113 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirigir_con_mensaje($urlLista, 'success', 'Evento eliminado.' . $avisoSancion);
     }
 
+    // Planilla rápida (fútbol / futsal): en vez de cargar gol por gol, la mesa escribe
+    // cuántos goles, amarillas y rojas lleva cada jugador y se guarda todo de una vez.
+    // Por dentro sigue siendo un evento por gol o tarjeta (goleadores, marcador, multas y
+    // suspensiones no cambian): se compara contra lo ya registrado y solo se agrega o
+    // quita la diferencia. Los autogoles no entran aquí: se cargan con el formulario
+    // detallado, igual que un gol al que se le quiera poner minuto o asistencia.
+    if ($accion === 'guardar_planilla') {
+        if ($basketball) {
+            redirigir_con_mensaje($urlLista, 'error', 'La planilla rápida es para fútbol: en basketball cada anotación vale distinto y se carga con su tipo.');
+        }
+        $enviado = (array) ($_POST['planilla'] ?? []);
+        $eventos = db_leer_eventos_partido($torneo['id'], $partidoId);
+        $periodoActual = (int) ($partido['cronometro_periodo'] ?? 1);
+        $motivoRoja = motivos_falta_grave_catalogo($deporte)[0];
+        $siguienteId = evento_nuevo_id();
+        $agregados = [];
+        $quitados = [];
+        // Primero los cargados "en bruto" (sin minuto ni asistencia) y los más recientes:
+        // al bajar un número se conserva lo que se capturó con detalle.
+        $prioridadQuitar = fn(array $ev): array => [
+            ($ev['minuto'] ?? null) === null && empty($ev['asistencia_jugador_id']) ? 0 : 1,
+            -(int) $ev['id'],
+        ];
+
+        foreach ($equiposDelPartido as $eqId) {
+            $roster = array_map('intval', array_column($jugadoresPorEquipo[$eqId] ?? [], 'id'));
+            foreach ((array) ($enviado[$eqId] ?? []) as $jidTexto => $valores) {
+                $jid = (int) $jidTexto;
+                // 0 = "sin identificar" (solo para goles). Cualquier otro id tiene que ser de
+                // la plantilla de ESE equipo: un envío manipulado no puede tocar a otros.
+                if (($jid !== 0 && !in_array($jid, $roster, true)) || !is_array($valores)) {
+                    continue;
+                }
+                foreach (['gol', 'amarilla', 'roja'] as $tipo) {
+                    if (!isset($valores[$tipo]) || ($jid === 0 && $tipo !== 'gol')) {
+                        continue;
+                    }
+                    $deseado = max(0, min(99, (int) $valores[$tipo]));
+                    $actuales = array_values(array_filter($eventos, fn($ev) => ($ev['tipo'] ?? '') === $tipo
+                        && (int) ($ev['equipo_id'] ?? 0) === $eqId
+                        && (int) ($ev['jugador_id'] ?? 0) === $jid
+                        && ($tipo !== 'gol' || ($ev['tipo_gol'] ?? '') !== 'autogol')));
+                    $diferencia = $deseado - count($actuales);
+
+                    for ($i = 0; $i < $diferencia; $i++) {
+                        $nuevo = [
+                            'id' => $siguienteId++,
+                            'tipo' => $tipo,
+                            'equipo_id' => $eqId,
+                            'jugador_id' => $jid === 0 ? null : $jid,
+                            'jugador_entra_id' => null,
+                            'minuto' => null,
+                            'tipo_gol' => $tipo === 'gol' ? TIPOS_GOL_CATALOGO[0] : null,
+                            'asistencia_jugador_id' => null,
+                            'motivo' => $tipo === 'roja' ? $motivoRoja : null,
+                            'periodo' => $periodoActual,
+                        ];
+                        $eventos[] = $nuevo;
+                        $agregados[] = $nuevo;
+                    }
+
+                    if ($diferencia < 0) {
+                        usort($actuales, fn($a, $b) => $prioridadQuitar($a) <=> $prioridadQuitar($b));
+                        $sobran = array_slice($actuales, 0, -$diferencia);
+                        $idsQuitar = array_map(fn($ev) => (int) $ev['id'], $sobran);
+                        $eventos = array_values(array_filter($eventos, fn($ev) => !in_array((int) $ev['id'], $idsQuitar, true)));
+                        $quitados = array_merge($quitados, $sobran);
+                    }
+                }
+            }
+        }
+
+        if (empty($agregados) && empty($quitados)) {
+            redirigir_con_mensaje($urlLista, 'success', 'La planilla no tenía cambios.');
+        }
+
+        db_guardar_eventos_partido($torneo['id'], $partidoId, $eventos);
+        partido_recalcular_marcador($torneo['id'], $partidoId, $partidos, $deporte);
+
+        // Multas: las tarjetas nuevas generan la suya y las quitadas la retiran (salvo que
+        // ya esté cobrada, igual que al borrar una tarjeta suelta).
+        $avisos = '';
+        foreach ($quitados as $ev) {
+            if (in_array($ev['tipo'], ['amarilla', 'roja'], true) && !sancion_borrar_por_evento((int) $ev['id']) && torneo_cobra_multas($torneo)) {
+                $avisos = ' Alguna multa de una tarjeta quitada ya estaba cobrada y se conservó en Sanciones.';
+            }
+        }
+        foreach ($agregados as $ev) {
+            if (in_array($ev['tipo'], ['amarilla', 'roja'], true)) {
+                $ev['partido_id'] = $partidoId;
+                sancion_crear_por_evento($torneo['id'], $ev, $torneo);
+                $avisos .= disciplina_aviso_por_tarjeta($torneo['id'], $torneo, $ev, $jugadoresPorId);
+            }
+        }
+
+        $nombres = ['gol' => ['gol', 'goles'], 'amarilla' => ['amarilla', 'amarillas'], 'roja' => ['roja', 'rojas']];
+        $resumen = [];
+        foreach (['+' => $agregados, '-' => $quitados] as $signo => $lista) {
+            foreach (array_count_values(array_column($lista, 'tipo')) as $tipo => $n) {
+                $resumen[] = $signo . $n . ' ' . $nombres[$tipo][$n === 1 ? 0 : 1];
+            }
+        }
+        $textoResumen = implode(', ', $resumen);
+        bitacora_registrar('planilla_guardada', "Encuentro #{$partidoId}: planilla rápida ({$textoResumen})", $torneo['id']);
+        redirigir_con_mensaje($urlLista, 'success', "Planilla guardada ({$textoResumen})." . $avisos);
+    }
+
     if (in_array($accion, ['agregar_gol', 'agregar_tarjeta', 'agregar_cambio'], true)) {
         $equipoId = (int) ($_POST['equipo_id'] ?? 0);
         if (!in_array($equipoId, $equiposDelPartido, true)) {
@@ -460,6 +567,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $eventos = db_leer_eventos_partido($torneo['id'], $partidoId);
 usort($eventos, fn($a, $b) => ($a['minuto'] ?? 999) <=> ($b['minuto'] ?? 999));
 
+// Conteo para la planilla rápida: cuántos goles (sin autogoles), amarillas y rojas lleva
+// cada jugador en este encuentro. Clave 0 = goles "sin identificar".
+$conteoPlanilla = [];
+foreach ($eventos as $ev) {
+    $tipoEv = (string) ($ev['tipo'] ?? '');
+    if (!in_array($tipoEv, ['gol', 'amarilla', 'roja'], true) || ($tipoEv === 'gol' && ($ev['tipo_gol'] ?? '') === 'autogol')) {
+        continue;
+    }
+    $eqEv = (int) ($ev['equipo_id'] ?? 0);
+    $jEv = (int) ($ev['jugador_id'] ?? 0);
+    $conteoPlanilla[$eqEv][$jEv][$tipoEv] = ($conteoPlanilla[$eqEv][$jEv][$tipoEv] ?? 0) + 1;
+}
+
 // Alineación ya guardada de este encuentro. Si todavía no hay ninguna, el formulario se
 // pinta con la posición habitual de cada jugador (jugadores.posicion) como sugerencia y
 // nadie marcado de titular: el organizador arma la alineación del día en un par de clics.
@@ -505,6 +625,7 @@ $titulo_pagina = 'Ficha del partido';
 vista_admin('admin/partido_eventos', compact(
     'alineacionPorJugador',
     'basketball',
+    'conteoPlanilla',
     'deudaPorJugador',
     'suspendidosPartido',
     'deporte',

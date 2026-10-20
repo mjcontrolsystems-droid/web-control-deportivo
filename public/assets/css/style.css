@@ -2378,3 +2378,12 @@ main.flex-grow-1 {
 @media (max-width: 575.98px) {
     .hero-copa .lead-hero { font-size: 1.02rem !important; line-height: 1.55; }
 }
+
+/* Planilla rápida de la ficha del partido: contador − n + compacto por celda. */
+.contador-planilla { display: flex; align-items: center; justify-content: center; gap: .25rem; }
+.contador-planilla .btn { padding: .1rem .4rem; line-height: 1.2; }
+.contador-planilla input { width: 3.2rem; padding-left: .2rem; padding-right: .2rem; -moz-appearance: textfield; }
+.contador-planilla input::-webkit-outer-spin-button,
+.contador-planilla input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.contador-planilla input.cambiado { border-color: var(--color-acento); font-weight: 700; }
+.tabla-planilla td, .tabla-planilla th { white-space: nowrap; }
