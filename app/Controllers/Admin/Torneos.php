@@ -211,6 +211,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'guard
     }
 }
 
+// Copa de demostración de voleibol (datos inventados), para enseñar la plataforma igual
+// que la Copa Estrellas en basketball. Solo los super-admin: crea una copa completa de un
+// clic y no debe estar al alcance de un organizador con cupo.
+if (($_SERVER['REQUEST_METHOD'] === 'POST') && ($_POST['accion'] ?? '') === 'crear_demo_voleibol') {
+    csrf_validar();
+    if (!es_superadmin($usuarioSesion)) {
+        http_response_code(403);
+        exit('Solo un super-admin puede crear la copa de demostración.');
+    }
+    $demoId = demo_crear_copa_voleibol($usuarioId);
+    bitacora_registrar('torneo_creado', '"Copa Voleibol Demo" (voleibol, datos de demostración)', $demoId);
+    $_SESSION['torneo_activo_id'] = $demoId;
+    redirigir_con_mensaje(url('admin/torneos.php'), 'success', 'Copa Voleibol Demo creada con 8 equipos, plantillas y seis jornadas jugadas. Ya es tu copa activa.');
+}
+
 if (($_SERVER['REQUEST_METHOD'] === 'POST') && ($_POST['accion'] ?? '') === 'eliminar') {
     csrf_validar();
     $id = (int) $_POST['id'];
@@ -254,6 +269,7 @@ $seccion_activa = 'torneos';
 $titulo_pagina = 'Mis Copas y Ligas';
 
 vista_admin('admin/torneos', compact(
+    'usuarioSesion',
     'accion',
     'deportePorDefecto',
     'errores',

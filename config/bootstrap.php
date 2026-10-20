@@ -39,6 +39,7 @@ foreach ([
     'mensaje',  // el texto de la jornada listo para pegar en WhatsApp
     'cuentas',  // saldo de cada equipo con la liga (usa Models/Cuenta.php)
     'excel',    // generación de archivos .xlsx sin librerías externas
+    'demo',     // copa de demostración de voleibol con datos inventados
 ] as $modulo) {
     require_once RAIZ_APP . '/app/Support/' . $modulo . '.php';
 }

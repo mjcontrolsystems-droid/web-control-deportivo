@@ -447,11 +447,20 @@
             </p>
             <?php endif; ?>
         </div>
+        <div class="d-flex gap-2 flex-wrap">
+        <?php if (es_superadmin($usuarioSesion ?? null)): ?>
+        <form method="post" class="mb-0" data-confirm="Se creará la «Copa Voleibol Demo» con 8 equipos, plantillas y resultados inventados. ¿Continuamos?">
+            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="accion" value="crear_demo_voleibol">
+            <button type="submit" class="btn btn-outline-secondary rounded-pill px-3"><?= icono_balon_img('voleibol', 18) ?> Copa demo de voleibol</button>
+        </form>
+        <?php endif; ?>
         <?php if ($puedeCrearTorneo): ?>
         <a href="<?= url('admin/torneos.php?accion=nuevo') ?>" class="btn btn-degradado rounded-pill px-3"><i class="bi bi-plus-lg me-1"></i>Nueva copa o liga</a>
         <?php else: ?>
         <button type="button" class="btn btn-degradado rounded-pill px-3 disabled" disabled title="<?= e(mensaje_limite_torneos($limiteTorneos)) ?>"><i class="bi bi-lock me-1"></i>Nueva copa o liga</button>
         <?php endif; ?>
+        </div>
     </div>
 
     <?php if (!$puedeCrearTorneo): ?>
