@@ -277,6 +277,10 @@
             <?= count($jugadores) - count($pendientes) ?> inscritos ·
             <span class="<?= $pendientes ? 'text-warning-emphasis fw-semibold' : 'text-muted' ?>"><?= count($pendientes) ?> pendientes de aprobación</span> ·
             <?= count($conCarnet) ?> con carnet disponible
+            <?php $sinFoto = count(array_filter($jugadores, fn($j) => jugador_habilitado_plantilla($j) && empty($j['foto']))); ?>
+            <?php if ($sinFoto > 0): ?>
+            <div class="text-warning-emphasis mt-1"><i class="bi bi-camera me-1"></i><?= $sinFoto ?> sin foto: súbela con el lápiz de cada uno para poder sacar su carnet.</div>
+            <?php endif; ?>
             <?php if (!$puedeAprobar && !$plantillaCongelada): ?>
             <div class="text-muted mt-1">Los que inscribas quedan pendientes hasta que el organizador de la copa los apruebe. Pide sus datos completos y una foto de la cara.</div>
             <?php endif; ?>
@@ -290,7 +294,12 @@
                 <button type="submit" class="btn btn-sm btn-success rounded-pill px-3"><i class="bi bi-patch-check me-1"></i>Aprobar completos (<?= count($pendientesCompletos) ?>)</button>
             </form>
             <?php endif; ?>
-            <?php if ($conCarnet): ?>
+            <?php if (!$conCarnet): ?>
+            <?php // Sin nadie listo el botón igual se muestra, apagado y con el motivo: si
+                  // desaparece, no hay forma de saber dónde se sacan los carnets. ?>
+            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" disabled
+                    title="Para sacar carnet, el jugador tiene que estar inscrito, activo y con foto."><i class="bi bi-printer me-1"></i>Carnets del equipo (0)</button>
+            <?php else: ?>
             <form method="post" class="mb-0">
                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="accion" value="generar_carnets">
