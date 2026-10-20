@@ -168,10 +168,17 @@
                 <div class="small text-muted"><strong class="text-dark">PE</strong> Partidos empatados</div>
                 <?php endif; ?>
                 <div class="small text-muted"><strong class="text-dark">PP</strong> Partidos perdidos</div>
+                <?php if (es_voleibol($deporte)): ?>
+                <div class="small text-muted"><strong class="text-dark">SG</strong> Sets ganados</div>
+                <div class="small text-muted"><strong class="text-dark">SP</strong> Sets perdidos</div>
+                <div class="small text-muted"><strong class="text-dark">C. sets</strong> Sets ganados ÷ perdidos</div>
+                <div class="small text-muted"><strong class="text-dark">C. pts</strong> Puntos a favor ÷ en contra</div>
+                <?php else: ?>
                 <div class="small text-muted"><strong class="text-dark">%G</strong> Porcentaje de victorias</div>
                 <div class="small text-muted"><strong class="text-dark"><?= e(etiqueta_gf($deporte)) ?></strong> <?= e(etiqueta_anotaciones($deporte)) ?> a favor</div>
                 <div class="small text-muted"><strong class="text-dark"><?= e(etiqueta_gc($deporte)) ?></strong> <?= e(etiqueta_anotaciones($deporte)) ?> en contra</div>
                 <div class="small text-muted"><strong class="text-dark">DIF</strong> Diferencia</div>
+                <?php endif; ?>
                 <div class="small text-muted"><strong class="text-dark"><?= e(etiqueta_ta($deporte)) ?></strong> <?= e(etiqueta_faltas_leves($deporte)) ?></div>
                 <div class="small text-muted"><strong class="text-dark"><?= e(etiqueta_tr($deporte)) ?></strong> <?= e(etiqueta_faltas_graves($deporte)) ?></div>
                 <div class="small text-muted"><strong class="text-dark">PTS</strong> Puntos en la tabla</div>
