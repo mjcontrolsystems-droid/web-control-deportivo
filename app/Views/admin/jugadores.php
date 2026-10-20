@@ -160,6 +160,35 @@
                 <label class="form-label small fw-semibold">Nombre</label>
                 <input type="text" name="nombre" class="form-control" value="<?= e($jugadorEditar['nombre'] ?? '') ?>" required>
             </div>
+            <?php // ---------- Datos de la inscripción ----------
+                  // Privados: solo los ven el organizador y el capitán de este equipo. No
+                  // salen en el sitio público ni en el carnet; sirven para que el
+                  // organizador compruebe que el jugador es quien dice y que no está
+                  // inscrito en otro equipo de la copa. ?>
+            <div class="col-7">
+                <label class="form-label small fw-semibold" for="documentoJugador">DPI / CUI o pasaporte</label>
+                <input type="text" name="documento" id="documentoJugador" class="form-control" maxlength="25" autocomplete="off"
+                       value="<?= e($jugadorEditar['documento'] ?? '') ?>" <?= $jugadorEditar === null ? 'required' : '' ?> inputmode="text">
+            </div>
+            <div class="col-5">
+                <label class="form-label small fw-semibold" for="nacimientoJugador">Fecha de nacimiento</label>
+                <input type="date" name="fecha_nacimiento" id="nacimientoJugador" class="form-control" max="<?= date('Y-m-d') ?>"
+                       value="<?= e($jugadorEditar['fecha_nacimiento'] ?? '') ?>" <?= $jugadorEditar === null ? 'required' : '' ?>>
+            </div>
+            <div class="col-12 mt-1">
+                <div class="form-text"><i class="bi bi-shield-lock me-1"></i>Datos privados: no se publican ni salen en el carnet. Sirven para verificar la identidad y que no esté inscrito en otro equipo.</div>
+                <?php if ($jugadorEditar !== null): ?>
+                <div class="small mt-2">
+                    <?php if (jugador_inscrito($jugadorEditar)): ?>
+                    <span class="badge rounded-pill text-bg-success-subtle text-success-emphasis"><i class="bi bi-patch-check me-1"></i>Inscrito</span>
+                    <?php if (($jugadorEditar['carnet_numero'] ?? '') !== ''): ?><span class="text-muted ms-1">Carnet <?= e($jugadorEditar['carnet_numero']) ?></span><?php endif; ?>
+                    <?php if (!$puedeAprobar): ?><div class="form-text">Si cambias el nombre, el documento, la fecha o la foto, vuelve a quedar pendiente de aprobación.</div><?php endif; ?>
+                    <?php else: ?>
+                    <span class="badge rounded-pill text-bg-warning"><i class="bi bi-hourglass-split me-1"></i>Pendiente de aprobación</span>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+            </div>
             <div class="col-12">
                 <label class="form-label small fw-semibold">Posición</label>
                 <select name="posicion" class="form-select">
@@ -175,7 +204,7 @@
                   // es "ese no es de la promoción". Con la foto en su perfil, cualquiera
                   // puede comprobarlo desde el teléfono en la propia cancha. ?>
             <div class="col-12">
-                <label class="form-label small fw-semibold" for="fotoJugador">Foto (opcional)</label>
+                <label class="form-label small fw-semibold" for="fotoJugador">Foto (necesaria para aprobar la inscripción y sacar el carnet)</label>
                 <div class="d-flex align-items-center gap-3">
                     <?= foto_jugador($jugadorEditar, 64) ?>
                     <div class="flex-grow-1">
@@ -230,9 +259,46 @@
                        aria-label="Archivo de Excel o CSV con la plantilla">
                 <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-3"><i class="bi bi-upload me-1"></i>Importar</button>
             </form>
-            <a href="<?= $urlLista ?>&accion=nuevo" class="btn btn-degradado rounded-pill px-3"><i class="bi bi-plus-lg me-1"></i><?= e(forma_genero($torneo['genero'] ?? null, 'Nuevo', 'Nueva')) ?> <?= e(mb_strtolower($etJugador)) ?></a>
+            <a href="<?= $urlLista ?>&accion=nuevo" class="btn btn-degradado rounded-pill px-3"><i class="bi bi-plus-lg me-1"></i>Inscribir <?= e(mb_strtolower($etJugador)) ?></a>
         </div>
         <?php endif; ?>
+    </div>
+
+    <?php
+    // Resumen de la inscripción del equipo: cuántos esperan aprobación y cuántos ya pueden
+    // sacar carnet (inscritos, activos y con foto).
+    $pendientes = array_values(array_filter($jugadores, fn($j) => !jugador_inscrito($j)));
+    $pendientesCompletos = array_values(array_filter($pendientes, fn($j) => inscripcion_faltante($j) === ''));
+    $conCarnet = array_values(array_filter($jugadores, fn($j) => jugador_habilitado_plantilla($j) && !empty($j['foto'])));
+    ?>
+    <div class="card-suave p-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div class="small">
+            <i class="bi bi-person-vcard me-1"></i><strong>Inscripción:</strong>
+            <?= count($jugadores) - count($pendientes) ?> inscritos ·
+            <span class="<?= $pendientes ? 'text-warning-emphasis fw-semibold' : 'text-muted' ?>"><?= count($pendientes) ?> pendientes de aprobación</span> ·
+            <?= count($conCarnet) ?> con carnet disponible
+            <?php if (!$puedeAprobar && !$plantillaCongelada): ?>
+            <div class="text-muted mt-1">Los que inscribas quedan pendientes hasta que el organizador de la copa los apruebe. Pide sus datos completos y una foto de la cara.</div>
+            <?php endif; ?>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <?php if ($puedeAprobar && $pendientesCompletos): ?>
+            <form method="post" class="mb-0" data-confirm="¿Aprobar las <?= count($pendientesCompletos) ?> inscripciones que ya tienen documento, fecha de nacimiento y foto?">
+                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                <input type="hidden" name="accion" value="aprobar_todos">
+                <input type="hidden" name="equipo_id" value="<?= (int) $equipoId ?>">
+                <button type="submit" class="btn btn-sm btn-success rounded-pill px-3"><i class="bi bi-patch-check me-1"></i>Aprobar completos (<?= count($pendientesCompletos) ?>)</button>
+            </form>
+            <?php endif; ?>
+            <?php if ($conCarnet): ?>
+            <form method="post" class="mb-0">
+                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                <input type="hidden" name="accion" value="generar_carnets">
+                <input type="hidden" name="equipo_id" value="<?= (int) $equipoId ?>">
+                <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-3"><i class="bi bi-printer me-1"></i>Carnets del equipo (<?= count($conCarnet) ?>)</button>
+            </form>
+            <?php endif; ?>
+        </div>
     </div>
 
     <?php if ($plantillaCongelada): ?>
@@ -260,8 +326,8 @@
                     <th style="width:80px;">Dorsal</th>
                     <th>Nombre</th>
                     <th style="width:150px;">Posición</th>
-                    <th style="width:100px;">Estado</th>
-                    <th style="width:110px;"></th>
+                    <th style="width:130px;">Estado</th>
+                    <th style="width:170px;"></th>
                 </tr>
             </thead>
             <tbody>
@@ -272,8 +338,37 @@
                     <td class="fw-bold">#<?= e($j['dorsal']) ?></td>
                     <td><?= e($j['nombre']) ?></td>
                     <td class="small text-muted"><?= e(posicion_label($torneo['deporte'] ?? null, $j['posicion'] ?? null)) ?></td>
-                    <td><?= $j['activo'] ? '<span class="badge rounded-pill text-bg-success-subtle text-success-emphasis small">' . e($etActivo) . '</span>' : '<span class="badge rounded-pill text-bg-secondary small">' . e($etInactivo) . '</span>' ?></td>
-                    <td class="text-end">
+                    <td>
+                        <?php if (empty($j['activo'])): ?>
+                        <span class="badge rounded-pill text-bg-secondary small"><?= e($etInactivo) ?></span>
+                        <?php elseif (!jugador_inscrito($j)): ?>
+                        <?php $faltaJ = inscripcion_faltante($j); ?>
+                        <span class="badge rounded-pill text-bg-warning small" title="<?= e($faltaJ !== '' ? 'Falta: ' . $faltaJ : 'Datos completos: lista para aprobar') ?>">Pendiente</span>
+                        <?php if ($faltaJ !== ''): ?><div class="small text-muted">Falta <?= e($faltaJ) ?></div><?php endif; ?>
+                        <?php else: ?>
+                        <span class="badge rounded-pill text-bg-success-subtle text-success-emphasis small">Inscrito</span>
+                        <?php if (($j['carnet_numero'] ?? '') !== ''): ?><div class="small text-muted"><?= e($j['carnet_numero']) ?></div><?php endif; ?>
+                        <?php endif; ?>
+                    </td>
+                    <td class="text-end text-nowrap">
+                        <?php if ($puedeAprobar && !jugador_inscrito($j) && inscripcion_faltante($j) === ''): ?>
+                        <form method="post" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                            <input type="hidden" name="accion" value="aprobar">
+                            <input type="hidden" name="equipo_id" value="<?= $equipoId ?>">
+                            <input type="hidden" name="id" value="<?= $j['id'] ?>">
+                            <button type="submit" class="btn btn-sm btn-success" title="Aprobar inscripción"><i class="bi bi-patch-check"></i></button>
+                        </form>
+                        <?php endif; ?>
+                        <?php if (jugador_habilitado_plantilla($j) && !empty($j['foto'])): ?>
+                        <form method="post" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                            <input type="hidden" name="accion" value="generar_carnets">
+                            <input type="hidden" name="equipo_id" value="<?= $equipoId ?>">
+                            <input type="hidden" name="jugador_id" value="<?= $j['id'] ?>">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary" title="Carnet"><i class="bi bi-person-vcard"></i></button>
+                        </form>
+                        <?php endif; ?>
                         <?php if (!$plantillaCongelada): ?>
                         <a href="<?= $urlLista ?>&accion=editar&id=<?= $j['id'] ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
                         <form method="post" class="d-inline" data-confirm="¿Eliminar a <?= e($j['nombre']) ?>?">

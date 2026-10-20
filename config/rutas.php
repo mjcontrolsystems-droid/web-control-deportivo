@@ -29,6 +29,8 @@ return [
     'jugador.php' => ['controlador' => 'Publico/Jugador', 'copa' => true],
     // Nómina imprimible para el árbitro: el capitán marca titulares a mano y firma.
     'nomina.php' => ['controlador' => 'Publico/Nomina', 'copa' => true],
+    // Verificación del carnet: es lo que abre el QR. Dice si el jugador está habilitado.
+    'carnet.php' => ['controlador' => 'Publico/Carnet', 'copa' => true],
     'equipo_reporte.php' => ['controlador' => 'Publico/EquipoReporte', 'copa' => true],
     'partido.php' => ['controlador' => 'Publico/Partido', 'copa' => true],
     'partido_vivo.php' => ['controlador' => 'Publico/PartidoVivo', 'copa' => true],
@@ -63,6 +65,7 @@ return [
     'admin/torneos.php' => ['controlador' => 'Admin/Torneos', 'copa' => false],
     'admin/equipos.php' => ['controlador' => 'Admin/Equipos', 'copa' => false],
     'admin/jugadores.php' => ['controlador' => 'Admin/Jugadores', 'copa' => false],
+    'admin/carnets.php' => ['controlador' => 'Admin/Carnets', 'copa' => false],
     'admin/partidos.php' => ['controlador' => 'Admin/Partidos', 'copa' => false],
     'admin/partido_eventos.php' => ['controlador' => 'Admin/PartidoEventos', 'copa' => false],
     'admin/sanciones.php' => ['controlador' => 'Admin/Sanciones', 'copa' => false],

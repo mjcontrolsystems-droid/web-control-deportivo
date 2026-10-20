@@ -343,9 +343,19 @@ $equiposVisibles = $esCapitan
     ? array_values(array_filter($equipos, fn($e) => (int) $e['id'] === $equipoCapitan))
     : $equipos;
 
+// Inscripciones pendientes de aprobar por equipo: el organizador las ve de un vistazo en
+// la tarjeta de cada equipo, sin tener que entrar plantilla por plantilla.
+$pendientesPorEquipo = [];
+foreach (jugadores_listar($torneo['id']) as $jugadorPend) {
+    if (!jugador_inscrito($jugadorPend) && !empty($jugadorPend['activo'])) {
+        $pendientesPorEquipo[(int) $jugadorPend['equipo_id']] = ($pendientesPorEquipo[(int) $jugadorPend['equipo_id']] ?? 0) + 1;
+    }
+}
+
 vista_admin('admin/equipos', array_merge(
     compact(
         'accion',
+        'pendientesPorEquipo',
         'avisoCuadro',
         'equipoEditar',
         'esCapitan',

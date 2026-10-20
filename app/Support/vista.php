@@ -213,6 +213,9 @@ function vista_404_copa(string $titulo, string $volverUrl, string $volverTexto):
         'titulo_pagina' => $titulo,
         'volver_url' => $volverUrl,
         'volver_texto' => $volverTexto,
+        // El menú del sitio necesita saber qué pestaña marcar; aquí ninguna. Sin esta
+        // clave, el 404 de una copa (equipo o carnet inexistente) terminaba en error 500.
+        'pagina_activa' => '',
     ];
     vista('layouts/publico_top', $datos);
     vista('publico/no_encontrado_en_copa', $datos);

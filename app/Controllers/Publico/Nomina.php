@@ -35,7 +35,8 @@ $jugadoresPorId = jugadores_por_id($jugadoresTodos);
 // Solo los activos: un jugador dado de baja no debe ni aparecer en el papel.
 $plantilla = array_values(array_filter(
     $jugadoresTodos,
-    fn($j) => (int) $j['equipo_id'] === $id && !empty($j['activo'])
+    // ...ni uno con la inscripción pendiente: todavía no está aprobado para jugar.
+    fn($j) => (int) $j['equipo_id'] === $id && jugador_habilitado_plantilla($j)
 ));
 usort($plantilla, fn($a, $b) => (int) $a['dorsal'] <=> (int) $b['dorsal']);
 

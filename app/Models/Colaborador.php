@@ -48,7 +48,7 @@ const PERMISOS_POR_NIVEL = [
     // La mesa es quien está en la cancha: solo la ficha del partido.
     'mesa' => ['partido_capturar'],
     'asistente' => [
-        'partido_capturar', 'partidos_editar', 'equipos', 'jugadores',
+        'partido_capturar', 'partidos_editar', 'equipos', 'jugadores', 'jugadores_aprobar',
         'sanciones', 'cuentas', 'patrocinadores', 'comentarios',
     ],
     // El capitán no administra la copa: administra SU equipo. Tiene los mismos permisos de

@@ -364,7 +364,7 @@ foreach ($equiposDelPartido as $eid) {
                         <li class="fila-alineacion d-flex align-items-center gap-2 py-1">
                             <?php // Con el resultado en firme la alineación queda de solo lectura,
                                   // igual que los eventos y el cronómetro. ?>
-                            <input class="form-check-input check-titular m-0" type="checkbox" name="titular[]" value="<?= $jid ?>" id="titular-<?= $jid ?>" <?= $esTitular ? 'checked' : '' ?> <?= (empty($j['activo']) || $resultadoBloqueado || $bloqueadoPorDeuda || $suspension !== null) ? 'disabled' : '' ?>>
+                            <input class="form-check-input check-titular m-0" type="checkbox" name="titular[]" value="<?= $jid ?>" id="titular-<?= $jid ?>" <?= $esTitular ? 'checked' : '' ?> <?= (!jugador_habilitado_plantilla($j) || $resultadoBloqueado || $bloqueadoPorDeuda || $suspension !== null) ? 'disabled' : '' ?>>
                             <label class="flex-grow-1 mb-0 d-flex align-items-center gap-2" for="titular-<?= $jid ?>" style="cursor:pointer;min-width:0;">
                                 <?php // La foto le sirve a la mesa, que muchas veces no
                                       // conoce a los jugadores: compara la cara con quien
@@ -373,6 +373,7 @@ foreach ($equiposDelPartido as $eid) {
                                 <span class="fw-bold">#<?= e($j['dorsal']) ?></span>
                                 <span class="text-truncate"><?= e($j['nombre']) ?></span>
                                 <?php if (empty($j['activo'])): ?><span class="badge rounded-pill text-bg-secondary small"><?= e(forma_genero($torneo['genero'] ?? null, 'Inactivo', 'Inactiva')) ?></span><?php endif; ?>
+                                <?php if (!jugador_inscrito($j)): ?><span class="badge rounded-pill text-bg-warning small" title="El organizador todavía no aprueba su inscripción">Inscripción pendiente</span><?php endif; ?>
                                 <?php if ($suspension !== null): ?>
                                 <span class="badge rounded-pill text-bg-danger small" title="<?= e(disciplina_texto_suspension($suspension)) ?>">
                                     <i class="bi bi-person-x me-1"></i><?= $suspension['motivo'] === 'roja' ? 'Suspendido por roja' : 'Suspendido por amarillas' ?>

@@ -173,7 +173,7 @@ postear "editar equipo" "/admin/equipos.php?accion=editar&id=1" \
 verificar "el cambio del equipo se guardó" "/admin/equipos.php" "Ciudad Editada"
 
 postear "agregar jugador" "/admin/jugadores.php?equipo_id=1&accion=nuevo" \
-    "accion=guardar&equipo_id=1&id=0&dorsal=99&nombre=Nuevo+Jugador&posicion=delantero&activo=1"
+    "accion=guardar&equipo_id=1&id=0&dorsal=99&nombre=Nuevo+Jugador&posicion=delantero&activo=1&documento=1234567890123&fecha_nacimiento=1998-03-10"
 verificar "el jugador aparece en la plantilla" "/admin/jugadores.php?equipo_id=1" "Nuevo Jugador"
 
 postear "guardar alineación" "/admin/partido_eventos.php?partido_id=3" \
@@ -225,6 +225,17 @@ postear "reabrir el partido jugado para corregirlo" "/admin/partido_eventos.php?
 postear "cargar 5 puntos a un jugador" "/admin/partido_eventos.php?partido_id=6" \
     "accion=guardar_planilla&partido_id=6&planilla%5B9%5D%5B66%5D%5Bgol%5D=5"
 verificar "los puntos aparecen en la ficha" "/admin/partido_eventos.php?partido_id=6" "Punto de ataque"
+
+echo ""
+echo "== Inscripción y carnet =="
+curl -s -b "$GALLETAS" -c "$GALLETAS" -o /dev/null "$BASE/admin/torneos.php?accion=entrar&id=1"
+postear "un jugador nuevo sin documento se rechaza" "/admin/jugadores.php?equipo_id=1&accion=nuevo" \
+    "accion=guardar&equipo_id=1&id=0&dorsal=98&nombre=Sin+Documento&activo=1"
+verificar "el jugador sin documento no se creó" "/admin/jugadores.php?equipo_id=1" "Inscripción:"
+postear "el mismo documento en otro equipo se rechaza" "/admin/jugadores.php?equipo_id=2&accion=nuevo" \
+    "accion=guardar&equipo_id=2&id=0&dorsal=97&nombre=Duplicado&activo=1&documento=1234567890123&fecha_nacimiento=1998-03-10"
+verificar "el inscrito por el organizador ya tiene número de carnet" "/admin/jugadores.php?equipo_id=1" "FUT-2026-0001"
+probar "/liga-municipal/carnet.php?c=000000000000000000000000" 404
 
 echo ""
 echo "== Subida de imágenes =="

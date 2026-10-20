@@ -405,6 +405,20 @@ foreach ([[$plantillasVoley[$equiposVoley[0]][1], 'ataque'], [$plantillasVoley[$
     ]);
 }
 
+// Capitán de Halcones en la liga de voleibol: inscribe jugadores que quedan pendientes
+// hasta que el organizador los apruebe.
+$stmtCap = $pdo->prepare(
+    'INSERT INTO usuarios (usuario, email, password_hash, nombre, cargo, telefono, bio)
+     VALUES (:u, :e, :p, :n, :c, :t, :b) RETURNING id'
+);
+$stmtCap->execute([
+    ':u' => 'capitan', ':e' => 'capitan@local.test', ':p' => password_hash('capitan123', PASSWORD_DEFAULT),
+    ':n' => 'Capitán de Prueba', ':c' => 'Capitán', ':t' => '', ':b' => '',
+]);
+$capitanId = (int) $stmtCap->fetchColumn();
+$pdo->prepare("INSERT INTO colaboradores (torneo_id, email, nivel, usuario_id, equipo_id, aceptado_en) VALUES (:t, 'capitan@local.test', 'capitan', :u, :e, NOW())")
+    ->execute([':t' => $voleyId, ':u' => $capitanId, ':e' => $equiposVoley[0]]);
+
 // --- Patrocinadores y comentarios -------------------------------------------------
 $stmtPatro = $pdo->prepare('INSERT INTO patrocinadores (id, torneo_id, nombre, nivel, url, logo, orden) VALUES (:id, :t, :n, :niv, :u, :l, :o)');
 $niveles = ['oficial', 'oro', 'plata'];
@@ -429,4 +443,4 @@ echo "  Partido jugado con ficha y alineación: id={$pJugado}\n";
 echo "  Partido EN VIVO (cronómetro corriendo + 2 min extra): id={$pEnVivo}\n";
 echo "  Partido de copa jugado: id={$pCopa}\n";
 echo "  Liga de Voleibol (FIVB, cinco sets): /liga-voley — partido pendiente id={$pVoleyPendiente}\n";
-echo "  Login: prueba@local.test / prueba123\n";
+echo "  Login: prueba@local.test / prueba123 — capitán de Halcones (voleibol): capitan / capitan123\n";

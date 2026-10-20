@@ -89,6 +89,15 @@ CREATE TABLE IF NOT EXISTS jugadores (
 -- POSICIONES_POR_DEPORTE en app/Support/liga.php. Solo es el valor SUGERIDO: la posición
 -- real de cada encuentro se guarda en partido_alineacion.
 ALTER TABLE jugadores ADD COLUMN IF NOT EXISTS posicion TEXT NOT NULL DEFAULT '';
+ALTER TABLE jugadores ADD COLUMN IF NOT EXISTS foto TEXT NOT NULL DEFAULT '';
+-- Inscripción y carnet (ver app/Models/Jugador.php). Estado '' = inscrito (jugadores de
+-- antes de que existiera la aprobación), 'pendiente' = lo cargó el capitán y falta que el
+-- organizador lo apruebe. documento y fecha_nacimiento nunca se muestran en público.
+ALTER TABLE jugadores ADD COLUMN IF NOT EXISTS documento TEXT NOT NULL DEFAULT '';
+ALTER TABLE jugadores ADD COLUMN IF NOT EXISTS fecha_nacimiento TEXT NOT NULL DEFAULT '';
+ALTER TABLE jugadores ADD COLUMN IF NOT EXISTS inscripcion_estado TEXT NOT NULL DEFAULT '';
+ALTER TABLE jugadores ADD COLUMN IF NOT EXISTS carnet_numero TEXT NOT NULL DEFAULT '';
+ALTER TABLE jugadores ADD COLUMN IF NOT EXISTS carnet_token TEXT NOT NULL DEFAULT '';
 
 CREATE TABLE IF NOT EXISTS partidos (
     id INTEGER PRIMARY KEY,

@@ -22,6 +22,7 @@ if (PHP_SAPI !== 'cli') {
 require_once __DIR__ . '/../app/Support/tabla.php';
 require_once __DIR__ . '/../app/Support/liga.php';
 require_once __DIR__ . '/../app/Support/voleibol.php';
+require_once __DIR__ . '/../app/Models/Jugador.php';
 require_once __DIR__ . '/../app/Support/fixture.php';
 
 $fallos = 0;
@@ -404,6 +405,34 @@ $pD = [
 ];
 $tD = calcular_tabla($eqD, $pD, $v5);
 check('desempate FIVB por cociente de sets: X antes que Y', [$tD[0]['equipo']['nombre'], $tD[1]['equipo']['nombre']], ['X', 'Y']);
+
+// ---------------------------------------------------------------------------
+echo "\n== Inscripción y carnet ==\n";
+check('documento con espacios y guiones se normaliza', documento_normalizar(' 2345 67890-0101 '), '2345678900101');
+check('DPI de 13 dígitos es válido', documento_error('2345678900101'), '');
+check('pasaporte con letras es válido', documento_error('GT1234567'), '');
+check('documento vacío no se acepta', documento_error('') !== '', true);
+check('documento con símbolos no se acepta', documento_error('ABC#123') !== '', true);
+check('fecha de nacimiento válida', fecha_nacimiento_error('2001-05-04'), '');
+check('fecha de nacimiento futura no', fecha_nacimiento_error(date('Y-m-d', strtotime('+1 day'))) !== '', true);
+check('fecha imposible (31 de febrero) no', fecha_nacimiento_error('2001-02-31') !== '', true);
+check('jugador viejo sin estado cuenta como inscrito', jugador_inscrito(['activo' => true]), true);
+check('pendiente no está inscrito', jugador_inscrito(['inscripcion_estado' => 'pendiente']), false);
+check('pendiente activo no puede alinearse', jugador_habilitado_plantilla(['activo' => true, 'inscripcion_estado' => 'pendiente']), false);
+check('faltan datos para aprobar', inscripcion_faltante(['documento' => '', 'fecha_nacimiento' => '2001-01-01', 'foto' => '']), 'documento, foto');
+$copaCarnet = [
+    ['id' => 1, 'equipo_id' => 1, 'documento' => '2345678900101', 'carnet_numero' => 'VOL-2026-0007', 'carnet_token' => str_repeat('a', 24)],
+    ['id' => 2, 'equipo_id' => 2, 'documento' => '', 'carnet_numero' => '', 'carnet_token' => ''],
+    ['id' => 3, 'equipo_id' => 2, 'documento' => '', 'carnet_numero' => '', 'carnet_token' => ''],
+];
+check('el mismo documento en otro equipo se detecta', jugador_con_documento($copaCarnet, '2345678900101', 2)['id'] ?? null, 1);
+check('el propio jugador no es su duplicado', jugador_con_documento($copaCarnet, '2345678900101', 1), null);
+check('se asignan dos carnets', carnet_asignar($copaCarnet, [2, 3], ['deporte' => 'voleibol', 'temporada' => '2026']), 2);
+check('numeración correlativa sigue al mayor', [$copaCarnet[1]['carnet_numero'], $copaCarnet[2]['carnet_numero']], ['VOL-2026-0008', 'VOL-2026-0009']);
+check('el código del QR es aleatorio de 24 caracteres', (bool) preg_match('/^[a-f0-9]{24}$/', $copaCarnet[1]['carnet_token']), true);
+check('un número ya asignado no cambia', carnet_asignar($copaCarnet, [1], ['deporte' => 'voleibol', 'temporada' => '2026']), 0);
+check('se encuentra el jugador por el código del QR', jugador_por_carnet_token($copaCarnet, str_repeat('a', 24))['id'] ?? null, 1);
+check('un código con formato raro no busca nada', jugador_por_carnet_token($copaCarnet, "' OR 1=1 --"), null);
 
 // ---------------------------------------------------------------------------
 echo "\n============================\n";

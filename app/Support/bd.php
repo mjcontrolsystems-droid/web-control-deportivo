@@ -11,7 +11,8 @@ const COLUMNAS_POR_TABLA = [
     'partidos' => ['id', 'torneo_id', 'jornada', 'equipo_local', 'equipo_visitante', 'fecha', 'hora', 'cancha', 'estado', 'marcador_local', 'marcador_visitante', 'fase', 'arbitro', 'observaciones', 'por_default', 'cronometro_estado', 'cronometro_inicio', 'cronometro_segundos', 'cronometro_periodo', 'cronometro_extra_min', 'sets'],
     'patrocinadores' => ['id', 'torneo_id', 'nombre', 'nivel', 'url', 'logo', 'orden'],
     'comentarios' => ['id', 'torneo_id', 'mensaje', 'fecha', 'leido'],
-    'jugadores' => ['id', 'torneo_id', 'equipo_id', 'dorsal', 'nombre', 'activo', 'posicion', 'foto'],
+    'jugadores' => ['id', 'torneo_id', 'equipo_id', 'dorsal', 'nombre', 'activo', 'posicion', 'foto',
+        'documento', 'fecha_nacimiento', 'inscripcion_estado', 'carnet_numero', 'carnet_token'],
     'partido_eventos' => ['id', 'torneo_id', 'partido_id', 'tipo', 'equipo_id', 'jugador_id', 'jugador_entra_id', 'minuto', 'tipo_gol', 'asistencia_jugador_id', 'motivo', 'periodo'],
 ];
 
@@ -32,6 +33,9 @@ const COLUMNAS_ENTERAS_POR_TABLA = [
 // nada de sets de voleibol) guarda cadena vacía en vez de un NULL que Postgres rechaza.
 const COLUMNAS_TEXTO_VACIO_POR_TABLA = [
     'partidos' => ['sets'],
+    // Inscripción y carnet: la importación, la demo y el código viejo crean jugadores sin
+    // estos datos. Estado vacío = inscrito (los jugadores de antes ya estaban jugando).
+    'jugadores' => ['documento', 'fecha_nacimiento', 'inscripcion_estado', 'carnet_numero', 'carnet_token'],
 ];
 
 const COLUMNAS_BOOLEANAS_POR_TABLA = [
@@ -544,6 +548,17 @@ function db_migrar_automatico(): void
         // Voleibol: detalle de los sets del partido ("25-20,22-25,25-18"). El marcador
         // (sets ganados) sigue en marcador_local / marcador_visitante.
         $pdo->exec("ALTER TABLE partidos ADD COLUMN IF NOT EXISTS sets TEXT NOT NULL DEFAULT ''");
+
+        // Inscripción del jugador y su carnet. El documento (DPI/CUI) y la fecha de
+        // nacimiento son datos personales: solo los ven el organizador y el capitán del
+        // equipo, nunca salen en el sitio público ni en el carnet. carnet_token es lo que
+        // va en el QR (aleatorio, para que no se pueda recorrer cambiando un número).
+        $pdo->exec("ALTER TABLE jugadores ADD COLUMN IF NOT EXISTS documento TEXT NOT NULL DEFAULT ''");
+        $pdo->exec("ALTER TABLE jugadores ADD COLUMN IF NOT EXISTS fecha_nacimiento TEXT NOT NULL DEFAULT ''");
+        $pdo->exec("ALTER TABLE jugadores ADD COLUMN IF NOT EXISTS inscripcion_estado TEXT NOT NULL DEFAULT ''");
+        $pdo->exec("ALTER TABLE jugadores ADD COLUMN IF NOT EXISTS carnet_numero TEXT NOT NULL DEFAULT ''");
+        $pdo->exec("ALTER TABLE jugadores ADD COLUMN IF NOT EXISTS carnet_token TEXT NOT NULL DEFAULT ''");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS jugadores_carnet_token_idx ON jugadores (carnet_token) WHERE carnet_token <> ''");
 
         // Se limpian las marcas de versiones anteriores para que la sesión no acumule una
         // clave por cada cambio del archivo a lo largo de la vida del proyecto.

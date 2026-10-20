@@ -228,7 +228,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach ($jugadoresPorEquipo[$equipoIdLado] ?? [] as $j) {
                 // Los dados de baja en la plantilla no entran a la convocatoria (el
                 // formulario los muestra en gris, pero no se guardan ni en la banca).
-                if (empty($j['activo'])) {
+                // Tampoco los que tienen la inscripción pendiente de aprobación.
+                if (!jugador_habilitado_plantilla($j)) {
                     continue;
                 }
                 $jugadorId = (int) $j['id'];
