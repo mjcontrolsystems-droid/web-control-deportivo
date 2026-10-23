@@ -102,7 +102,308 @@ function calendario_plan_jornadas(array $equipoIds, int $vueltas, int|array $cup
         }
     }
 
+    // Con fecha de cierre el cupo viene como lista: una entrada por jornada que cabe antes
+    // de la liguilla. Si el llenado jornada por jornada se pasó de esa cantidad, se reacomoda
+    // el plan entero (ver calendario_plan_ajustar) en vez de dejar una jornada extra.
+    if ($mejor !== null && is_array($cupoPorJornada) && count($mejor) > count($cupoPorJornada)) {
+        $techo = max(array_map('intval', $cupoPorJornada));
+        $semillaBase = $semilla === null ? random_int(1, PHP_INT_MAX >> 8) : $semilla;
+        // Varios arranques; se queda el que mejor reparte (menos descansos y dobletes).
+        $base = $mejor;
+        $mejorAjuste = null;
+        for ($i = 0; $i < CALENDARIO_AJUSTES_A_PROBAR; $i++) {
+            $ajustado = calendario_plan_ajustar($base, array_map('intval', $cupoPorJornada), $techo, $equipoIds, $doblesPrevios, $semillaBase + $i);
+            if (!empty($ajustado) && ($mejorAjuste === null || $ajustado['costo'] < $mejorAjuste['costo'])) {
+                $mejorAjuste = $ajustado;
+            }
+        }
+        if ($mejorAjuste !== null) {
+            $mejor = $mejorAjuste['plan'];
+        }
+    }
+
     return $mejor ?? [];
+}
+
+/** Arranques distintos que se prueban al reacomodar un plan que se pasó de jornadas. */
+const CALENDARIO_AJUSTES_A_PROBAR = 8;
+
+/** Movimientos por arranque. Con ~40 partidos y 5 jornadas sobra; tarda milisegundos. */
+const CALENDARIO_AJUSTE_PASOS = 15000;
+
+/**
+ * Reacomoda los partidos pendientes para que entren EXACTO en las jornadas disponibles.
+ *
+ * El llenado normal arma una jornada a la vez y no mira hacia adelante. Con un fixture
+ * intacto no importa (cada ronda cubre a todos los equipos), pero al CONTINUAR un
+ * calendario los cruces que sobran ya no forman rondas completas: lo que se elige en las
+ * primeras jornadas deja al final cruces que se pisan entre sí, y aparece una jornada de
+ * más con 2 o 3 partidos sueltos que empuja la liguilla después de la fecha de cierre.
+ * Pasó con Somos Hall: 41 partidos que cabían en 5 fines de semana salían en 6.
+ *
+ * Aquí se ve el plan completo de una vez. Cada partido tiene una jornada asignada y se
+ * prueban cambios (mover un partido a otra jornada o intercambiar dos) quedándose con los
+ * que no empeoran. Reglas duras, que tienen que quedar en cero:
+ *   - nadie juega más de 2 veces en un fin de semana;
+ *   - los que juegan dos veces tienen que poder ir en días distintos (sin triángulos);
+ *   - ninguna jornada pasa del cupo máximo.
+ * Y blandas, que se minimizan: que cada jornada tenga los partidos que le tocan según el
+ * reparto parejo, que nadie se quede sin jugar un fin de semana y que los dobletes de la
+ * temporada queden repartidos.
+ *
+ * @param array $plan Plan del llenado normal (se usa de punto de partida).
+ * @param array<int> $objetivo Partidos que debería llevar cada jornada.
+ * @param int $techo Máximo de partidos que caben en una jornada.
+ * @return array{plan: array, costo: int}|array El plan (mismo formato) y su costo blando, o [] si no se logró cumplir las reglas duras.
+ */
+function calendario_plan_ajustar(array $plan, array $objetivo, int $techo, array $equipoIds, array $doblesPrevios, int $semilla): array
+{
+    $J = count($objetivo);
+    if ($J < 1) {
+        return [];
+    }
+    $mt = new \Random\Randomizer(new \Random\Engine\Mt19937($semilla));
+
+    // Todos los cruces del plan, con la jornada que les toca. Lo que estaba en jornadas de
+    // más se reparte al azar entre las que sí hay.
+    $cruces = [];
+    $en = [];
+    foreach ($plan as $j => $jornada) {
+        foreach (array_merge($jornada['principal'], $jornada['adelantados']) as $c) {
+            $cruces[] = [(int) $c[0], (int) $c[1]];
+            $en[] = $j < $J ? $j : $mt->getInt(0, $J - 1);
+        }
+    }
+    $n = count($cruces);
+    if ($n === 0 || $n > $J * $techo) {
+        return [];
+    }
+
+    $previos = [];
+    foreach ($equipoIds as $eq) {
+        $previos[(int) $eq] = (int) ($doblesPrevios[(int) $eq] ?? $doblesPrevios[(string) $eq] ?? 0);
+    }
+
+    $miembros = array_fill(0, $J, []);
+    foreach ($en as $k => $j) {
+        $miembros[$j][$k] = true;
+    }
+
+    $evaluar = function (int $j) use (&$miembros, $cruces, $objetivo, $techo, $equipoIds): array {
+        $grado = [];
+        $vecinos = [];
+        foreach (array_keys($miembros[$j]) as $k) {
+            [$a, $b] = $cruces[$k];
+            $grado[$a] = ($grado[$a] ?? 0) + 1;
+            $grado[$b] = ($grado[$b] ?? 0) + 1;
+            $vecinos[$a][] = $b;
+            $vecinos[$b][] = $a;
+        }
+        $duro = 0;
+        foreach ($grado as $g) {
+            if ($g > 2) {
+                $duro += $g - 2;
+            }
+        }
+        $cuantos = count($miembros[$j]);
+        if ($cuantos > $techo) {
+            $duro += $cuantos - $techo;
+        }
+        // Ciclos impares: con grado <= 2 los componentes son caminos o ciclos. Un ciclo
+        // impar obliga a que alguien juegue dos veces el mismo día.
+        if ($duro === 0) {
+            $visto = [];
+            foreach ($grado as $eq => $g) {
+                if (isset($visto[$eq])) {
+                    continue;
+                }
+                $pila = [$eq];
+                $nodos = 0;
+                $sumaGrado = 0;
+                $esCiclo = true;
+                $visto[$eq] = true;
+                while ($pila) {
+                    $x = array_pop($pila);
+                    $nodos++;
+                    $sumaGrado += $grado[$x];
+                    if ($grado[$x] !== 2) {
+                        $esCiclo = false;
+                    }
+                    foreach ($vecinos[$x] as $y) {
+                        if (!isset($visto[$y])) {
+                            $visto[$y] = true;
+                            $pila[] = $y;
+                        }
+                    }
+                }
+                if ($esCiclo && $nodos % 2 === 1) {
+                    $duro++;
+                }
+            }
+        }
+        $huecos = count($equipoIds) - count($grado);
+        $blando = abs($cuantos - $objetivo[$j]) * 4 + $huecos * 3;
+        return [$duro, $blando];
+    };
+
+    $dobletes = function () use (&$miembros, $cruces, $previos): int {
+        $d = $previos;
+        foreach ($miembros as $lista) {
+            $g = [];
+            foreach (array_keys($lista) as $k) {
+                [$a, $b] = $cruces[$k];
+                $g[$a] = ($g[$a] ?? 0) + 1;
+                $g[$b] = ($g[$b] ?? 0) + 1;
+            }
+            foreach ($g as $eq => $v) {
+                if ($v >= 2) {
+                    $d[$eq] = ($d[$eq] ?? 0) + 1;
+                }
+            }
+        }
+        return $d === [] ? 0 : max($d) - min($d);
+    };
+
+    $costos = [];
+    for ($j = 0; $j < $J; $j++) {
+        $costos[$j] = $evaluar($j);
+    }
+    $total = function () use (&$costos, $dobletes): array {
+        $duro = 0;
+        $blando = 0;
+        foreach ($costos as [$d, $b]) {
+            $duro += $d;
+            $blando += $b;
+        }
+        return [$duro, $blando + $dobletes()];
+    };
+    $actual = $total();
+    // El recorrido acepta a veces pasos apenas peores, así que se guarda el mejor arreglo
+    // visto y es ese el que se devuelve, no donde quedó parado al final.
+    $mejorCosto = $actual;
+    $mejorEn = $en;
+
+    for ($paso = 0; $paso < CALENDARIO_AJUSTE_PASOS && ($actual[0] > 0 || $actual[1] > 0); $paso++) {
+        $k = $mt->getInt(0, $n - 1);
+        $origen = $en[$k];
+        $destino = $mt->getInt(0, $J - 1);
+        if ($destino === $origen) {
+            continue;
+        }
+        // Mitad de las veces se intercambia con un partido del destino (deja los conteos igual).
+        $otro = null;
+        if (!empty($miembros[$destino]) && $mt->getInt(0, 1) === 1) {
+            $llaves = array_keys($miembros[$destino]);
+            $otro = $llaves[$mt->getInt(0, count($llaves) - 1)];
+        }
+
+        $antes = [$costos[$origen], $costos[$destino]];
+        unset($miembros[$origen][$k]);
+        $miembros[$destino][$k] = true;
+        $en[$k] = $destino;
+        if ($otro !== null) {
+            unset($miembros[$destino][$otro]);
+            $miembros[$origen][$otro] = true;
+            $en[$otro] = $origen;
+        }
+        $costos[$origen] = $evaluar($origen);
+        $costos[$destino] = $evaluar($destino);
+        $nuevo = $total();
+
+        // Se acepta si no empeora; de vez en cuando también uno apenas peor, para no
+        // quedar atascado en un arreglo que ya no se puede mejorar de a un paso.
+        $peor = $nuevo[0] > $actual[0] || ($nuevo[0] === $actual[0] && $nuevo[1] > $actual[1]);
+        $tolerable = $nuevo[0] <= $actual[0] + 1 && $mt->getInt(0, 99) < 3;
+        if (!$peor || $tolerable) {
+            $actual = $nuevo;
+            if ($actual[0] < $mejorCosto[0] || ($actual[0] === $mejorCosto[0] && $actual[1] < $mejorCosto[1])) {
+                $mejorCosto = $actual;
+                $mejorEn = $en;
+            }
+            continue;
+        }
+        // Deshacer.
+        unset($miembros[$destino][$k]);
+        $miembros[$origen][$k] = true;
+        $en[$k] = $origen;
+        if ($otro !== null) {
+            unset($miembros[$origen][$otro]);
+            $miembros[$destino][$otro] = true;
+            $en[$otro] = $destino;
+        }
+        [$costos[$origen], $costos[$destino]] = $antes;
+    }
+
+    if ($mejorCosto[0] > 0) {
+        return [];
+    }
+    $miembros = array_fill(0, $J, []);
+    foreach ($mejorEn as $k => $j) {
+        $miembros[$j][$k] = true;
+    }
+
+    // De vuelta al formato del plan: en cada jornada, el emparejamiento más grande es la
+    // ronda "normal" y lo que sobra son los adelantados (los segundos partidos del fin de
+    // semana). Con grado <= 2 y sin ciclos impares, recorrer cada camino o ciclo
+    // alternando da exactamente eso.
+    $salida = [];
+    for ($j = 0; $j < $J; $j++) {
+        $lista = array_keys($miembros[$j]);
+        if (empty($lista)) {
+            continue;
+        }
+        $porEquipo = [];
+        foreach ($lista as $k) {
+            [$a, $b] = $cruces[$k];
+            $porEquipo[$a][] = $k;
+            $porEquipo[$b][] = $k;
+        }
+        $color = [];
+        // Primero los caminos (arrancando por una punta), después los ciclos.
+        $puntas = array_keys(array_filter($porEquipo, fn($l) => count($l) === 1));
+        $arranques = array_merge($puntas, array_keys($porEquipo));
+        foreach ($arranques as $inicio) {
+            foreach ($porEquipo[$inicio] as $k0) {
+                if (isset($color[$k0])) {
+                    continue;
+                }
+                $k = $k0;
+                $eq = $inicio;
+                $c = 0;
+                while ($k !== null && !isset($color[$k])) {
+                    $color[$k] = $c;
+                    $c = 1 - $c;
+                    [$a, $b] = $cruces[$k];
+                    $eq = $a === $eq ? $b : $a;
+                    $sig = null;
+                    foreach ($porEquipo[$eq] as $kk) {
+                        if (!isset($color[$kk])) {
+                            $sig = $kk;
+                        }
+                    }
+                    $k = $sig;
+                }
+            }
+        }
+        $principal = [];
+        $adelantados = [];
+        $ceros = count(array_filter($color, fn($c) => $c === 0));
+        $mayor = $ceros >= count($color) - $ceros ? 0 : 1;
+        foreach ($lista as $k) {
+            if ($color[$k] === $mayor) {
+                $principal[] = $cruces[$k];
+            } else {
+                $adelantados[] = $cruces[$k];
+            }
+        }
+        $salida[] = ['principal' => $principal, 'adelantados' => $adelantados];
+    }
+
+    // Las jornadas son intercambiables entre sí: se dejan las más cargadas primero, igual
+    // que el reparto parejo (9-8-8-8-8), para que el cierre quede liviano.
+    usort($salida, fn($x, $y) => (count($y['principal']) + count($y['adelantados'])) <=> (count($x['principal']) + count($x['adelantados'])));
+
+    return ['plan' => $salida, 'costo' => $mejorCosto[1]];
 }
 
 /**

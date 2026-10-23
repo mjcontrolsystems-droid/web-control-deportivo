@@ -24,6 +24,7 @@ require_once __DIR__ . '/../app/Support/liga.php';
 require_once __DIR__ . '/../app/Support/voleibol.php';
 require_once __DIR__ . '/../app/Models/Jugador.php';
 require_once __DIR__ . '/../app/Support/fixture.php';
+require_once __DIR__ . '/../app/Support/calendario.php';
 
 $fallos = 0;
 $pruebas = 0;
@@ -433,6 +434,101 @@ check('el código del QR es aleatorio de 24 caracteres', (bool) preg_match('/^[a
 check('un número ya asignado no cambia', carnet_asignar($copaCarnet, [1], ['deporte' => 'voleibol', 'temporada' => '2026']), 0);
 check('se encuentra el jugador por el código del QR', jugador_por_carnet_token($copaCarnet, str_repeat('a', 24))['id'] ?? null, 1);
 check('un código con formato raro no busca nada', jugador_por_carnet_token($copaCarnet, "' OR 1=1 --"), null);
+
+// ---------------------------------------------------------------------------
+echo "\n== Calendario: continuar una copa anclada a la fecha de cierre (caso Somos Hall) ==\n";
+
+// 16 equipos, una vuelta (120 partidos). Ya hay 79 publicados; los 41 que faltan tienen
+// que entrar en los 5 fines de semana que quedan antes de la liguilla (24-oct a 29-nov,
+// sin el 31-oct/1-nov), repartidos parejo, y la final tiene que caer el 13-dic.
+$diasSH = [
+    ['dia' => 6, 'partidos' => 4, 'hora' => '08:00', 'intervalo' => 60],
+    ['dia' => 0, 'partidos' => 5, 'hora' => '08:00', 'intervalo' => 60],
+];
+$excluidasSH = ['2026-10-31', '2026-11-01'];
+$torneoSH = ['modo' => 'copa', 'fases_playoff' => ['cuartos', 'semifinal', 'tercer_lugar', 'final'], 'fecha_fin' => '2026-12-13'];
+$equiposSH = range(1, 16);
+check('la liguilla (cuartos a final) ocupa 2 fines de semana', calendario_bloques_playoffs($torneoSH, $diasSH, $excluidasSH), 2);
+
+$fallasSH = [];
+foreach ([1, 2, 3, 4, 5, 6] as $semillaSH) {
+    $primeraParte = calendario_generar($equiposSH, ['vueltas' => 1, 'dias' => $diasSH, 'canchas' => ['Cancha'], 'fecha_inicio' => '2026-08-22', 'excluidas' => [], 'semilla' => $semillaSH * 13]);
+    $ya = [];
+    $hist = [];
+    foreach ($primeraParte as $j) {
+        foreach ($j['dias'] as $d) {
+            foreach ($d['partidos'] as $p) {
+                if (count($ya) < 79) {
+                    $ya[] = [$p['local'], $p['visitante']];
+                    $hist[] = $p + ['jornada' => $j['numero']];
+                }
+            }
+        }
+    }
+    $resto = calendario_generar($equiposSH, [
+        'vueltas' => 1, 'dias' => $diasSH, 'canchas' => ['Cancha'], 'fecha_inicio' => '2026-10-24',
+        'excluidas' => $excluidasSH, 'semilla' => $semillaSH, 'fecha_fin' => '2026-12-13',
+        'bloques_playoffs' => calendario_bloques_playoffs($torneoSH, $diasSH, $excluidasSH),
+        'ya_programados' => $ya, 'historial' => $hist,
+    ]);
+
+    $vistos = [];
+    foreach ($ya as [$a, $b]) {
+        $vistos[min($a, $b) . '-' . max($a, $b)] = true;
+    }
+    $problemas = [];
+    if (count($resto) !== 5) {
+        $problemas[] = count($resto) . ' jornadas';
+    }
+    foreach ($resto as $j) {
+        $enSemana = [];
+        $porDia = [];
+        foreach ($j['dias'] as $d) {
+            $porDia[] = count($d['partidos']);
+            $hoy = [];
+            foreach ($d['partidos'] as $p) {
+                $clave = min($p['local'], $p['visitante']) . '-' . max($p['local'], $p['visitante']);
+                if (isset($vistos[$clave])) {
+                    $problemas[] = "repetido $clave";
+                }
+                $vistos[$clave] = true;
+                foreach ([$p['local'], $p['visitante']] as $e) {
+                    if (isset($hoy[$e])) {
+                        $problemas[] = "equipo $e dos veces el {$d['fecha']}";
+                    }
+                    $hoy[$e] = true;
+                    $enSemana[$e] = ($enSemana[$e] ?? 0) + 1;
+                    if ($enSemana[$e] > 2) {
+                        $problemas[] = "equipo $e 3 veces en un fin de semana";
+                    }
+                }
+                if (in_array($d['fecha'], $excluidasSH, true)) {
+                    $problemas[] = "partido en fecha excluida {$d['fecha']}";
+                }
+            }
+        }
+        if (count($porDia) === 2 && abs($porDia[0] - $porDia[1]) > 1) {
+            $problemas[] = 'días disparejos ' . implode('/', $porDia);
+        }
+    }
+    if (count($vistos) !== 120) {
+        $problemas[] = 'faltan cruces: ' . count($vistos) . ' de 120';
+    }
+    $previa = calendario_previa_playoffs($torneoSH, $resto, $diasSH, $excluidasSH);
+    $fechasPrevia = [];
+    foreach ($previa as $fase) {
+        foreach ($fase['dias'] as $d) {
+            $fechasPrevia[$fase['fase']][] = $d['fecha'];
+        }
+    }
+    if (($fechasPrevia['cuartos'] ?? []) !== ['2026-12-05', '2026-12-06'] || ($fechasPrevia['final'] ?? []) !== ['2026-12-13']) {
+        $problemas[] = 'liguilla fuera de fecha: ' . json_encode($fechasPrevia);
+    }
+    if ($problemas) {
+        $fallasSH[$semillaSH] = $problemas;
+    }
+}
+check('41 pendientes en 5 fines de semana, sin repetir, parejos y final el 13-dic (6 sorteos)', $fallasSH, []);
 
 // ---------------------------------------------------------------------------
 echo "\n============================\n";
