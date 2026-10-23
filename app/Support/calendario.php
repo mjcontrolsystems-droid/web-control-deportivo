@@ -793,13 +793,20 @@ function calendario_cupos_repartidos(int $totalPartidos, int $jornadas, int $cup
 }
 
 /**
- * Achica los cupos por día de una jornada que trae menos partidos que el máximo.
+ * Reparte los partidos de una jornada entre los días que se juegan, lo más PAREJO posible.
  *
- * Sin esto, una jornada de 7 con cupos sábado 4 / domingo 5 llenaba el sábado y dejaba
- * el domingo a medias siempre; repartir proporcional (3 y 4) mantiene los dos días vivos.
+ * Los cupos configurados son el MÁXIMO que cabe cada día, no una proporción a respetar.
+ * Antes se repartía proporcional a los cupos y lo que sobraba del redondeo se iba al
+ * último día: con sábado 4 / domingo 5 y una ronda de 8 partidos (17 equipos, uno
+ * descansa) salían 3 el sábado y 5 el domingo, cuando lo justo es 4 y 4. Y con 6
+ * partidos salía 2 y 4.
  *
- * @param array<int> $cupos Cupos configurados por día.
- * @return array<int> Cupos ajustados; suman exactamente $cuantos (o los cupos, si no alcanza).
+ * Ahora se llena como vasos comunicantes: un partido a la vez al día que menos lleva y
+ * todavía tiene lugar. Si hay empate, al día más tardío (el que cierra la jornada), así
+ * una ronda impar queda 3 / 4 y no 4 / 3. El tope de cada día se respeta siempre.
+ *
+ * @param array<int> $cupos Cupos configurados por día (máximo de partidos de cada uno).
+ * @return array<int> Partidos de cada día; suman exactamente $cuantos (o los cupos, si no alcanza).
  */
 function calendario_escalar_cupos(int $cuantos, array $cupos): array
 {
@@ -808,25 +815,22 @@ function calendario_escalar_cupos(int $cuantos, array $cupos): array
         return $cupos;
     }
 
-    $out = [];
-    $acumulado = 0;
-    foreach ($cupos as $i => $c) {
-        $out[$i] = (int) floor($cuantos * $c / $total);
-        $acumulado += $out[$i];
-    }
-    // Los que faltan por el redondeo se agregan donde quede espacio, de atrás hacia
-    // adelante: el último día es el que cierra la jornada y conviene que quede completo.
-    $indices = array_reverse(array_keys($cupos));
-    while ($acumulado < $cuantos) {
-        foreach ($indices as $i) {
-            if ($acumulado >= $cuantos) {
-                break;
+    $out = array_fill_keys(array_keys($cupos), 0);
+    for ($n = 0; $n < $cuantos; $n++) {
+        $elegido = null;
+        foreach ($cupos as $i => $tope) {
+            if ($out[$i] >= $tope) {
+                continue; // ese día ya está lleno
             }
-            if ($out[$i] < $cupos[$i]) {
-                $out[$i]++;
-                $acumulado++;
+            // <= : ante un empate gana el día más tardío.
+            if ($elegido === null || $out[$i] <= $out[$elegido]) {
+                $elegido = $i;
             }
         }
+        if ($elegido === null) {
+            break;
+        }
+        $out[$elegido]++;
     }
 
     return $out;
@@ -1070,8 +1074,8 @@ function calendario_generar(array $equipoIds, array $opciones): array
     $localPublicadas = $vecesLocal; // lo ya publicado no se puede invertir
 
     foreach ($plan as $j => $jornada) {
-        // Una jornada más liviana que el máximo reparte proporcional entre los días: 7
-        // partidos con cupos 4/5 quedan 3 y 4, no 4 el sábado y el domingo a medias.
+        // Una jornada más liviana que el máximo se reparte parejo entre los días: 8 partidos
+        // con cupos 4/5 quedan 4 y 4, y 7 quedan 3 y 4 (ver calendario_escalar_cupos).
         $cuantosHoy = count($jornada['principal']) + count($jornada['adelantados']);
         $repartidos = calendario_repartir_en_dias(
             $jornada['principal'],
