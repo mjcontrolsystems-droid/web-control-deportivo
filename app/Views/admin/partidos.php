@@ -691,6 +691,14 @@
                        class="btn btn-sm btn-outline-secondary" title="Armar el mensaje de esta jornada para WhatsApp">
                         <i class="bi bi-whatsapp me-1"></i>Mensaje
                     </a>
+                    <?php // Reordenar horarios: abre el panel de arrastre de ESTA jornada. ?>
+                    <?php if (puede('partidos_editar')): ?>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse"
+                            data-bs-target="#ordenar<?= (int) $numJornada ?>" aria-expanded="false"
+                            aria-controls="ordenar<?= (int) $numJornada ?>" title="Cambiar el orden y la hora de los encuentros">
+                        <i class="bi bi-arrow-down-up me-1"></i>Ordenar horarios
+                    </button>
+                    <?php endif; ?>
                     <?php // Correr el calendario desde aquí. Nace de un caso real: un fin de
                           // semana que se cae obliga a empujar esta jornada Y todas las de
                           // atrás, porque si no se le encima a la siguiente. ?>
@@ -715,6 +723,9 @@
                         <button type="submit" class="btn btn-sm btn-outline-danger" title="Borrar esta jornada y todas las siguientes"><i class="bi bi-eraser me-1"></i>Borrar desde aquí</button>
                     </form>
                 </div>
+                <?php if (puede('partidos_editar')): ?>
+                <?php require __DIR__ . '/../parciales/ordenar_jornada.php'; ?>
+                <?php endif; ?>
                 <div class="collapse <?= $abierta ? 'show' : '' ?>" id="jornada<?= (int) $numJornada ?>">
                     <div class="row row-cols-1 row-cols-lg-2 g-3 mt-0 mb-2">
                         <?php foreach ($lista as $p): ?>

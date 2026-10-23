@@ -12,7 +12,7 @@ $torneo = admin_requerir_torneo_activo();
 requerir_permiso('partido_capturar');
 
 const PARTIDOS_ACCIONES_DE_DUENO = ['generar_fixture', 'borrar_desde_jornada', 'correr_calendario', 'armar_cruces', 'elegir_clasifican'];
-const PARTIDOS_ACCIONES_DE_ASISTENTE = ['guardar', 'eliminar', 'alternar_jugado'];
+const PARTIDOS_ACCIONES_DE_ASISTENTE = ['guardar', 'eliminar', 'alternar_jugado', 'reordenar_jornada'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $accionPost = (string) ($_POST['accion'] ?? '');
@@ -102,6 +102,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         partidos_guardar_todos($partidos, $torneo['id']);
         bitacora_registrar('partido_jugado', "Encuentro #{$id} en firme con marcador {$mLocal}-{$mVisit}", $torneo['id']);
         redirigir_con_mensaje(url('admin/partidos.php?ir=' . $id), 'success', 'Encuentro marcado como jugado. El resultado queda en firme.');
+    }
+
+    // Ordenar los horarios de una jornada arrastrando las tarjetas (o con las flechas).
+    // Del navegador solo se toma el ORDEN; las horas se recalculan aquí con el arranque y
+    // el intervalo de cada día (ver calendario_reordenar_jornada). Los días con partidos
+    // jugados no se tocan.
+    if (($_POST['accion'] ?? '') === 'reordenar_jornada') {
+        $numJornada = (int) ($_POST['jornada'] ?? 0);
+        $listaJornada = partidos_por_jornada($partidos)[$numJornada] ?? [];
+        if ($numJornada < 1 || $listaJornada === []) {
+            redirigir_con_mensaje(url('admin/partidos.php'), 'error', 'Esa jornada no existe.');
+        }
+        $resultado = calendario_reordenar_jornada(
+            $listaJornada,
+            $_POST['orden'] ?? null,
+            calendario_config_del_torneo($torneo, $partidos)
+        );
+        $volverA = url('admin/partidos.php?ir=' . (int) $listaJornada[0]['id']);
+        if ($resultado['error'] !== '') {
+            redirigir_con_mensaje($volverA, 'error', $resultado['error']);
+        }
+        if ($resultado['cambios'] === []) {
+            redirigir_con_mensaje($volverA, 'success', 'El orden quedó igual: no hubo nada que cambiar.');
+        }
+        foreach ($partidos as &$p) {
+            if (isset($resultado['cambios'][(int) $p['id']])) {
+                $p = array_merge($p, $resultado['cambios'][(int) $p['id']]);
+            }
+        }
+        unset($p);
+        partidos_guardar_todos($partidos, $torneo['id']);
+        $detalle = [];
+        foreach ($resultado['cambios'] as $id => $c) {
+            $detalle[] = "#{$id} {$c['fecha']} {$c['hora']}";
+        }
+        bitacora_registrar('jornada_reordenada', "Jornada {$numJornada}: " . implode(', ', $detalle), $torneo['id']);
+        $n = count($resultado['cambios']);
+        redirigir_con_mensaje($volverA, 'success', "Listo: jornada {$numJornada} reordenada, {$n} encuentro" . ($n === 1 ? '' : 's') . ' con nueva hora.');
     }
 
     // Armar los cruces de eliminación con los clasificados de cada grupo. Se cruza el
@@ -961,6 +999,14 @@ if (!in_array($faseSeleccionada, $fasesValidas, true)) {
 $seccion_activa = 'partidos';
 $titulo_pagina = 'Encuentros';
 
+// Para reordenar horarios arrastrando: SortableJS (con SRI, por si el CDN sirviera otra
+// cosa) y el script de la pantalla. Sin SortableJS siguen funcionando las flechas.
+$configCalendario = calendario_config_del_torneo($torneo, $partidos);
+$scripts_extra = $accion === 'lista' ? [
+    ['src' => 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js', 'integrity' => 'sha384-BSxuMLxX+FCbTdYec3TbXlnMGEEM2QXTFdtDaveen71o+jswm2J36+xFqp8k4VHM'],
+    ['src' => asset_url('assets/js/ordenar_horarios.js')],
+] : [];
+
 vista_admin('admin/partidos', compact(
     'accion',
     'datosPrevios',
@@ -990,5 +1036,7 @@ vista_admin('admin/partidos', compact(
     'playoffsPorFase',
     'seccion_activa',
     'titulo_pagina',
-    'torneo'
+    'torneo',
+    'configCalendario',
+    'scripts_extra'
 ));

@@ -571,6 +571,50 @@ sort($resumenSH['doblan']);
 check('Somos Hall real: 5 jornadas, nadie descansa, solo doblan la 37 y la 48', $resumenSH, ['jornadas' => 5, 'descansos' => 0, 'doblan' => [37, 48]]);
 
 // ---------------------------------------------------------------------------
+echo "\n== Ordenar horarios de una jornada (arrastrar tarjetas) ==\n";
+
+$cfgOrden = ['dias' => [['dia' => 6, 'partidos' => 4, 'hora' => '15:00', 'intervalo' => 60], ['dia' => 0, 'partidos' => 5, 'hora' => '15:00', 'intervalo' => 60]], 'canchas' => ['Gimnasio'], 'excluidas' => []];
+$jorOrden = [
+    ['id' => 1, 'fecha' => '2026-10-24', 'hora' => '15:00', 'cancha' => 'Gimnasio', 'equipo_local' => 37, 'equipo_visitante' => 40, 'estado' => 'programado'],
+    ['id' => 2, 'fecha' => '2026-10-24', 'hora' => '16:00', 'cancha' => 'Gimnasio', 'equipo_local' => 58, 'equipo_visitante' => 30, 'estado' => 'programado'],
+    ['id' => 3, 'fecha' => '2026-10-24', 'hora' => '17:00', 'cancha' => 'Gimnasio', 'equipo_local' => 47, 'equipo_visitante' => 52, 'estado' => 'programado'],
+    ['id' => 4, 'fecha' => '2026-10-25', 'hora' => '15:00', 'cancha' => 'Gimnasio', 'equipo_local' => 48, 'equipo_visitante' => 53, 'estado' => 'programado'],
+    ['id' => 5, 'fecha' => '2026-10-25', 'hora' => '16:00', 'cancha' => 'Gimnasio', 'equipo_local' => 30, 'equipo_visitante' => 40, 'estado' => 'programado'],
+];
+$r = calendario_reordenar_jornada($jorOrden, ['2026-10-24' => ['3', '1', '2'], '2026-10-25' => ['4', '5']], $cfgOrden);
+check('subir el de las 17:00 al primer lugar corre a los demás', $r['cambios'], [
+    3 => ['fecha' => '2026-10-24', 'hora' => '15:00', 'cancha' => 'Gimnasio'],
+    1 => ['fecha' => '2026-10-24', 'hora' => '16:00', 'cancha' => 'Gimnasio'],
+    2 => ['fecha' => '2026-10-24', 'hora' => '17:00', 'cancha' => 'Gimnasio'],
+]);
+$r = calendario_reordenar_jornada($jorOrden, ['2026-10-24' => ['1', '2', '3', '4'], '2026-10-25' => ['5']], $cfgOrden);
+check('pasar un encuentro del domingo al sábado: queda al final del sábado', [$r['error'], $r['cambios'][4] ?? null, $r['cambios'][5] ?? null], ['', ['fecha' => '2026-10-24', 'hora' => '18:00', 'cancha' => 'Gimnasio'], ['fecha' => '2026-10-25', 'hora' => '15:00', 'cancha' => 'Gimnasio']]);
+$r = calendario_reordenar_jornada($jorOrden, ['2026-10-24' => ['1', '2', '3'], '2026-10-25' => ['4', '5']], $cfgOrden);
+check('mismo orden: no cambia nada', $r, ['cambios' => [], 'error' => '']);
+$r = calendario_reordenar_jornada($jorOrden, ['2026-10-24' => ['1', '2', '3', '5'], '2026-10-25' => ['4']], $cfgOrden);
+check('un equipo dos veces el mismo día se rechaza', $r['error'] !== '' && $r['cambios'] === [], true);
+$r = calendario_reordenar_jornada($jorOrden, ['2026-10-24' => ['1', '2', '3', '99'], '2026-10-25' => ['4', '5']], $cfgOrden);
+check('un id ajeno a la jornada se rechaza', $r['error'] !== '', true);
+$r = calendario_reordenar_jornada($jorOrden, ['2026-10-24' => ['1', '2'], '2026-10-25' => ['4', '5']], $cfgOrden);
+check('si falta un encuentro se rechaza', $r['error'] !== '', true);
+$r = calendario_reordenar_jornada($jorOrden, ['2026-10-24' => ['1', '1', '2', '3'], '2026-10-25' => ['4', '5']], $cfgOrden);
+check('un id repetido se rechaza', $r['error'] !== '', true);
+$r = calendario_reordenar_jornada($jorOrden, ['2026-11-07' => ['1', '2', '3'], '2026-10-25' => ['4', '5']], $cfgOrden);
+check('una fecha que no es de la jornada se rechaza', $r['error'] !== '', true);
+$r = calendario_reordenar_jornada($jorOrden, ['2026-10-24' => ['1 OR 1=1', '2', '3'], '2026-10-25' => ['4', '5']], $cfgOrden);
+check('un id con texto raro se rechaza', $r['error'] !== '', true);
+$r = calendario_reordenar_jornada($jorOrden, 'basura', $cfgOrden);
+check('un orden que no es lista se rechaza', $r['error'] !== '', true);
+$jorConJugado = $jorOrden;
+$jorConJugado[0]['estado'] = 'jugado';
+$r = calendario_reordenar_jornada($jorConJugado, ['2026-10-24' => ['3', '1', '2'], '2026-10-25' => ['5', '4']], $cfgOrden);
+check('un día con partidos jugados no se puede tocar', $r['error'] !== '', true);
+$r = calendario_reordenar_jornada($jorConJugado, ['2026-10-25' => ['5', '4']], $cfgOrden);
+check('pero el otro día sí se reordena', $r['cambios'], [5 => ['fecha' => '2026-10-25', 'hora' => '15:00', 'cancha' => 'Gimnasio'], 4 => ['fecha' => '2026-10-25', 'hora' => '16:00', 'cancha' => 'Gimnasio']]);
+$diasOrd = calendario_dias_de_jornada($jorConJugado, $cfgOrden);
+check('el día con jugados queda marcado como bloqueado', array_column($diasOrd, 'bloqueado'), [true, false]);
+
+// ---------------------------------------------------------------------------
 echo "\n============================\n";
 printf("%d pruebas, %d fallos\n", $pruebas, $fallos);
 echo $fallos === 0 ? "TODAS LAS PRUEBAS PASARON\n" : "HAY FALLOS - revisar antes de desplegar\n";

@@ -2190,3 +2190,157 @@ function calendario_resumen(array $calendario, array $equiposPorId = []): array
         'dobles_por_equipo' => $doblesPorEquipo,
     ];
 }
+
+// ---------------------------------------------------------------------------
+// Ordenar los horarios de una jornada a mano (arrastrar las tarjetas).
+// ---------------------------------------------------------------------------
+
+/**
+ * Los días de una jornada con lo necesario para reordenarlos: a qué hora arranca cada
+ * día, cada cuánto sale un partido y si el día se puede tocar.
+ *
+ * Un día con algún partido ya JUGADO queda bloqueado entero: mover los demás correría
+ * horas alrededor de un resultado en firme y la ficha de ese partido dejaría de cuadrar.
+ *
+ * La hora de arranque es la del primer partido que ese día tiene HOY (respeta lo que el
+ * organizador haya ajustado a mano); el intervalo sale de la configuración del calendario
+ * para ese día de la semana y, si no hay, de la menor diferencia entre los partidos del día.
+ *
+ * @param array $lista Encuentros de la jornada.
+ * @param array $config Lo que devuelve calendario_config_del_torneo().
+ * @return array<int, array{fecha:string, inicio:string, intervalo:int, canchas:array, bloqueado:bool, partidos:array}>
+ */
+function calendario_dias_de_jornada(array $lista, array $config): array
+{
+    $porFecha = [];
+    foreach ($lista as $p) {
+        $fecha = (string) ($p['fecha'] ?? '');
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha) !== 1) {
+            continue;
+        }
+        $porFecha[$fecha][] = $p;
+    }
+    ksort($porFecha);
+
+    $canchas = array_values(array_filter(array_map('trim', (array) ($config['canchas'] ?? [])), fn($c) => $c !== ''));
+    $intervaloPorDia = [];
+    foreach ((array) ($config['dias'] ?? []) as $d) {
+        $intervaloPorDia[((int) ($d['dia'] ?? 0)) % 7] = max(0, (int) ($d['intervalo'] ?? 0));
+    }
+
+    $dias = [];
+    foreach ($porFecha as $fecha => $partidos) {
+        usort($partidos, fn($a, $b) => strcmp((string) $a['hora'], (string) $b['hora']));
+        $minutos = [];
+        foreach ($partidos as $p) {
+            if (preg_match('/^(\d{1,2}):(\d{2})/', (string) ($p['hora'] ?? ''), $m) === 1) {
+                $minutos[] = (int) $m[1] * 60 + (int) $m[2];
+            }
+        }
+        sort($minutos);
+        $inicio = $minutos[0] ?? 9 * 60;
+
+        $intervalo = $intervaloPorDia[(int) date('w', (int) strtotime($fecha))] ?? 0;
+        if ($intervalo <= 0) {
+            for ($i = 1; $i < count($minutos); $i++) {
+                $dif = $minutos[$i] - $minutos[$i - 1];
+                if ($dif > 0 && ($intervalo <= 0 || $dif < $intervalo)) {
+                    $intervalo = $dif;
+                }
+            }
+        }
+
+        $dias[] = [
+            'fecha' => $fecha,
+            'inicio' => sprintf('%02d:%02d', intdiv($inicio, 60), $inicio % 60),
+            'intervalo' => $intervalo > 0 ? $intervalo : 60,
+            'canchas' => $canchas,
+            'bloqueado' => (bool) array_filter($partidos, fn($p) => ($p['estado'] ?? '') === 'jugado'),
+            'partidos' => $partidos,
+        ];
+    }
+
+    return $dias;
+}
+
+/**
+ * Aplica el nuevo orden que mandó el organizador y recalcula las horas.
+ *
+ * No se confía en nada de lo que llega del navegador salvo el ORDEN: las horas se
+ * calculan aquí. Se rechaza todo si:
+ *   - viene una fecha que no es de la jornada, o un día bloqueado (tiene jugados);
+ *   - falta algún encuentro movible, sobra alguno, o viene repetido (ids de otra jornada
+ *     u otra copa no pasan porque solo se aceptan los de esta lista);
+ *   - un equipo queda jugando dos veces el mismo día.
+ *
+ * @param array $lista Encuentros de la jornada.
+ * @param mixed $orden Lo que llegó en $_POST['orden']: [fecha => [id, id, ...]].
+ * @return array{cambios: array<int, array{fecha:string, hora:string, cancha:string}>, error: string}
+ */
+function calendario_reordenar_jornada(array $lista, mixed $orden, array $config): array
+{
+    $falla = fn(string $msg) => ['cambios' => [], 'error' => $msg];
+    if (!is_array($orden) || $orden === []) {
+        return $falla('No llegó el nuevo orden. Vuelve a intentarlo.');
+    }
+
+    $dias = calendario_dias_de_jornada($lista, $config);
+    $diaPorFecha = [];
+    $movibles = [];
+    $partidoPorId = [];
+    foreach ($dias as $d) {
+        $diaPorFecha[$d['fecha']] = $d;
+        foreach ($d['partidos'] as $p) {
+            $partidoPorId[(int) $p['id']] = $p;
+            if (!$d['bloqueado']) {
+                $movibles[(int) $p['id']] = true;
+            }
+        }
+    }
+
+    $vistos = [];
+    $nuevo = [];
+    foreach ($orden as $fecha => $ids) {
+        $fecha = (string) $fecha;
+        if (!isset($diaPorFecha[$fecha]) || $diaPorFecha[$fecha]['bloqueado'] || !is_array($ids)) {
+            return $falla('Ese día no se puede reordenar (no es de esta jornada o ya tiene partidos jugados).');
+        }
+        $nuevo[$fecha] = [];
+        foreach ($ids as $id) {
+            if (!is_scalar($id) || !ctype_digit((string) $id)) {
+                return $falla('El orden recibido no es válido.');
+            }
+            $id = (int) $id;
+            if (!isset($movibles[$id]) || isset($vistos[$id])) {
+                return $falla('El orden recibido no coincide con los encuentros de la jornada. Recarga la página e inténtalo de nuevo.');
+            }
+            $vistos[$id] = true;
+            $nuevo[$fecha][] = $id;
+        }
+    }
+    if (count($vistos) !== count($movibles)) {
+        return $falla('Faltan encuentros en el orden recibido. Recarga la página e inténtalo de nuevo.');
+    }
+
+    $cambios = [];
+    foreach ($nuevo as $fecha => $ids) {
+        $equiposHoy = [];
+        foreach ($ids as $i => $id) {
+            $p = $partidoPorId[$id];
+            foreach ([(int) $p['equipo_local'], (int) $p['equipo_visitante']] as $eq) {
+                if (isset($equiposHoy[$eq])) {
+                    return $falla('Un equipo quedaría jugando dos veces el ' . (CALENDARIO_DIAS[(int) date('w', (int) strtotime($fecha))] ?? '') . ' ' . date('d/m', (int) strtotime($fecha)) . '. Corrige el orden antes de guardar.');
+                }
+                $equiposHoy[$eq] = true;
+            }
+            $dia = $diaPorFecha[$fecha];
+            $turno = calendario_hora_y_cancha($i, $dia['inicio'], $dia['intervalo'], $dia['canchas']);
+            $cancha = $turno['cancha'] !== '' ? $turno['cancha'] : (string) ($p['cancha'] ?? '');
+            if ($fecha !== (string) $p['fecha'] || $turno['hora'] !== substr((string) $p['hora'], 0, 5) || $cancha !== (string) ($p['cancha'] ?? '')) {
+                $cambios[$id] = ['fecha' => $fecha, 'hora' => $turno['hora'], 'cancha' => $cancha];
+            }
+        }
+    }
+
+    return ['cambios' => $cambios, 'error' => ''];
+}
