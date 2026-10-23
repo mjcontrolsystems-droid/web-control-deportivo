@@ -477,6 +477,8 @@ foreach ([1, 2, 3, 4, 5, 6] as $semillaSH) {
         $vistos[min($a, $b) . '-' . max($a, $b)] = true;
     }
     $problemas = [];
+    $doblaEn = [];
+    $descansaEn = [];
     if (count($resto) !== 5) {
         $problemas[] = count($resto) . ' jornadas';
     }
@@ -507,8 +509,24 @@ foreach ([1, 2, 3, 4, 5, 6] as $semillaSH) {
                 }
             }
         }
+        foreach ($enSemana as $e => $v) {
+            if ($v === 2) {
+                $doblaEn[$e] = true;
+            }
+        }
+        foreach ($equiposSH as $e) {
+            if (!isset($enSemana[$e])) {
+                $descansaEn[$e] = true;
+            }
+        }
         if (count($porDia) === 2 && abs($porDia[0] - $porDia[1]) > 1) {
             $problemas[] = 'días disparejos ' . implode('/', $porDia);
+        }
+    }
+    // Nadie dobla un fin de semana y descansa otro: con eso podría haber jugado los dos.
+    foreach (array_keys($doblaEn) as $e) {
+        if (isset($descansaEn[$e])) {
+            $problemas[] = "equipo $e dobla y también descansa";
         }
     }
     if (count($vistos) !== 120) {
@@ -529,6 +547,28 @@ foreach ([1, 2, 3, 4, 5, 6] as $semillaSH) {
     }
 }
 check('41 pendientes en 5 fines de semana, sin repetir, parejos y final el 13-dic (6 sorteos)', $fallasSH, []);
+
+// Los 41 cruces REALES que quedaban en Somos Hall al 22-oct. Con el llenado anterior la
+// Promoción 30 y la 40 doblaban en la jornada 10 y descansaban en la 14. Lo correcto: todos
+// juegan los 5 fines de semana y solo doblan la 37 y la 48 (les quedaban 6 partidos).
+$crucesReales = array_map(fn($x) => array_map('intval', explode('-', $x)), explode(' ', '37-40 58-30 47-52 43-36 48-53 45-50 30-40 41-46 59-60 59-45 52-46 50-41 37-47 48-40 60-43 53-30 58-36 37-46 53-50 43-41 60-52 58-59 40-47 30-48 36-45 52-36 47-30 48-58 45-41 53-60 46-59 43-40 50-37 48-46 58-43 59-37 52-53 47-41 37-48 45-60 36-50'));
+$exactoSH = calendario_plan_exacto($crucesReales, 5, 9);
+$resumenSH = ['jornadas' => count($exactoSH), 'descansos' => 0, 'doblan' => []];
+foreach ($exactoSH as $lista) {
+    $g = [];
+    foreach ($lista as [$a, $b]) {
+        $g[$a] = ($g[$a] ?? 0) + 1;
+        $g[$b] = ($g[$b] ?? 0) + 1;
+    }
+    $resumenSH['descansos'] += 16 - count($g);
+    foreach ($g as $e => $v) {
+        if ($v === 2) {
+            $resumenSH['doblan'][] = $e;
+        }
+    }
+}
+sort($resumenSH['doblan']);
+check('Somos Hall real: 5 jornadas, nadie descansa, solo doblan la 37 y la 48', $resumenSH, ['jornadas' => 5, 'descansos' => 0, 'doblan' => [37, 48]]);
 
 // ---------------------------------------------------------------------------
 echo "\n============================\n";

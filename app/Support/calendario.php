@@ -103,8 +103,44 @@ function calendario_plan_jornadas(array $equipoIds, int $vueltas, int|array $cup
     }
 
     // Con fecha de cierre el cupo viene como lista: una entrada por jornada que cabe antes
-    // de la liguilla. Si el llenado jornada por jornada se pasó de esa cantidad, se reacomoda
-    // el plan entero (ver calendario_plan_ajustar) en vez de dejar una jornada extra.
+    // de la liguilla. El llenado jornada por jornada no mira hacia adelante y, al continuar
+    // un calendario, puede pasarse de jornadas o dejar a un equipo doblando un fin de
+    // semana y descansando otro cuando podía jugar todos (pasó en Somos Hall: la 30 y la 40
+    // doblaron en la jornada 10 y descansaron en la 14). Primero se intenta el reparto
+    // exacto: todos juegan cada fin de semana y solo doblan los que no tienen otra.
+    if ($mejor !== null && is_array($cupoPorJornada) && count($cupoPorJornada) >= 1) {
+        $J = count($cupoPorJornada);
+        $techo = max(array_map('intval', $cupoPorJornada));
+        $cruces = [];
+        $pend = [];
+        foreach ($mejor as $jornada) {
+            foreach (array_merge($jornada['principal'], $jornada['adelantados']) as [$a, $b]) {
+                $cruces[] = [(int) $a, (int) $b];
+                $pend[(int) $a] = ($pend[(int) $a] ?? 0) + 1;
+                $pend[(int) $b] = ($pend[(int) $b] ?? 0) + 1;
+            }
+        }
+        $descansosMinimos = 0;
+        foreach ($equipoIds as $eq) {
+            $descansosMinimos += max(0, $J - ($pend[(int) $eq] ?? 0));
+        }
+        if (count($mejor) > $J || calendario_plan_descansos($mejor, $equipoIds) > $descansosMinimos) {
+            $exacto = calendario_plan_exacto($cruces, $J, $techo);
+            if (!empty($exacto)) {
+                $plan = [];
+                foreach ($exacto as $lista) {
+                    if (!empty($lista)) {
+                        $plan[] = calendario_jornada_desde_cruces($lista);
+                    }
+                }
+                usort($plan, fn($x, $y) => (count($y['principal']) + count($y['adelantados'])) <=> (count($x['principal']) + count($x['adelantados'])));
+                return $plan;
+            }
+        }
+    }
+
+    // Si no hubo reparto exacto y el plan se pasó de jornadas, se reacomoda de forma
+    // aproximada (ver calendario_plan_ajustar) en vez de dejar una jornada extra.
     if ($mejor !== null && is_array($cupoPorJornada) && count($mejor) > count($cupoPorJornada)) {
         $techo = max(array_map('intval', $cupoPorJornada));
         $semillaBase = $semilla === null ? random_int(1, PHP_INT_MAX >> 8) : $semilla;
@@ -123,6 +159,239 @@ function calendario_plan_jornadas(array $equipoIds, int $vueltas, int|array $cup
     }
 
     return $mejor ?? [];
+}
+
+/**
+ * Convierte la lista de cruces de una jornada al formato del plan: el emparejamiento más
+ * grande es la ronda "normal" y lo que sobra son los adelantados (el segundo partido de
+ * esos equipos en el fin de semana). Con a lo sumo 2 partidos por equipo y sin ciclos
+ * impares, recorrer cada camino o ciclo alternando da exactamente eso.
+ *
+ * @param array<int, array{0:int,1:int}> $lista
+ * @return array{principal: array, adelantados: array}
+ */
+function calendario_jornada_desde_cruces(array $lista): array
+{
+    $porEquipo = [];
+    foreach ($lista as $k => [$a, $b]) {
+        $porEquipo[$a][] = $k;
+        $porEquipo[$b][] = $k;
+    }
+    $color = [];
+    // Primero los caminos (arrancando por una punta), después los ciclos.
+    $puntas = array_keys(array_filter($porEquipo, fn($l) => count($l) === 1));
+    foreach (array_merge($puntas, array_keys($porEquipo)) as $inicio) {
+        foreach ($porEquipo[$inicio] as $k0) {
+            if (isset($color[$k0])) {
+                continue;
+            }
+            $k = $k0;
+            $eq = $inicio;
+            $c = 0;
+            while ($k !== null && !isset($color[$k])) {
+                $color[$k] = $c;
+                $c = 1 - $c;
+                [$a, $b] = $lista[$k];
+                $eq = $a === $eq ? $b : $a;
+                $sig = null;
+                foreach ($porEquipo[$eq] as $kk) {
+                    if (!isset($color[$kk])) {
+                        $sig = $kk;
+                    }
+                }
+                $k = $sig;
+            }
+        }
+    }
+    $ceros = count(array_filter($color, fn($c) => $c === 0));
+    $mayor = $ceros >= count($color) - $ceros ? 0 : 1;
+    $principal = [];
+    $adelantados = [];
+    foreach ($lista as $k => $cruce) {
+        if ($color[$k] === $mayor) {
+            $principal[] = $cruce;
+        } else {
+            $adelantados[] = $cruce;
+        }
+    }
+    return ['principal' => $principal, 'adelantados' => $adelantados];
+}
+
+/** Pasos máximos de la búsqueda exacta. Con ~40 partidos resuelve en milésimas. */
+const CALENDARIO_EXACTO_PASOS = 200000;
+
+/**
+ * Arma las jornadas pendientes de forma EXACTA cuando se puede: todos juegan todos los
+ * fines de semana y solo doblan los que no tienen otra (les quedan más partidos que
+ * jornadas). Es una búsqueda con vuelta atrás con un tope de pasos; si no encuentra
+ * solución dentro del tope, devuelve [] y se usa el reacomodo aproximado.
+ *
+ * Reglas por equipo, con d = partidos pendientes y J = jornadas:
+ *   - d >= J: juega TODAS las jornadas y dobla exactamente d - J veces (nunca 3).
+ *   - d <  J: juega a lo sumo una vez por jornada y descansa J - d (no puede evitarlo).
+ * Y por jornada: no pasar del cupo, y que los que doblan puedan ir en días distintos.
+ *
+ * @param array<int, array{0:int,1:int}> $cruces
+ * @return array<int, array<int, array{0:int,1:int}>> Cruces por jornada, o [] si no se logró.
+ */
+function calendario_plan_exacto(array $cruces, int $J, int $techo, int $presupuesto = CALENDARIO_EXACTO_PASOS): array
+{
+    $n = count($cruces);
+    if ($J < 1 || $n === 0 || $n > $J * $techo) {
+        return [];
+    }
+    $pend = [];
+    $incid = [];
+    foreach ($cruces as $k => [$a, $b]) {
+        $pend[$a] = ($pend[$a] ?? 0) + 1;
+        $pend[$b] = ($pend[$b] ?? 0) + 1;
+        $incid[$a][] = $k;
+        $incid[$b][] = $k;
+    }
+    $dobla = [];   // dobletes que le tocan
+    $maxPorJ = []; // máximo de partidos por jornada
+    foreach ($pend as $eq => $d) {
+        $dobla[$eq] = max(0, $d - $J);
+        $maxPorJ[$eq] = $d > $J ? 2 : 1;
+        if ($d > 2 * $J) {
+            return []; // ni doblando todas alcanza
+        }
+    }
+
+    $cnt = [];      // [eq][j] partidos
+    $dobles = [];   // dobletes usados
+    $vacias = [];   // jornadas donde todavía no juega
+    $resta = $pend; // partidos sin asignar
+    foreach ($pend as $eq => $d) {
+        $cnt[$eq] = array_fill(0, $J, 0);
+        $dobles[$eq] = 0;
+        $vacias[$eq] = $J;
+    }
+    $porJornada = array_fill(0, $J, 0);
+    $asig = array_fill(0, $n, -1);
+    $pasos = 0;
+
+    // ¿Puede el equipo $eq recibir un partido más en la jornada $j?
+    $puede = function (int $eq, int $j) use (&$cnt, &$dobles, &$dobla, &$maxPorJ): bool {
+        $c = $cnt[$eq][$j];
+        if ($c >= $maxPorJ[$eq]) {
+            return false;
+        }
+        return $c === 0 || $dobles[$eq] < $dobla[$eq];
+    };
+    // Tras asignar, ¿le siguen alcanzando los partidos para cubrir sus jornadas vacías?
+    $viable = function (int $eq) use (&$resta, &$vacias, &$pend, $J): bool {
+        if ($pend[$eq] >= $J) {
+            return $resta[$eq] >= $vacias[$eq];
+        }
+        return true;
+    };
+    $poner = function (int $k, int $j, int $signo) use (&$cruces, &$cnt, &$dobles, &$vacias, &$resta, &$porJornada, &$asig): void {
+        foreach ($cruces[$k] as $eq) {
+            if ($signo > 0) {
+                if ($cnt[$eq][$j] === 0) { $vacias[$eq]--; } else { $dobles[$eq]++; }
+                $cnt[$eq][$j]++;
+                $resta[$eq]--;
+            } else {
+                $cnt[$eq][$j]--;
+                if ($cnt[$eq][$j] === 0) { $vacias[$eq]++; } else { $dobles[$eq]--; }
+                $resta[$eq]++;
+            }
+        }
+        $porJornada[$j] += $signo;
+        $asig[$k] = $signo > 0 ? $j : -1;
+    };
+    // Sin ciclos impares en la jornada (alguien jugaría dos veces el mismo día).
+    $sinCicloImpar = function (int $j) use (&$asig, &$cruces): bool {
+        $vec = [];
+        foreach ($asig as $k => $jj) {
+            if ($jj === $j) {
+                [$a, $b] = $cruces[$k];
+                $vec[$a][] = $b;
+                $vec[$b][] = $a;
+            }
+        }
+        $visto = [];
+        foreach ($vec as $eq => $_) {
+            if (isset($visto[$eq])) { continue; }
+            $pila = [$eq]; $visto[$eq] = true; $nodos = 0; $ciclo = true;
+            while ($pila) {
+                $x = array_pop($pila); $nodos++;
+                if (count($vec[$x]) !== 2) { $ciclo = false; }
+                foreach ($vec[$x] as $y) {
+                    if (!isset($visto[$y])) { $visto[$y] = true; $pila[] = $y; }
+                }
+            }
+            if ($ciclo && $nodos % 2 === 1) { return false; }
+        }
+        return true;
+    };
+
+    $buscar = function (int $faltan) use (&$buscar, &$asig, &$cruces, &$porJornada, &$pasos, $presupuesto, $J, $techo, $puede, $viable, $poner, $sinCicloImpar, &$cnt): bool {
+        if ($faltan === 0) {
+            for ($j = 0; $j < $J; $j++) {
+                if (!$sinCicloImpar($j)) { return false; }
+            }
+            return true;
+        }
+        if (++$pasos > $presupuesto) {
+            return false;
+        }
+        // El cruce con menos jornadas posibles primero.
+        $mejorK = -1; $mejorOps = null;
+        foreach ($asig as $k => $jj) {
+            if ($jj !== -1) { continue; }
+            [$a, $b] = $cruces[$k];
+            $ops = [];
+            for ($j = 0; $j < $J; $j++) {
+                if ($porJornada[$j] < $techo && $puede($a, $j) && $puede($b, $j)) { $ops[] = $j; }
+            }
+            if ($mejorOps === null || count($ops) < count($mejorOps)) {
+                $mejorK = $k; $mejorOps = $ops;
+                if (count($ops) <= 1) { break; }
+            }
+        }
+        if (empty($mejorOps)) {
+            return false;
+        }
+        [$a, $b] = $cruces[$mejorK];
+        // Primero donde ninguno de los dos juega todavía, y la jornada menos cargada.
+        usort($mejorOps, fn($x, $y) => [$cnt[$a][$x] + $cnt[$b][$x], $porJornada[$x]] <=> [$cnt[$a][$y] + $cnt[$b][$y], $porJornada[$y]]);
+        foreach ($mejorOps as $j) {
+            $poner($mejorK, $j, 1);
+            if ($viable($a) && $viable($b) && $buscar($faltan - 1)) {
+                return true;
+            }
+            $poner($mejorK, $j, -1);
+            if ($pasos > $presupuesto) { return false; }
+        }
+        return false;
+    };
+
+    if (!$buscar($n)) {
+        return [];
+    }
+    $salida = array_fill(0, $J, []);
+    foreach ($asig as $k => $j) {
+        $salida[$j][] = $cruces[$k];
+    }
+    return $salida;
+}
+
+
+/** Descansos que el plan obliga: equipos que no juegan una jornada, sumados. */
+function calendario_plan_descansos(array $plan, array $equipoIds): int
+{
+    $total = 0;
+    foreach ($plan as $jornada) {
+        $juegan = [];
+        foreach (array_merge($jornada['principal'], $jornada['adelantados']) as [$a, $b]) {
+            $juegan[(int) $a] = true;
+            $juegan[(int) $b] = true;
+        }
+        $total += count($equipoIds) - count($juegan);
+    }
+    return $total;
 }
 
 /** Arranques distintos que se prueban al reacomodar un plan que se pasó de jornadas. */
@@ -342,61 +611,12 @@ function calendario_plan_ajustar(array $plan, array $objetivo, int $techo, array
         $miembros[$j][$k] = true;
     }
 
-    // De vuelta al formato del plan: en cada jornada, el emparejamiento más grande es la
-    // ronda "normal" y lo que sobra son los adelantados (los segundos partidos del fin de
-    // semana). Con grado <= 2 y sin ciclos impares, recorrer cada camino o ciclo
-    // alternando da exactamente eso.
     $salida = [];
     for ($j = 0; $j < $J; $j++) {
-        $lista = array_keys($miembros[$j]);
-        if (empty($lista)) {
-            continue;
+        $lista = array_map(fn($k) => $cruces[$k], array_keys($miembros[$j]));
+        if (!empty($lista)) {
+            $salida[] = calendario_jornada_desde_cruces($lista);
         }
-        $porEquipo = [];
-        foreach ($lista as $k) {
-            [$a, $b] = $cruces[$k];
-            $porEquipo[$a][] = $k;
-            $porEquipo[$b][] = $k;
-        }
-        $color = [];
-        // Primero los caminos (arrancando por una punta), después los ciclos.
-        $puntas = array_keys(array_filter($porEquipo, fn($l) => count($l) === 1));
-        $arranques = array_merge($puntas, array_keys($porEquipo));
-        foreach ($arranques as $inicio) {
-            foreach ($porEquipo[$inicio] as $k0) {
-                if (isset($color[$k0])) {
-                    continue;
-                }
-                $k = $k0;
-                $eq = $inicio;
-                $c = 0;
-                while ($k !== null && !isset($color[$k])) {
-                    $color[$k] = $c;
-                    $c = 1 - $c;
-                    [$a, $b] = $cruces[$k];
-                    $eq = $a === $eq ? $b : $a;
-                    $sig = null;
-                    foreach ($porEquipo[$eq] as $kk) {
-                        if (!isset($color[$kk])) {
-                            $sig = $kk;
-                        }
-                    }
-                    $k = $sig;
-                }
-            }
-        }
-        $principal = [];
-        $adelantados = [];
-        $ceros = count(array_filter($color, fn($c) => $c === 0));
-        $mayor = $ceros >= count($color) - $ceros ? 0 : 1;
-        foreach ($lista as $k) {
-            if ($color[$k] === $mayor) {
-                $principal[] = $cruces[$k];
-            } else {
-                $adelantados[] = $cruces[$k];
-            }
-        }
-        $salida[] = ['principal' => $principal, 'adelantados' => $adelantados];
     }
 
     // Las jornadas son intercambiables entre sí: se dejan las más cargadas primero, igual
