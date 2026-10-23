@@ -855,7 +855,32 @@ function calendario_bloques_playoffs(array $torneo, array $diasConfig, array $ex
     // última fecha, así que las fases quedan contadas desde una base limpia sin
     // exclusiones. Se le quita la fecha_fin para que no intente anclarse: aquí solo
     // interesa CUÁNTOS fines de semana ocupa, no dónde caen.
-    $falso = [['numero' => 1, 'dias' => [['fecha' => '2024-01-06', 'nombre' => '', 'partidos' => []]]]];
+    //
+    // La jornada ficticia tiene que terminar en el ÚLTIMO día del bloque de juego (el
+    // domingo, si se juega sábado y domingo). Antes terminaba siempre en sábado: la previa
+    // arrancaba el domingo, partía los cuartos entre dos fines de semana y contaba 3
+    // semanas donde caben 2. Con eso la temporada regular perdía un fin de semana entero
+    // y el generador decía "no alcanzan los fines de semana" cuando sí alcanzaban.
+    $diasSemana = array_values(array_unique(array_map(fn($d) => ((int) ($d['dia'] ?? 0)) % 7, $diasConfig)));
+    $cierreBloque = $diasSemana[0];
+    $mayorHueco = -1;
+    foreach ($diasSemana as $d) {
+        // Días hasta el siguiente día de juego: el que deja el hueco más largo cierra el bloque.
+        $hueco = 7;
+        foreach ($diasSemana as $otro) {
+            $dif = ($otro - $d + 7) % 7;
+            if ($dif > 0 && $dif < $hueco) {
+                $hueco = $dif;
+            }
+        }
+        if ($hueco > $mayorHueco) {
+            $mayorHueco = $hueco;
+            $cierreBloque = $d;
+        }
+    }
+    // 2024-01-07 fue domingo (date('w') = 0): se le suman días hasta el día de cierre.
+    $fechaFalsa = date('Y-m-d', strtotime('2024-01-07 +' . $cierreBloque . ' days'));
+    $falso = [['numero' => 1, 'dias' => [['fecha' => $fechaFalsa, 'nombre' => '', 'partidos' => []]]]];
     $previa = calendario_previa_playoffs(array_merge($torneo, ['fecha_fin' => '']), $falso, $diasConfig, []);
     if (empty($previa)) {
         return 0;
