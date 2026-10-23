@@ -28,7 +28,7 @@
                     <select name="alcance" id="selectAlcance" class="form-select">
                         <option value="todo" <?= $alcance === 'todo' ? 'selected' : '' ?>>Todo el calendario</option>
                         <option value="grupos" <?= $alcance === 'grupos' ? 'selected' : '' ?>>Solo la temporada regular</option>
-                        <option value="jornada" <?= $alcance === 'jornada' ? 'selected' : '' ?>>Una jornada</option>
+                        <option value="jornada" <?= $alcance === 'jornada' ? 'selected' : '' ?>>De una jornada a otra</option>
                         <?php if (!$esLiga && !empty($fasesTorneo)): ?>
                         <option value="fase" <?= $alcance === 'fase' ? 'selected' : '' ?>>Una fase de eliminación</option>
                         <?php endif; ?>
@@ -36,13 +36,20 @@
                 </div>
 
                 <div class="col-md-6" id="grupoJornadaImprimir">
-                    <label class="form-label small fw-semibold">Jornada</label>
-                    <select name="jornada" class="form-select">
-                        <?php foreach (array_keys($jornadas) as $numero): ?>
-                        <option value="<?= (int) $numero ?>" <?= $jornadaElegida === (int) $numero ? 'selected' : '' ?>>Jornada <?= (int) $numero ?></option>
+                    <div class="row g-2">
+                        <?php foreach (['desde' => ['Desde la jornada', $jornadaDesde], 'hasta' => ['Hasta la jornada', $jornadaHasta]] as $campo => [$etiqueta, $valor]): ?>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold" for="jornada_<?= $campo ?>"><?= $etiqueta ?></label>
+                            <select name="<?= $campo ?>" id="jornada_<?= $campo ?>" class="form-select">
+                                <?php foreach (array_keys($jornadas) as $numero): ?>
+                                <option value="<?= (int) $numero ?>" <?= $valor === (int) $numero ? 'selected' : '' ?>>Jornada <?= (int) $numero ?></option>
+                                <?php endforeach; ?>
+                                <?php if (empty($jornadas)): ?><option value="">Sin jornadas todavía</option><?php endif; ?>
+                            </select>
+                        </div>
                         <?php endforeach; ?>
-                        <?php if (empty($jornadas)): ?><option value="">Sin jornadas todavía</option><?php endif; ?>
-                    </select>
+                        <div class="col-12"><span class="small text-muted">Para una sola jornada, elige la misma en los dos.</span></div>
+                    </div>
                 </div>
 
                 <?php if (!$esLiga && !empty($fasesTorneo)): ?>

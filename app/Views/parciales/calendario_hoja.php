@@ -4,13 +4,15 @@
  * en pantalla y como el documento que sale en el papel. Por eso vive en un parcial:
  * lo que ves en la vista previa es exactamente lo que se imprime.
  *
- * Espera: $torneo, $bloques (cada uno con titulo + partidos), $equiposPorId, $conMarcadores.
+ * Espera: $torneo, $bloques (cada uno con titulo + partidos), $equiposPorId, $conMarcadores
+ * y, opcional, $subtituloHoja (ej. "Jornadas 10 a 14").
  */
 ?>
 <div class="ficha-titulo">
     <h2><?= e($torneo['nombre']) ?></h2>
     <p>
         Calendario de encuentros<?= !empty($torneo['temporada']) ? ' · Temporada ' . e($torneo['temporada']) : '' ?>
+        <?= !empty($subtituloHoja) ? ' · ' . e($subtituloHoja) : '' ?>
         <?= !$conMarcadores ? ' · Programación' : '' ?>
     </p>
 </div>

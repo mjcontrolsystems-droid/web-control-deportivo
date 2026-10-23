@@ -716,7 +716,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Calendario imprimible: el selector de Jornada solo aplica al alcance "una jornada",
+    // Calendario imprimible: Desde/Hasta jornada solo aplican al alcance "de una jornada a otra",
     // y el de Fase solo a "una fase" — se muestran/ocultan según lo elegido.
     var selectAlcance = document.getElementById('selectAlcance');
     if (selectAlcance) {
