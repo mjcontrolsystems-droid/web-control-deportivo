@@ -334,7 +334,10 @@
             </div>
             <div class="col-md-4">
                 <label class="form-label small fw-semibold">Fecha de fin</label>
-                <input type="date" name="fecha_fin" class="form-control" value="<?= e($torneoEditar['fecha_fin'] ?? '') ?>">
+                <input type="date" name="fecha_fin" class="form-control" value="<?= e($torneoEditar['fecha_fin'] ?? '') ?>"<?= !empty($licenciaFormulario) ? ' max="' . e($licenciaFormulario) . '"' : '' ?>>
+                <?php if (!empty($licenciaFormulario)): ?>
+                <div class="form-text"><i class="bi bi-calendar-range me-1"></i>Tu licencia cubre hasta el <?= e(licencia_fecha_legible($licenciaFormulario)) ?>.</div>
+                <?php endif; ?>
             </div>
             <div class="col-md-4">
                 <label class="form-label small fw-semibold">Formato</label>
@@ -443,7 +446,7 @@
             <h3 class="mb-0">Mis Copas y Ligas (<?= count($torneos) ?>)</h3>
             <?php if ($limiteTorneos !== null): ?>
             <p class="text-muted small mb-0 mt-1">
-                <i class="bi bi-ticket-perforated me-1"></i>Usas <?= $torneosCreados ?> de <?= $limiteTorneos ?> <?= $limiteTorneos === 1 ? 'copa o liga autorizada' : 'copas o ligas autorizadas' ?>.
+                <i class="bi bi-ticket-perforated me-1"></i>Has usado <?= $torneosCreados ?> de <?= $limiteTorneos ?> <?= $limiteTorneos === 1 ? 'copa o liga autorizada' : 'copas o ligas autorizadas' ?>.
             </p>
             <?php endif; ?>
         </div>
@@ -532,6 +535,11 @@
                             <?php if (($t['genero'] ?? 'mixto') !== 'mixto'): ?><span class="badge rounded-pill text-bg-light border small"><?= $t['genero'] === 'femenino' ? 'Femenino' : 'Masculino' ?></span><?php endif; ?>
                             <?php if (!$t['activo']): ?><span class="badge rounded-pill text-bg-secondary small">Inactiva</span><?php endif; ?>
                             <?php if ($t['es_predeterminado']): ?><span class="badge rounded-pill text-bg-warning small">Predeterminada</span><?php endif; ?>
+                            <?php $estadoT = licencia_estado($t); ?>
+                            <?php if ($estadoT === LICENCIA_FINALIZADA): ?><span class="badge rounded-pill text-bg-dark small"><i class="bi bi-flag-fill me-1"></i>Finalizada</span>
+                            <?php elseif ($estadoT === LICENCIA_VENCIDA): ?><span class="badge rounded-pill text-bg-danger small"><i class="bi bi-lock-fill me-1"></i>Licencia vencida</span>
+                            <?php elseif (in_array($estadoT, [LICENCIA_POR_VENCER, LICENCIA_EN_GRACIA], true)): ?><span class="badge rounded-pill text-bg-warning small"><i class="bi bi-hourglass-split me-1"></i>Por vencer</span>
+                            <?php endif; ?>
                         </div>
                         <div class="fw-semibold mb-1"><?= e($t['nombre']) ?></div>
                         <?php // min-width:0 en el <code> es lo que permite que la URL larga se
@@ -559,11 +567,34 @@
                                 <button type="submit" class="btn btn-sm btn-link p-0 ms-1 text-muted" title="Generar código nuevo"><i class="bi bi-arrow-repeat"></i></button>
                             </form>
                         </div>
+                        <?php if (!empty($t['licencia_hasta'])): ?>
+                        <div class="small text-muted mb-2"><i class="bi bi-calendar-range me-1"></i>Licencia hasta el <?= e(licencia_fecha_legible((string) $t['licencia_hasta'])) ?></div>
+                        <?php endif; ?>
+                        <?php // El super-admin vende más tiempo o reabre desde aquí. Campo vacío = sin límite. ?>
+                        <?php if ($esSuperadmin): ?>
+                        <div class="d-flex flex-wrap align-items-center gap-1 mb-3">
+                            <form method="post" class="d-flex align-items-center gap-1 mb-0">
+                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                <input type="hidden" name="accion" value="fijar_licencia">
+                                <input type="hidden" name="id" value="<?= $t['id'] ?>">
+                                <input type="date" name="licencia_hasta" class="form-control form-control-sm" style="max-width:150px;" value="<?= e((string) ($t['licencia_hasta'] ?? '')) ?>" title="Licencia hasta (vacío = sin límite)">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary" title="Guardar licencia"><i class="bi bi-check-lg"></i></button>
+                            </form>
+                            <?php if ($estadoT === LICENCIA_FINALIZADA): ?>
+                            <form method="post" class="mb-0" data-confirm="¿Reabrir &quot;<?= e($t['nombre']) ?>&quot;? El organizador podrá volver a editarla.">
+                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                <input type="hidden" name="accion" value="reabrir_campeonato">
+                                <input type="hidden" name="id" value="<?= $t['id'] ?>">
+                                <button type="submit" class="btn btn-sm btn-outline-warning"><i class="bi bi-unlock me-1"></i>Reabrir</button>
+                            </form>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
                         <div class="d-flex gap-2 mt-auto flex-wrap">
                             <a href="<?= url('admin/torneos.php?accion=entrar&id=' . $t['id']) ?>" class="btn btn-sm btn-degradado rounded-pill flex-grow-1">Entrar</a>
                             <a href="<?= e(url_copa_de($t)) ?>" target="_blank" class="btn btn-sm btn-outline-secondary" title="Ver"><i class="bi bi-box-arrow-up-right"></i></a>
                             <?php // Editar y eliminar son solo del dueño; en una copa ajena (colaboración o soporte del superadmin) no se ofrecen. ?>
-                            <?php if (empty($t['es_colaboracion'])): ?>
+                            <?php if (empty($t['es_colaboracion']) && torneo_editable($t, $esSuperadmin)): ?>
                             <a href="<?= url('admin/torneos.php?accion=editar&id=' . $t['id']) ?>" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
                             <?php endif; ?>
                             <?php if (!$t['es_predeterminado'] && empty($t['es_colaboracion'])): ?>

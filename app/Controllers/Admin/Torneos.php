@@ -8,7 +8,9 @@ $usuarioId = (int) $_SESSION['usuario_id'];
 // tienen límite; el resto depende de lo que se les haya autorizado en su correo.
 $usuarioSesion = usuarios_obtener_por_id($usuarioId);
 $limiteTorneos = usuario_limite_torneos($usuarioSesion);
-$torneosCreados = torneos_contar_por_usuario($usuarioId);
+$esSuper = es_superadmin($usuarioSesion);
+// Copas creadas en TOTAL, no las que tiene hoy: borrar una no devuelve el cupo.
+$torneosCreados = usuario_torneos_consumidos($usuarioId);
 $puedeCrearTorneo = $limiteTorneos === null || $torneosCreados < $limiteTorneos;
 
 $accion = $_GET['accion'] ?? 'lista';
@@ -36,6 +38,17 @@ $idEditar = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $torneoEditar = $idEditar ? torneos_obtener_por_id($idEditar, $usuarioId) : null;
 $errores = [];
 
+// Una copa cerrada o con la licencia vencida no se edita: ni se abre el formulario.
+if ($accion === 'editar' && $torneoEditar !== null && !torneo_editable($torneoEditar, $esSuper)) {
+    redirigir_con_mensaje(url('admin/torneos.php'), 'error', licencia_mensaje_solo_lectura($torneoEditar));
+}
+
+// Hasta dónde puede llegar la fecha de fin: la licencia de la copa que se edita o, si es
+// nueva, la que se le va a dar al crearla. El super-admin no tiene tope.
+$licenciaFormulario = $esSuper
+    ? null
+    : ($torneoEditar !== null ? ($torneoEditar['licencia_hasta'] ?? null) : licencia_hasta_por_defecto());
+
 function torneos_slugificar(string $texto): string
 {
     $texto = mb_strtolower(trim($texto), 'UTF-8');
@@ -60,6 +73,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'guard
     // todavía podría crear una copa de más. Editar una existente no consume cupo nuevo.
     if ($id === 0 && !$puedeCrearTorneo) {
         redirigir_con_mensaje(url('admin/torneos.php'), 'error', mensaje_limite_torneos($limiteTorneos));
+    }
+    // Candado de la licencia también aquí: esta pantalla no pasa por
+    // admin_requerir_torneo_activo(), y un POST directo podría editar una copa cerrada.
+    // La copa se busca por el id del POST, no por $torneoEditar: ese sale del ?id= de la
+    // URL, y un POST sin él se saltaba el candado.
+    $copaGuardar = $id > 0 ? torneos_obtener_por_id($id, $usuarioId) : null;
+    if ($copaGuardar !== null && !torneo_editable($copaGuardar, $esSuper)) {
+        redirigir_con_mensaje(url('admin/torneos.php'), 'error', licencia_mensaje_solo_lectura($copaGuardar));
+    }
+    // El tope de la fecha de fin, igual: el de la copa que de verdad se guarda.
+    if ($copaGuardar !== null) {
+        $licenciaFormulario = $esSuper ? null : ($copaGuardar['licencia_hasta'] ?? null);
     }
     $nombre = trim((string) $_POST['nombre']);
     $slug = torneos_slugificar((string) ($_POST['slug'] ?: $nombre));
@@ -101,6 +126,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'guard
 
     if ($nombre === '') {
         $errores[] = 'El nombre de la copa o liga es obligatorio.';
+    }
+    // La fecha de fin la pone el organizador, pero no puede pasar de su licencia.
+    $errorFechaFin = licencia_validar_fecha_fin((string) ($_POST['fecha_fin'] ?? ''), $licenciaFormulario);
+    if ($errorFechaFin !== '') {
+        $errores[] = $errorFechaFin;
     }
     if ($slug === '') {
         $errores[] = 'La URL (slug) no puede quedar vacía. Usa letras, números y guiones.';
@@ -196,6 +226,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'guard
         $idGuardado = torneos_guardar($datos, $usuarioId);
         bitacora_registrar($id ? 'torneo_editado' : 'torneo_creado', '"' . $nombre . '" (' . $deporte . ')', $idGuardado);
 
+        // Copa nueva: consume un cupo para siempre y arranca su licencia. Las del
+        // super-admin no llevan licencia (son demos y soporte).
+        if ($id === 0) {
+            usuario_sumar_torneo_creado($usuarioId);
+            if (!$esSuper) {
+                torneos_fijar_licencia($idGuardado, $licenciaFormulario);
+            }
+        }
+
         if (empty($_SESSION['torneo_activo_id'])) {
             $_SESSION['torneo_activo_id'] = $idGuardado;
         }
@@ -242,6 +281,37 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST') && ($_POST['accion'] ?? '') === 'eli
     }
 }
 
+// --- Licencia: solo el super-admin ---
+//
+// Mover la fecha de la licencia (vender más tiempo, o dejarla sin límite con el campo
+// vacío) y reabrir un campeonato cerrado. Se busca la copa sin filtrar por dueño porque
+// casi siempre es de otro organizador.
+if (($_SERVER['REQUEST_METHOD'] === 'POST') && in_array($_POST['accion'] ?? '', ['fijar_licencia', 'reabrir_campeonato'], true)) {
+    csrf_validar();
+    if (!$esSuper) {
+        http_response_code(403);
+        exit('Solo un super-admin puede cambiar la licencia de una copa.');
+    }
+    $copaLicencia = torneos_obtener_por_id((int) ($_POST['id'] ?? 0));
+    if ($copaLicencia === null) {
+        redirigir_con_mensaje(url('admin/torneos.php'), 'error', 'Copa o liga no encontrada.');
+    }
+
+    if ($_POST['accion'] === 'reabrir_campeonato') {
+        torneos_reabrir((int) $copaLicencia['id']);
+        bitacora_registrar('campeonato_reabierto', '"' . $copaLicencia['nombre'] . '" vuelve a ser editable', (int) $copaLicencia['id']);
+        redirigir_con_mensaje(url('admin/torneos.php'), 'success', 'Campeonato reabierto: "' . $copaLicencia['nombre'] . '" se puede editar de nuevo.');
+    }
+
+    $fecha = trim((string) ($_POST['licencia_hasta'] ?? ''));
+    if ($fecha !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) {
+        redirigir_con_mensaje(url('admin/torneos.php'), 'error', 'Fecha de licencia no válida.');
+    }
+    torneos_fijar_licencia((int) $copaLicencia['id'], $fecha !== '' ? $fecha : null);
+    bitacora_registrar('licencia_actualizada', '"' . $copaLicencia['nombre'] . '": ' . ($fecha !== '' ? 'hasta el ' . licencia_fecha_legible($fecha) : 'sin límite'), (int) $copaLicencia['id']);
+    redirigir_con_mensaje(url('admin/torneos.php'), 'success', 'Licencia de "' . $copaLicencia['nombre'] . '" actualizada.');
+}
+
 if (($_SERVER['REQUEST_METHOD'] === 'POST') && ($_POST['accion'] ?? '') === 'regenerar_codigo') {
     csrf_validar();
     $id = (int) $_POST['id'];
@@ -274,6 +344,7 @@ vista_admin('admin/torneos', compact(
     'deportePorDefecto',
     'errores',
     'generoPorDefecto',
+    'licenciaFormulario',
     'limiteTorneos',
     'modoPorDefecto',
     'puedeCrearTorneo',

@@ -170,6 +170,9 @@ function datos_layout_admin(array $datos): array
             ? count(array_filter(comentarios_listar($torneoActivo['id']), fn($c) => empty($c['leido'])))
             : 0,
         'nombreMarca' => $torneoActivo['nombre'] ?? 'Panel Organizador',
+        // Licencia de la copa activa, para el aviso de arriba del panel (por vencer,
+        // en gracia, vencida o cerrada). Ver app/Support/licencia.php.
+        'estadoLicenciaActiva' => $torneoActivo ? licencia_estado($torneoActivo) : null,
     ];
 }
 

@@ -34,6 +34,7 @@ foreach ([
     'grupos',   // fase de grupos estilo mundial y cruces desde las tablas de grupo
     'eliminacion', // cuadro final: siembra desde la tabla y avance de ganadores
     'podio',    // campeón, subcampeón y tercer lugar al cerrar la temporada
+    'licencia', // vigencia de cada copa vendida: cierre y solo lectura al terminar
     'importacion', // lectura de plantillas desde Excel o CSV
     'disciplina', // suspensiones por roja y acumulación de amarillas
     'mensaje',  // el texto de la jornada listo para pegar en WhatsApp

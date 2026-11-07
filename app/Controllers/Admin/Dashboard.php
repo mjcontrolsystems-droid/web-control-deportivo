@@ -17,7 +17,7 @@ $partidos = partidos_listar($torneo['id']);
 // más reclamos que tenerlo cerrado un rato.
 // Cerrar el sitio y publicar el podio son decisiones de quien organiza, no de quien
 // ayuda: una apaga la copa para todo el público y la otra la da por terminada.
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['accion'] ?? '', ['mantenimiento', 'publicar_podio', 'aviso'], true)) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['accion'] ?? '', ['mantenimiento', 'publicar_podio', 'aviso', 'cerrar_campeonato'], true)) {
     requerir_permiso('configuracion');
 }
 
@@ -90,6 +90,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'publi
             : 'Podio retirado de la portada.'
     );
 }
+// Cerrar el campeonato: es el final de la licencia de esta copa. Publica el podio y deja
+// la copa en solo lectura (ver licencia.php). No tiene vuelta atrás para el organizador:
+// solo el super-admin puede reabrirla desde "Mis copas".
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'cerrar_campeonato') {
+    csrf_validar();
+    if (podio_calcular($torneo, $equipos, $partidos) === null) {
+        redirigir_con_mensaje(url('admin/index.php'), 'error', 'Todavía no se puede cerrar: falta que se juegue el partido decisivo para saber quién es el campeón.');
+    }
+    torneos_cerrar((int) $torneo['id']);
+    bitacora_registrar('campeonato_cerrado', 'Campeonato cerrado: podio publicado y copa en solo lectura', $torneo['id']);
+    redirigir_con_mensaje(
+        url('admin/index.php'),
+        'success',
+        '¡Campeonato cerrado! El podio ya está en la portada y la copa quedó en solo lectura.'
+    );
+}
+
 $patrocinadores = patrocinadores_listar($torneo['id']);
 $tabla = calcular_tabla($equipos, $partidos, $torneo);
 $lider = $tabla[0] ?? null;
@@ -110,6 +127,9 @@ foreach ($equipos as $eq) { $equiposPorId[$eq['id']] = $eq; }
 $podio = podio_calcular($torneo, $equipos, $partidos);
 $temporadaTerminada = podio_temporada_terminada($partidos);
 $podioPublicado = torneo_podio_publicado($torneo);
+// Estado de la licencia: si la copa ya se cerró, la tarjeta del podio lo dice en vez de
+// ofrecer botones que el candado de la licencia rechazaría.
+$estadoLicencia = licencia_estado($torneo);
 
 // --- Dashboard del capitán ---
 //
@@ -224,6 +244,7 @@ if ($equipoCapitan !== null && isset($equiposPorId[$equipoCapitan])) {
 vista_admin('admin/dashboard', compact(
     'equipos',
     'equiposPorId',
+    'estadoLicencia',
     'jugados',
     'patrocinadores',
     'podio',

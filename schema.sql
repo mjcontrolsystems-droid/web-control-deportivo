@@ -374,3 +374,16 @@ CREATE TABLE IF NOT EXISTS intentos_codigo (
     intentado_en TIMESTAMP NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_intentos_codigo_ip_fecha ON intentos_codigo (ip, intentado_en);
+
+-- --- Licencia por campeonato (modelo de cobro por copa) ---
+-- licencia_hasta: hasta qué día cubre lo que pagó el organizador (NULL = sin límite, para las
+-- copas anteriores a este cambio y las del super-admin). Pasada esa fecha más los días de
+-- gracia, la copa queda en solo lectura. cerrado_en: cuándo el organizador cerró el
+-- campeonato (también la deja en solo lectura). Ninguna de las dos está en COLUMNAS_TORNEO:
+-- el formulario de la copa no puede tocarlas, solo el super-admin. Ver app/Support/licencia.php.
+ALTER TABLE torneos ADD COLUMN IF NOT EXISTS licencia_hasta DATE;
+ALTER TABLE torneos ADD COLUMN IF NOT EXISTS cerrado_en TIMESTAMP;
+
+-- Copas que el usuario ha creado en toda su historia. El cupo se compara contra esto y no
+-- contra las copas que tiene hoy: borrar una copa ya jugada NO devuelve el cupo.
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS torneos_creados INTEGER NOT NULL DEFAULT 0;

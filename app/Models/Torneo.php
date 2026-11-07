@@ -348,8 +348,46 @@ function torneos_eliminar(int $id, ?int $usuarioId = null): void
     if ($torneo['es_predeterminado']) {
         throw new RuntimeException('No se puede eliminar la copa o liga predeterminada.');
     }
+    // Antes de borrar se deja asentado en el usuario que esta copa ya se usó: el cupo se
+    // cuenta sobre las copas creadas en toda su historia, y borrar no lo devuelve.
+    if (!empty($torneo['usuario_id'])) {
+        usuario_sincronizar_torneos_creados((int) $torneo['usuario_id']);
+    }
     $pdo = db_conexion();
     $stmt = $pdo->prepare('DELETE FROM torneos WHERE id = :id');
+    $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+    $stmt->execute();
+}
+
+// ---------------------------------------------------------------------------
+// Licencia y cierre del campeonato (ver app/Support/licencia.php).
+//
+// Van en funciones aparte y NO en COLUMNAS_TORNEO a propósito: torneos_guardar() escribe
+// lo que manda el formulario de la copa, y si estas columnas estuvieran ahí un organizador
+// podría extender su licencia o "descerrar" su copa con solo editar el HTML del formulario.
+// ---------------------------------------------------------------------------
+
+/** Fija hasta cuándo cubre la licencia (Y-m-d), o null para dejarla sin límite. */
+function torneos_fijar_licencia(int $id, ?string $hasta): void
+{
+    $stmt = db_conexion()->prepare('UPDATE torneos SET licencia_hasta = :hasta WHERE id = :id');
+    $stmt->bindValue(':hasta', $hasta, $hasta === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+    $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+    $stmt->execute();
+}
+
+/** Cierra el campeonato: queda en solo lectura y con el podio publicado. */
+function torneos_cerrar(int $id): void
+{
+    $stmt = db_conexion()->prepare('UPDATE torneos SET cerrado_en = now(), podio_publicado = true WHERE id = :id');
+    $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+    $stmt->execute();
+}
+
+/** Reabre un campeonato cerrado (solo el super-admin). El podio se queda como estaba. */
+function torneos_reabrir(int $id): void
+{
+    $stmt = db_conexion()->prepare('UPDATE torneos SET cerrado_en = NULL WHERE id = :id');
     $stmt->bindValue(':id', $id, PDO::PARAM_INT);
     $stmt->execute();
 }

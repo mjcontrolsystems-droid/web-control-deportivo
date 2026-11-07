@@ -69,10 +69,12 @@
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
         <div>
             <h5 class="mb-1"><i class="bi bi-trophy-fill text-warning me-1"></i>
-                <?= !empty($podioPublicado) ? 'Podio publicado' : ($temporadaTerminada ? '¡Terminó la temporada!' : 'Ya hay un campeón') ?>
+                <?= $estadoLicencia === LICENCIA_FINALIZADA ? 'Campeonato cerrado' : (!empty($podioPublicado) ? 'Podio publicado' : ($temporadaTerminada ? '¡Terminó la temporada!' : 'Ya hay un campeón')) ?>
             </h5>
             <p class="small text-muted mb-0">
-                <?php if (!empty($podioPublicado)): ?>
+                <?php if ($estadoLicencia === LICENCIA_FINALIZADA): ?>
+                    Se cerró el <?= e(licencia_fecha_legible((string) $torneo['cerrado_en'])) ?>. El podio queda en la portada y la copa en solo lectura.
+                <?php elseif (!empty($podioPublicado)): ?>
                     Se está mostrando en la portada de la copa. Si corriges un resultado, el podio se actualiza solo.
                 <?php elseif (!empty($temporadaTerminada)): ?>
                     Se jugaron todos los encuentros. Revisa el podio y publícalo cuando quieras.
@@ -81,6 +83,9 @@
                 <?php endif; ?>
             </p>
         </div>
+        <?php // Cerrada la copa ya no hay botones: el candado de la licencia los rechazaría. ?>
+        <?php if (torneo_editable($torneo, $esSuperadmin ?? false) && $estadoLicencia !== LICENCIA_FINALIZADA): ?>
+        <div class="d-flex flex-wrap gap-2">
         <form method="post" data-confirm="<?= !empty($podioPublicado) ? '¿Quitar el podio de la portada pública?' : '¿Publicar el podio en la portada de la copa? Lo va a ver todo el mundo.' ?>">
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="accion" value="publicar_podio">
@@ -91,6 +96,18 @@
             <button type="submit" class="btn btn-outline-secondary rounded-pill px-3"><i class="bi bi-eye-slash me-1"></i>Quitar de la portada</button>
             <?php endif; ?>
         </form>
+        <?php // Cerrar es el final de la licencia: publica el podio y congela la copa. ?>
+        <form method="post" data-confirm="<?= $temporadaTerminada
+            ? '¿Cerrar el campeonato? Se publica el podio y la copa queda en SOLO LECTURA: ya no vas a poder cambiar equipos, resultados ni calendario. Esto no se puede deshacer.'
+            : 'Todavía hay encuentros sin jugar. ¿Cerrar el campeonato de todos modos? Se publica el podio y la copa queda en SOLO LECTURA. Esto no se puede deshacer.' ?>">
+            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="accion" value="cerrar_campeonato">
+            <button type="submit" class="btn btn-dark rounded-pill px-3"><i class="bi bi-flag-fill me-1"></i>Cerrar campeonato</button>
+        </form>
+        </div>
+        <?php else: ?>
+        <span class="badge rounded-pill text-bg-dark px-3 py-2"><i class="bi bi-lock-fill me-1"></i>Solo lectura</span>
+        <?php endif; ?>
     </div>
 
     <div class="row g-3">

@@ -560,6 +560,12 @@ function db_migrar_automatico(): void
         $pdo->exec("ALTER TABLE jugadores ADD COLUMN IF NOT EXISTS carnet_token TEXT NOT NULL DEFAULT ''");
         $pdo->exec("CREATE INDEX IF NOT EXISTS jugadores_carnet_token_idx ON jugadores (carnet_token) WHERE carnet_token <> ''");
 
+        // Licencia por campeonato: vigencia, cierre y cupo consumido (ver
+        // app/Support/licencia.php y usuario_torneos_consumidos()).
+        $pdo->exec('ALTER TABLE torneos ADD COLUMN IF NOT EXISTS licencia_hasta DATE');
+        $pdo->exec('ALTER TABLE torneos ADD COLUMN IF NOT EXISTS cerrado_en TIMESTAMP');
+        $pdo->exec('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS torneos_creados INTEGER NOT NULL DEFAULT 0');
+
         // Se limpian las marcas de versiones anteriores para que la sesión no acumule una
         // clave por cada cambio del archivo a lo largo de la vida del proyecto.
         foreach (array_keys($_SESSION) as $k) {

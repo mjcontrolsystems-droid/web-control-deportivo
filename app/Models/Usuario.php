@@ -369,7 +369,9 @@ function usuario_limite_torneos(?array $usuario): ?int
 
 /**
  * true si el usuario todavía puede crear una copa o liga más. Se compara contra las copas
- * que tiene AHORA: si borra una, el cupo se libera y puede crear otra en su lugar.
+ * que ha creado EN TOTAL (usuario_torneos_consumidos), no contra las que tiene hoy: el
+ * cobro es por campeonato, así que borrar una copa ya jugada no libera el cupo para
+ * armar otra gratis. Para otra temporada el super-admin le sube el cupo.
  */
 function usuario_puede_crear_torneo(?array $usuario): bool
 {
@@ -377,7 +379,60 @@ function usuario_puede_crear_torneo(?array $usuario): bool
     if ($limite === null) {
         return true;
     }
-    return torneos_contar_por_usuario((int) ($usuario['id'] ?? 0)) < $limite;
+    return usuario_torneos_consumidos((int) ($usuario['id'] ?? 0)) < $limite;
+}
+
+/**
+ * Cuántas copas ha creado este usuario en toda su historia. Es el mayor entre el contador
+ * guardado y las que tiene ahora: así las cuentas que ya tenían copas antes de existir el
+ * contador (que arrancó en 0) quedan bien contadas sin tener que migrar nada.
+ */
+function usuario_torneos_consumidos(int $usuarioId): int
+{
+    $stmt = db_conexion()->prepare(
+        'SELECT GREATEST(
+            COALESCE((SELECT torneos_creados FROM usuarios WHERE id = :id), 0),
+            (SELECT COUNT(*) FROM torneos WHERE usuario_id = :id2)
+        )'
+    );
+    $stmt->bindValue(':id', $usuarioId, PDO::PARAM_INT);
+    $stmt->bindValue(':id2', $usuarioId, PDO::PARAM_INT);
+    $stmt->execute();
+    return (int) $stmt->fetchColumn();
+}
+
+/**
+ * Suma una copa al contador histórico. Se llama justo DESPUÉS de crearla, así que el
+ * COUNT ya la incluye: el GREATEST cubre las cuentas viejas cuyo contador venía en 0.
+ */
+function usuario_sumar_torneo_creado(int $usuarioId): void
+{
+    $stmt = db_conexion()->prepare(
+        'UPDATE usuarios SET torneos_creados = GREATEST(
+            torneos_creados + 1,
+            (SELECT COUNT(*) FROM torneos WHERE usuario_id = :id2)
+        ) WHERE id = :id'
+    );
+    $stmt->bindValue(':id', $usuarioId, PDO::PARAM_INT);
+    $stmt->bindValue(':id2', $usuarioId, PDO::PARAM_INT);
+    $stmt->execute();
+}
+
+/**
+ * Deja el contador al menos en las copas que tiene ahora. Se llama ANTES de borrar una,
+ * para que la copa borrada siga contando aunque se haya creado antes del contador.
+ */
+function usuario_sincronizar_torneos_creados(int $usuarioId): void
+{
+    $stmt = db_conexion()->prepare(
+        'UPDATE usuarios SET torneos_creados = GREATEST(
+            torneos_creados,
+            (SELECT COUNT(*) FROM torneos WHERE usuario_id = :id2)
+        ) WHERE id = :id'
+    );
+    $stmt->bindValue(':id', $usuarioId, PDO::PARAM_INT);
+    $stmt->bindValue(':id2', $usuarioId, PDO::PARAM_INT);
+    $stmt->execute();
 }
 
 /**
@@ -387,7 +442,7 @@ function usuario_puede_crear_torneo(?array $usuario): bool
 function mensaje_limite_torneos(?int $limite): string
 {
     $cuantos = $limite === 1 ? '1 copa o liga' : $limite . ' copas o ligas';
-    return "Has alcanzado el límite de {$cuantos} que tienes autorizadas. "
+    return "Ya usaste tu cupo de {$cuantos} (las copas borradas también cuentan). "
         . 'Por favor comunícate con el administrador para que te autorice más.';
 }
 

@@ -296,6 +296,16 @@ function admin_requerir_torneo_activo(): array
     // desde las pantallas del organizador, que no viven bajo ningún /slug/.
     copa_actual_definir($torneo);
 
+    // Candado de la licencia: una copa cerrada o vencida queda en SOLO LECTURA. Todo
+    // controlador del panel que trabaja sobre la copa pasa por aquí, así que cortar los
+    // POST en este único punto cubre equipos, jugadores, encuentros, eventos, multas,
+    // cuentas, colaboradores... sin depender de acordarse en cada pantalla nueva. Leer,
+    // imprimir y exportar (GET) sigue funcionando. El super-admin no tiene candado.
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST'
+        && !torneo_editable($torneo, es_superadmin(usuarios_obtener_por_id($usuarioId)))) {
+        redirigir_con_mensaje(url('admin/index.php'), 'error', licencia_mensaje_solo_lectura($torneo));
+    }
+
     return $torneo;
 }
 

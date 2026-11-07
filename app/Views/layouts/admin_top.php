@@ -186,6 +186,30 @@ function admin_tarjeta_usuario(array $usuario): string
             </div>
             <?php endif; ?>
 
+            <?php // Licencia de la copa activa: se avisa antes de que venza y, ya vencida o
+                  // cerrada, se explica por qué el panel no deja guardar nada. ?>
+            <?php if ($torneoActivo && in_array($estadoLicenciaActiva, [LICENCIA_FINALIZADA, LICENCIA_VENCIDA], true)): ?>
+            <div class="alert alert-dark rounded-4 border-0 shadow-sm d-flex align-items-start gap-2" role="alert">
+                <i class="bi bi-lock-fill mt-1"></i>
+                <div>
+                    <div class="fw-semibold"><?= $estadoLicenciaActiva === LICENCIA_FINALIZADA ? 'Campeonato cerrado' : 'Licencia vencida' ?><?= $esSuperadmin ? ' (como super-admin sí puedes editar)' : ' · solo lectura' ?></div>
+                    <div class="small"><?= e(licencia_mensaje_solo_lectura($torneoActivo)) ?></div>
+                </div>
+            </div>
+            <?php elseif ($torneoActivo && in_array($estadoLicenciaActiva, [LICENCIA_POR_VENCER, LICENCIA_EN_GRACIA], true)): ?>
+            <div class="alert alert-warning rounded-4 border-0 shadow-sm d-flex align-items-start gap-2" role="alert">
+                <i class="bi bi-hourglass-split mt-1"></i>
+                <div class="small">
+                    <?php if ($estadoLicenciaActiva === LICENCIA_POR_VENCER): ?>
+                    La licencia de esta copa vence el <strong><?= e(licencia_fecha_legible((string) $torneoActivo['licencia_hasta'])) ?></strong>.
+                    <?php else: ?>
+                    La licencia de esta copa venció el <?= e(licencia_fecha_legible((string) $torneoActivo['licencia_hasta'])) ?>. Tienes hasta el <strong><?= e(licencia_fecha_legible((string) licencia_ultimo_dia_editable($torneoActivo))) ?></strong> para terminar de cargar resultados; después la copa queda en solo lectura.
+                    <?php endif; ?>
+                    Si necesitas más tiempo, escríbenos a <?= e(CONTACTO_PLATAFORMA) ?>.
+                </div>
+            </div>
+            <?php endif; ?>
+
             <?php if ($flash): ?>
             <div id="datosFlash" class="d-none" data-tipo="<?= e($flash['tipo']) ?>" data-mensaje="<?= e($flash['mensaje']) ?>"></div>
             <noscript>

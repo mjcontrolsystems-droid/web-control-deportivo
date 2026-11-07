@@ -25,6 +25,11 @@ require_once __DIR__ . '/../app/Support/voleibol.php';
 require_once __DIR__ . '/../app/Models/Jugador.php';
 require_once __DIR__ . '/../app/Support/fixture.php';
 require_once __DIR__ . '/../app/Support/calendario.php';
+require_once __DIR__ . '/../app/Support/licencia.php';
+// licencia.php usa el correo de contacto en sus mensajes; vive en config.php, que aquí no se carga.
+if (!defined('CONTACTO_PLATAFORMA')) {
+    define('CONTACTO_PLATAFORMA', 'contacto@prueba.test');
+}
 
 $fallos = 0;
 $pruebas = 0;
@@ -613,6 +618,33 @@ $r = calendario_reordenar_jornada($jorConJugado, ['2026-10-25' => ['5', '4']], $
 check('pero el otro día sí se reordena', $r['cambios'], [5 => ['fecha' => '2026-10-25', 'hora' => '15:00', 'cancha' => 'Gimnasio'], 4 => ['fecha' => '2026-10-25', 'hora' => '16:00', 'cancha' => 'Gimnasio']]);
 $diasOrd = calendario_dias_de_jornada($jorConJugado, $cfgOrden);
 check('el día con jugados queda marcado como bloqueado', array_column($diasOrd, 'bloqueado'), [true, false]);
+
+// ---------------------------------------------------------------------------
+echo "\n--- Licencia por campeonato ---\n";
+check('licencia nueva dura los meses por defecto', licencia_hasta_por_defecto('2026-11-07'), '2027-05-07');
+$sinLicencia = ['licencia_hasta' => null, 'cerrado_en' => null];
+check('copa sin licencia (vieja o del super-admin) siempre activa', licencia_estado($sinLicencia, '2030-01-01'), LICENCIA_ACTIVA);
+check('copa sin licencia es editable', torneo_editable($sinLicencia, false, '2030-01-01'), true);
+$conLicencia = ['licencia_hasta' => '2026-12-31', 'cerrado_en' => null];
+check('lejos del vencimiento: activa', licencia_estado($conLicencia, '2026-11-01'), LICENCIA_ACTIVA);
+check('a 15 días del vencimiento: por vencer', licencia_estado($conLicencia, '2026-12-16'), LICENCIA_POR_VENCER);
+check('el mismo día del vencimiento todavía es por vencer', licencia_estado($conLicencia, '2026-12-31'), LICENCIA_POR_VENCER);
+check('un día después: en gracia', licencia_estado($conLicencia, '2027-01-01'), LICENCIA_EN_GRACIA);
+check('en gracia todavía se puede editar', torneo_editable($conLicencia, false, '2027-01-15'), true);
+check('último día de gracia = licencia + 15', licencia_ultimo_dia_editable($conLicencia), '2027-01-15');
+check('pasada la gracia: vencida', licencia_estado($conLicencia, '2027-01-16'), LICENCIA_VENCIDA);
+check('vencida no es editable', torneo_editable($conLicencia, false, '2027-01-16'), false);
+check('vencida sí es editable para el super-admin', torneo_editable($conLicencia, true, '2027-01-16'), true);
+$cerrada = ['licencia_hasta' => '2026-12-31', 'cerrado_en' => '2026-12-13 20:00:00'];
+check('cerrada manda sobre la fecha: finalizada', licencia_estado($cerrada, '2026-12-14'), LICENCIA_FINALIZADA);
+check('cerrada no es editable aunque falte para el vencimiento', torneo_editable($cerrada, false, '2026-12-14'), false);
+check('cerrada sin licencia tampoco es editable', torneo_editable(['licencia_hasta' => null, 'cerrado_en' => '2026-12-13 20:00:00'], false), false);
+check('fecha de fin dentro de la licencia: válida', licencia_validar_fecha_fin('2026-12-13', '2026-12-31'), '');
+check('fecha de fin igual a la licencia: válida', licencia_validar_fecha_fin('2026-12-31', '2026-12-31'), '');
+check('fecha de fin más allá de la licencia: error', licencia_validar_fecha_fin('2027-03-01', '2026-12-31') !== '', true);
+check('sin licencia no hay tope de fecha de fin', licencia_validar_fecha_fin('2030-01-01', null), '');
+check('fecha de fin vacía no se valida', licencia_validar_fecha_fin('', '2026-12-31'), '');
+check('fecha legible', licencia_fecha_legible('2026-12-13 20:00:00'), '13/12/2026');
 
 // ---------------------------------------------------------------------------
 echo "\n============================\n";

@@ -58,12 +58,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $correos = correos_autorizados_listar();
 
-// Cuántas copas lleva creadas cada correo, para mostrar "usadas / autorizadas" y que el
+// Cuántas copas ha creado cada correo (en total), para mostrar "usadas / autorizadas" y que el
 // super-admin sepa a quién le queda cupo sin tener que entrar a la cuenta de cada uno.
 $usadasPorCorreo = [];
 foreach ($correos as $c) {
     $cuenta = usuarios_obtener_por_email((string) $c['email']);
-    $usadasPorCorreo[$c['id']] = $cuenta ? torneos_contar_por_usuario((int) $cuenta['id']) : 0;
+    // Las creadas en total (también las borradas): es lo que se compara contra el cupo.
+    $usadasPorCorreo[$c['id']] = $cuenta ? usuario_torneos_consumidos((int) $cuenta['id']) : 0;
 }
 
 $seccion_activa = 'usuarios_autorizados';
