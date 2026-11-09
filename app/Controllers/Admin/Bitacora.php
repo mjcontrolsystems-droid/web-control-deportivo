@@ -37,6 +37,8 @@ const BITACORA_ETIQUETAS = [
     'campeonato_cerrado' => ['Campeonato cerrado', 'bi-flag-fill', 'dark'],
     'campeonato_reabierto' => ['Campeonato reabierto', 'bi-unlock', 'warning'],
     'licencia_actualizada' => ['Licencia actualizada', 'bi-calendar-range', 'secondary'],
+    'usuario_suspendido' => ['Usuario suspendido', 'bi-person-slash', 'danger'],
+    'usuario_reactivado' => ['Usuario reactivado', 'bi-person-check', 'success'],
 ];
 
 $seccion_activa = 'bitacora';

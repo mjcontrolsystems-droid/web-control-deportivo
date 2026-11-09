@@ -453,3 +453,44 @@ function correos_autorizados_eliminar(int $id): void
     $stmt->bindValue(':id', $id, PDO::PARAM_INT);
     $stmt->execute();
 }
+
+// ---------------------------------------------------------------------------
+// Panel de usuarios del super-admin: listado, suspensión y último ingreso.
+// ---------------------------------------------------------------------------
+
+/** Todas las cuentas, de la más nueva a la más vieja. */
+function usuarios_listar(): array
+{
+    $filas = db_conexion()->query('SELECT * FROM usuarios ORDER BY creado_en DESC, id DESC')->fetchAll();
+    return array_map('usuarios_normalizar', $filas);
+}
+
+/** Suspende (true) o reactiva (false) una cuenta. */
+function usuario_suspender(int $id, bool $suspender): void
+{
+    $stmt = db_conexion()->prepare('UPDATE usuarios SET suspendido_en = ' . ($suspender ? 'now()' : 'NULL') . ' WHERE id = :id');
+    $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+    $stmt->execute();
+}
+
+/** Guarda la hora del inicio de sesión. Nunca tumba el login si falla. */
+function usuario_registrar_acceso(int $id): void
+{
+    try {
+        $stmt = db_conexion()->prepare('UPDATE usuarios SET ultimo_acceso = now() WHERE id = :id');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+    } catch (Throwable $e) {
+        error_log('usuario_registrar_acceso: ' . $e->getMessage());
+    }
+}
+
+/** Fila de la lista blanca para un correo, o null. */
+function correos_autorizados_obtener_por_email(string $email): ?array
+{
+    $stmt = db_conexion()->prepare('SELECT * FROM correos_autorizados WHERE email = :email');
+    $stmt->bindValue(':email', mb_strtolower(trim($email)), PDO::PARAM_STR);
+    $stmt->execute();
+    $fila = $stmt->fetch();
+    return $fila ?: null;
+}

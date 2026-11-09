@@ -387,3 +387,10 @@ ALTER TABLE torneos ADD COLUMN IF NOT EXISTS cerrado_en TIMESTAMP;
 -- Copas que el usuario ha creado en toda su historia. El cupo se compara contra esto y no
 -- contra las copas que tiene hoy: borrar una copa ya jugada NO devuelve el cupo.
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS torneos_creados INTEGER NOT NULL DEFAULT 0;
+
+-- --- Panel de usuarios del super-admin ---
+-- suspendido_en: la cuenta no puede entrar al panel (NULL = activa). Suspender no borra
+-- nada: sus copas siguen en línea y se reactivan con un clic. ultimo_acceso: último
+-- inicio de sesión, para ver en el panel quién está usando la plataforma.
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS suspendido_en TIMESTAMP;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ultimo_acceso TIMESTAMP;

@@ -96,6 +96,7 @@ function auth_iniciar_sesion_usuario(array $usuario): void
     $_SESSION['organizador_usuario'] = $usuario['usuario'];
     // Trazabilidad de accesos en la bitácora (nunca falla la sesión por esto).
     bitacora_registrar('login', 'Sesión iniciada (' . ($usuario['email'] ?? $usuario['usuario']) . ')');
+    usuario_registrar_acceso((int) $usuario['id']);
 }
 
 function auth_logout(): void
@@ -119,6 +120,25 @@ function auth_requerir(): void
     // pintar el layout: una escritura que use una columna recién agregada (p. ej.
     // partidos.cronometro_extra_min) tiene que encontrarla ya creada.
     db_migrar_automatico();
+
+    // Cuenta suspendida desde el panel de usuarios: se le cierra la sesión aunque ya la
+    // tuviera abierta (se revisa en cada petición, no solo al iniciar sesión). Así
+    // suspender surte efecto de inmediato. El super-admin nunca queda fuera.
+    $cuenta = usuarios_obtener_por_id((int) ($_SESSION['usuario_id'] ?? 0));
+    if ($cuenta === null || (!empty($cuenta['suspendido_en']) && !es_superadmin($cuenta))) {
+        auth_logout();
+        // Sesión nueva y con id nuevo solo para llevar el aviso al login: con el id viejo,
+        // la cookie que auth_logout() acaba de borrar se llevaba el mensaje con ella.
+        session_start();
+        session_regenerate_id(true);
+        redirigir_con_mensaje(
+            url('login.php'),
+            'error',
+            $cuenta === null
+                ? 'Tu sesión ya no es válida. Vuelve a iniciar sesión.'
+                : 'Tu cuenta está suspendida. Para reactivarla comunícate con MJ Control Systems (' . CONTACTO_PLATAFORMA . ').'
+        );
+    }
 }
 
 /**

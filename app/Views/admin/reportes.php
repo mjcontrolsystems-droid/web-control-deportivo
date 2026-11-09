@@ -108,11 +108,11 @@ $claseCelda = function (string $columna, string $texto): string {
         <p class="text-muted mb-0">No hay datos con estos filtros.</p>
     <?php else: ?>
     <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
+        <table class="table table-sm align-middle mb-0" data-tabla-datos data-por-pagina="25">
             <thead>
                 <tr class="small text-muted">
                     <?php foreach ($sec['columnas'] as $k => $col): ?>
-                    <th class="<?= $alinearDerecha($sec['formatos'][$k] ?? '') ? 'text-end' : '' ?>"><?= e($col) ?></th>
+                    <th data-ordenable class="<?= $alinearDerecha($sec['formatos'][$k] ?? '') ? 'text-end' : '' ?>"><?= e($col) ?></th>
                     <?php endforeach; ?>
                 </tr>
             </thead>
@@ -120,7 +120,7 @@ $claseCelda = function (string $columna, string $texto): string {
                 <?php foreach ($sec['filas'] as $fila): ?>
                 <tr>
                     <?php foreach ($fila as $k => $valor): $texto = reporte_celda_texto($valor, $sec['formatos'][$k] ?? 'texto', $torneo); ?>
-                    <td class="<?= $alinearDerecha($sec['formatos'][$k] ?? '') ? 'text-end' : '' ?> <?= $claseCelda($sec['columnas'][$k] ?? '', $texto) ?>"><?= e($texto) ?></td>
+                    <td data-orden="<?= e(is_float($valor) ? number_format($valor, 2, '.', '') : (string) $valor) ?>" class="<?= $alinearDerecha($sec['formatos'][$k] ?? '') ? 'text-end' : '' ?> <?= $claseCelda($sec['columnas'][$k] ?? '', $texto) ?>"><?= e($texto) ?></td>
                     <?php endforeach; ?>
                 </tr>
                 <?php endforeach; ?>

@@ -566,6 +566,10 @@ function db_migrar_automatico(): void
         $pdo->exec('ALTER TABLE torneos ADD COLUMN IF NOT EXISTS cerrado_en TIMESTAMP');
         $pdo->exec('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS torneos_creados INTEGER NOT NULL DEFAULT 0');
 
+        // Panel de usuarios: suspender cuentas y ver cuándo entró cada quien por última vez.
+        $pdo->exec('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS suspendido_en TIMESTAMP');
+        $pdo->exec('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ultimo_acceso TIMESTAMP');
+
         // Se limpian las marcas de versiones anteriores para que la sesión no acumule una
         // clave por cada cambio del archivo a lo largo de la vida del proyecto.
         foreach (array_keys($_SESSION) as $k) {

@@ -29,6 +29,10 @@ require_once __DIR__ . '/../app/Support/licencia.php';
 require_once __DIR__ . '/../app/Models/Sancion.php';
 require_once __DIR__ . '/../app/Models/Cuenta.php';
 require_once __DIR__ . '/../app/Support/reportes.php';
+require_once __DIR__ . '/../app/Support/usuarios_panel.php';
+if (!defined('LIMITE_TORNEOS_POR_DEFECTO')) {
+    define('LIMITE_TORNEOS_POR_DEFECTO', 1);
+}
 // licencia.php usa el correo de contacto en sus mensajes; vive en config.php, que aquí no se carga.
 if (!defined('CONTACTO_PLATAFORMA')) {
     define('CONTACTO_PLATAFORMA', 'contacto@prueba.test');
@@ -699,6 +703,32 @@ check('jugadores: tarjetas y multa pendiente del jugador', array_slice($rep['sec
 $hojasRep = reporte_hojas_excel(reporte_armar(reporte_filtros(['tipo' => 'tarjetas']), $datosRep), 'Q');
 check('excel: una hoja por sección', array_keys($hojasRep), ['Detalle de tarjetas', 'Resumen por equipo']);
 check('excel: la columna de dinero dice la moneda', $hojasRep['Detalle de tarjetas'][0][7], 'Multa (Q)');
+
+// ---------------------------------------------------------------------------
+echo "\n--- Panel de usuarios ---\n";
+$filasU = usuarios_panel_filas(
+    [
+        ['id' => 1, 'email' => 'Cliente@Gmail.com', 'limite_torneos' => 2, 'creado_en' => '2026-10-01'],
+        ['id' => 2, 'email' => 'nuevo@gmail.com', 'limite_torneos' => 1, 'creado_en' => '2026-11-01'],
+    ],
+    [
+        ['id' => 10, 'email' => 'cliente@gmail.com', 'nombre' => 'Ana', 'suspendido_en' => null, 'ultimo_acceso' => '2026-11-08 10:00:00', 'creado_en' => '2026-10-02'],
+        ['id' => 11, 'email' => 'boss@mj.com', 'nombre' => 'Jefe', 'suspendido_en' => '2026-11-01', 'ultimo_acceso' => null, 'creado_en' => '2026-01-01'],
+        ['id' => 12, 'email' => 'ayuda@gmail.com', 'nombre' => 'Beto', 'suspendido_en' => '2026-11-05', 'ultimo_acceso' => null, 'creado_en' => '2026-09-01'],
+    ],
+    [10 => [['id' => 1, 'nombre' => 'Copa A']]],
+    [10 => 2],
+    ['boss@mj.com']
+);
+$porCorreo = array_column($filasU, null, 'email');
+check('panel: un correo autorizado y su cuenta son UNA fila', count($filasU), 4);
+check('panel: el super-admin va primero', $filasU[0]['email'], 'boss@mj.com');
+check('panel: el super-admin no tiene límite ni se marca suspendido', [$porCorreo['boss@mj.com']['limite'], $porCorreo['boss@mj.com']['estado']], [null, USUARIO_ESTADO_ACTIVO]);
+check('panel: organizador con cupo y copas consumidas', [$porCorreo['cliente@gmail.com']['rol'], $porCorreo['cliente@gmail.com']['usadas'], $porCorreo['cliente@gmail.com']['limite']], [USUARIO_ROL_ORGANIZADOR, 2, 2]);
+check('panel: autorizado que no ha entrado = pendiente', $porCorreo['nuevo@gmail.com']['estado'], USUARIO_ESTADO_PENDIENTE);
+check('panel: cuenta fuera de la lista y sin copas = colaborador', $porCorreo['ayuda@gmail.com']['rol'], USUARIO_ROL_COLABORADOR);
+check('panel: cuenta suspendida', $porCorreo['ayuda@gmail.com']['estado'], USUARIO_ESTADO_SUSPENDIDO);
+check('panel: resumen', usuarios_panel_resumen($filasU), ['total' => 4, 'activos' => 2, 'suspendidos' => 1, 'pendientes' => 1, 'copas' => 1]);
 
 // ---------------------------------------------------------------------------
 echo "\n============================\n";
