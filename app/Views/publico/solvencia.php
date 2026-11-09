@@ -104,6 +104,7 @@
 <?php if ($hayControlDisciplinario): ?>
 <div class="solo-impresion ficha-imprimir">
     <div class="ficha-titulo">
+        <?= escudo_reporte($torneo) ?>
         <h2><?= e($torneo['nombre']) ?></h2>
         <p>Jugadores NO habilitados · Jornada <?= (int) $jornadaElegida ?></p>
     </div>

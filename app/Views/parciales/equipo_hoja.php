@@ -5,6 +5,7 @@
  */
 ?>
 <div class="ficha-titulo">
+    <?= escudo_reporte($torneo) ?>
     <h2><?= e($equipo['nombre']) ?></h2>
     <p>
         <?= e($torneo['nombre']) ?><?= !empty($torneo['temporada']) ? ' · Temporada ' . e($torneo['temporada']) : '' ?>

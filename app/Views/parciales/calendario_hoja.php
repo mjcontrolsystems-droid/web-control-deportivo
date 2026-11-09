@@ -9,6 +9,7 @@
  */
 ?>
 <div class="ficha-titulo">
+    <?= escudo_reporte($torneo) ?>
     <h2><?= e($torneo['nombre']) ?></h2>
     <p>
         Calendario de encuentros<?= !empty($torneo['temporada']) ? ' · Temporada ' . e($torneo['temporada']) : '' ?>

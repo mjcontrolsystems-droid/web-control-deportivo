@@ -445,6 +445,20 @@ function logo_torneo(?array $torneo, int $size = 42, string $clase = ''): string
 }
 
 /**
+ * Escudo de la copa para el encabezado de las hojas impresas (reportes, nómina,
+ * calendario, ficha del partido...). Solo el logo que subió el organizador: si no subió
+ * ninguno no se pinta nada (un balón genérico en un documento oficial se ve de relleno).
+ */
+function escudo_reporte(?array $torneo, int $size = 64): string
+{
+    if ($torneo === null || empty($torneo['logo'])) {
+        return '';
+    }
+    return '<img src="' . e(url_imagen((string) $torneo['logo'])) . '" alt="' . e($torneo['nombre'] ?? '') . '"'
+        . ' width="' . $size . '" height="' . $size . '" class="ficha-escudo">';
+}
+
+/**
  * Nombre del deporte para usar en párrafos genéricos (patrocinadores, etc.) que antes
  * asumían "basketball femenino" sin importar la copa/liga real. Cada deporte nuevo que
  * se agregue al catálogo (ver admin/torneos.php) debe sumarse aquí también.

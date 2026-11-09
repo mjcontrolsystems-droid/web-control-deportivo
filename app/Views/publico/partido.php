@@ -183,6 +183,7 @@ if (!function_exists('ficha_enlace_jugador')) {
       // de arbitraje lleno a mano: sin logos grandes ni fondo de color, solo los datos. ?>
 <div class="solo-impresion ficha-imprimir">
     <div class="ficha-titulo">
+        <?= escudo_reporte($torneo) ?>
         <h2><?= e($torneo['nombre']) ?></h2>
         <p>Ficha oficial de partido</p>
     </div>

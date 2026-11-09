@@ -29,6 +29,7 @@ require_once __DIR__ . '/../app/Support/licencia.php';
 require_once __DIR__ . '/../app/Models/Sancion.php';
 require_once __DIR__ . '/../app/Models/Cuenta.php';
 require_once __DIR__ . '/../app/Support/excel.php';
+require_once __DIR__ . '/../app/Support/upload.php';
 require_once __DIR__ . '/../app/Support/reportes.php';
 require_once __DIR__ . '/../app/Support/usuarios_panel.php';
 if (!defined('LIMITE_TORNEOS_POR_DEFECTO')) {
@@ -738,6 +739,33 @@ check('panel: autorizado que no ha entrado = pendiente', $porCorreo['nuevo@gmail
 check('panel: cuenta fuera de la lista y sin copas = colaborador', $porCorreo['ayuda@gmail.com']['rol'], USUARIO_ROL_COLABORADOR);
 check('panel: cuenta suspendida', $porCorreo['ayuda@gmail.com']['estado'], USUARIO_ESTADO_SUSPENDIDO);
 check('panel: resumen', usuarios_panel_resumen($filasU), ['total' => 4, 'activos' => 2, 'suspendidos' => 1, 'pendientes' => 1, 'copas' => 1]);
+
+// ---------------------------------------------------------------------------
+echo "\n--- Escudo sin fondo ---\n";
+if (function_exists('imagecreatetruecolor')) {
+    $png = function (bool $transparente): string {
+        $im = imagecreatetruecolor(100, 100);
+        imagesavealpha($im, true);
+        imagealphablending($im, false);
+        imagefill($im, 0, 0, $transparente ? imagecolorallocatealpha($im, 0, 0, 0, 127) : imagecolorallocate($im, 255, 255, 255));
+        imagefilledellipse($im, 50, 50, 70, 70, imagecolorallocate($im, 139, 47, 217)); // el "escudo"
+        ob_start(); imagepng($im); imagedestroy($im);
+        return (string) ob_get_clean();
+    };
+    $jpg = function (): string {
+        $im = imagecreatetruecolor(60, 60);
+        ob_start(); imagejpeg($im); imagedestroy($im);
+        return (string) ob_get_clean();
+    };
+    check('escudo PNG recortado (fondo transparente): sin fondo', imagen_tiene_fondo($png(true)), false);
+    check('escudo PNG con fondo blanco: tiene fondo', imagen_tiene_fondo($png(false)), true);
+    check('JPG: siempre tiene fondo', imagen_tiene_fondo($jpg()), true);
+    check('archivo que no es imagen: no se puede revisar', imagen_tiene_fondo('no soy una imagen'), null);
+    $optim = optimizar_imagen($png(true), 'image/png');
+    check('optimizar un PNG sin fondo NO le agrega fondo (bug de transparencia)', imagen_tiene_fondo($optim !== null ? $optim[0] : $png(true)), false);
+} else {
+    echo "  (GD no está instalado: se omiten las pruebas del escudo)\n";
+}
 
 // ---------------------------------------------------------------------------
 echo "\n============================\n";

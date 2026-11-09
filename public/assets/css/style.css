@@ -1185,6 +1185,8 @@ a.hero-stat:focus-visible {
    (.solo-pantalla) se oculta al imprimir y en su lugar se muestra un
    documento aparte (.solo-impresion) con formato de formulario oficial lleno. */
 .solo-impresion { display: none; }
+/* Escudo de la copa arriba del título de toda hoja impresa (ver escudo_reporte()). */
+.ficha-escudo { display: block; margin: 0 auto 6px; width: 64px; height: 64px; object-fit: contain; }
 
 /* Visor del reglamento en PDF: alto cómodo en escritorio y algo menor en teléfono,
    donde además muchos navegadores caen al contenido alternativo con los botones. */

@@ -15,6 +15,7 @@ $etRojaHoja = etiqueta_tr($torneo['deporte'] ?? null);
 $equipoDelReporte = $equipoFiltro > 0 ? ($equiposPorId[$equipoFiltro] ?? null) : null;
 ?>
 <div class="ficha-titulo">
+    <?= escudo_reporte($torneo) ?>
     <h2>Reporte de tarjetas<?= $equipoDelReporte !== null ? ' — ' . e($equipoDelReporte['nombre']) : '' ?></h2>
     <p>
         <?= e($torneo['nombre']) ?><?= !empty($torneo['temporada']) ? ' · Temporada ' . e($torneo['temporada']) : '' ?>

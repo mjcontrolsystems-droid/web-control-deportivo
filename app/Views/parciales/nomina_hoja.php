@@ -18,6 +18,7 @@ $modoHoja = $modoHoja ?? 'impresion';
 $linea = '<span style="display:inline-block;border-bottom:1px solid #000;min-width:160px;">&nbsp;</span>';
 ?>
 <div class="ficha-titulo">
+    <?= escudo_reporte($torneo) ?>
     <h2>Nómina de <?= e($equipo['nombre']) ?></h2>
     <p>
         <?= e($torneo['nombre']) ?><?= !empty($torneo['temporada']) ? ' · Temporada ' . e($torneo['temporada']) : '' ?>

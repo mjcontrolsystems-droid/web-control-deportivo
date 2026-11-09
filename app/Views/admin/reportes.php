@@ -145,6 +145,7 @@ $claseCelda = function (string $columna, string $texto): string {
 <?php // ---------- La hoja que sale en papel (o PDF) ---------- ?>
 <div class="solo-impresion ficha-imprimir">
     <div class="ficha-titulo">
+        <?= escudo_reporte($torneo) ?>
         <h2><?= e($reporte['titulo']) ?></h2>
         <p>
             <?= e($torneo['nombre']) ?><?= !empty($torneo['temporada']) ? ' · Temporada ' . e($torneo['temporada']) : '' ?>

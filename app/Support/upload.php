@@ -140,6 +140,11 @@ function optimizar_imagen(string $datos, string $mime, ?int $ladoMaximo = null):
     if ($origen === false) {
         return null;
     }
+    // Conservar la transparencia también cuando NO hay que reducir: sin esto, un PNG
+    // recortado (escudo sin fondo) se volvía a guardar con fondo negro o blanco. Antes
+    // solo se cuidaba en la rama de redimensionar.
+    imagealphablending($origen, false);
+    imagesavealpha($origen, true);
 
     $ancho = imagesx($origen);
     $alto = imagesy($origen);
@@ -232,3 +237,64 @@ function eliminar_imagen(?string $referencia): void
     $stmt->bindValue(':id', (int) $referencia, PDO::PARAM_INT);
     $stmt->execute();
 }
+
+/**
+ * ¿La imagen tiene fondo (no es transparente)? Sirve para pedirle al organizador que suba
+ * el escudo SIN fondo: un escudo con recuadro blanco se ve como una estampa pegada en el
+ * navbar oscuro, en el círculo del sitio y en el encabezado de los reportes.
+ *
+ * Se miran las cuatro esquinas y los puntos medios de los bordes: en un escudo recortado
+ * ahí no hay nada (transparente); si todos son opacos, tiene fondo. Un JPG nunca tiene
+ * transparencia, así que siempre tiene fondo.
+ *
+ * @return bool|null true = tiene fondo, false = sin fondo, null = no se pudo revisar
+ */
+function imagen_tiene_fondo(string $datos): ?bool
+{
+    if (!function_exists('imagecreatefromstring')) {
+        return null;
+    }
+    $img = @imagecreatefromstring($datos);
+    if ($img === false) {
+        return null;
+    }
+    $ancho = imagesx($img);
+    $alto = imagesy($img);
+    $puntos = [
+        [0, 0], [$ancho - 1, 0], [0, $alto - 1], [$ancho - 1, $alto - 1],
+        [intdiv($ancho, 2), 0], [intdiv($ancho, 2), $alto - 1], [0, intdiv($alto, 2)], [$ancho - 1, intdiv($alto, 2)],
+    ];
+    $transparentes = 0;
+    foreach ($puntos as [$x, $y]) {
+        $color = imagecolorat($img, $x, $y);
+        // alpha va de 0 (opaco) a 127 (transparente total)
+        $alpha = imageistruecolor($img) ? ($color >> 24) & 0x7F : (int) (imagecolorsforindex($img, $color)['alpha'] ?? 0);
+        if ($alpha >= 100) {
+            $transparentes++;
+        }
+    }
+    imagedestroy($img);
+
+    // Con la mitad de los bordes transparentes ya está recortado (un escudo puede tocar
+    // el borde en un par de puntos).
+    return $transparentes < 4;
+}
+
+/** Contenido binario de una imagen guardada, o null si no existe. */
+function imagen_datos(string $id): ?string
+{
+    if ($id === '' || !ctype_digit($id)) {
+        return null;
+    }
+    $stmt = db_conexion()->prepare('SELECT datos FROM imagenes WHERE id = :id');
+    $stmt->bindValue(':id', (int) $id, PDO::PARAM_INT);
+    $stmt->execute();
+    $datos = $stmt->fetchColumn();
+    if ($datos === false) {
+        return null;
+    }
+    return is_resource($datos) ? (string) stream_get_contents($datos) : (string) $datos;
+}
+
+/** Mensaje único para pedir el escudo sin fondo (formulario y aviso al guardar). */
+const MENSAJE_ESCUDO_SIN_FONDO = 'Tu escudo tiene fondo. Para que se vea limpio en el sitio y en los reportes impresos, súbelo SIN fondo: un PNG con fondo transparente. Puedes quitarle el fondo gratis en remove.bg o en Canva ("Quitar fondo").';

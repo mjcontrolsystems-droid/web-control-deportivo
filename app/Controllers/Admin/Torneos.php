@@ -142,6 +142,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'guard
     }
 
     if (empty($errores)) {
+        // ¿El escudo nuevo trae fondo? Se revisa antes de guardarlo (sobre el archivo tal
+        // como lo subió) para avisarle al organizador que lo suba sin fondo.
+        $logoConFondo = false;
+        if (!empty($_FILES['logo']['tmp_name']) && ($_FILES['logo']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+            $logoConFondo = imagen_tiene_fondo((string) @file_get_contents($_FILES['logo']['tmp_name'])) === true;
+        }
         try {
             $logoSubido = manejar_subida_imagen('logo');
             $reglamentoSubido = manejar_subida_pdf('reglamento');
@@ -240,6 +246,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'guard
         }
 
         $mensaje = $id ? 'Copa o liga actualizada correctamente.' : '¡Copa o liga creada! Ya puedes cargar sus equipos y encuentros.';
+        // Se guarda igual, pero se le pide que lo cambie por uno sin fondo.
+        if ($logoConFondo) {
+            redirigir_con_mensaje(url('admin/torneos.php?accion=editar&id=' . $idGuardado), 'warning', $mensaje . ' Ojo: ' . MENSAJE_ESCUDO_SIN_FONDO);
+        }
         if (!empty($avisoCuadro)) {
             redirigir_con_mensaje(url('admin/torneos.php'), 'error', $mensaje . ' Ojo: ' . $avisoCuadro);
         }
@@ -324,6 +334,9 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST') && ($_POST['accion'] ?? '') === 'reg
     }
 }
 
+// ¿El escudo que ya tiene la copa trae fondo? Se le avisa en el formulario hasta que lo cambie.
+$escudoConFondo = !empty($torneoEditar['logo']) && imagen_tiene_fondo((string) imagen_datos((string) $torneoEditar['logo'])) === true;
+
 // Una copa nueva creada desde la card de un deporte en "Mis copas" ya trae ese deporte.
 $deportePorDefecto = $torneoEditar['deporte'] ?? (isset(DEPORTES[$_GET['deporte'] ?? '']) ? (string) $_GET['deporte'] : 'basketball');
 $generoPorDefecto = $torneoEditar['genero'] ?? 'mixto';
@@ -343,6 +356,7 @@ vista_admin('admin/torneos', compact(
     'accion',
     'deportePorDefecto',
     'errores',
+    'escudoConFondo',
     'generoPorDefecto',
     'licenciaFormulario',
     'limiteTorneos',

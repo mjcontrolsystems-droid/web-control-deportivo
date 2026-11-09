@@ -417,9 +417,18 @@
 
             <div class="col-12">
                 <hr class="my-2">
-                <label class="form-label small fw-semibold">Logo de la copa o liga (opcional)</label>
-                <input type="file" name="logo" class="form-control" accept=".png,.jpg,.jpeg,.webp" data-vista-previa="previewLogoTorneo">
-                <div class="form-text">Se usará en el navbar, la portada y al compartir el enlace, en lugar del balón del deporte. PNG con fondo transparente se ve mejor.</div>
+                <label class="form-label small fw-semibold">Escudo o logo de la copa o liga (opcional)</label>
+                <input type="file" name="logo" class="form-control" accept=".png,.webp,.jpg,.jpeg" data-vista-previa="previewLogoTorneo">
+                <div class="form-text">
+                    <i class="bi bi-magic me-1"></i><strong>Súbelo sin fondo</strong> (PNG con fondo transparente). Sale en el sitio, al compartir el enlace y en el encabezado de todos los reportes impresos.
+                    Si tu escudo tiene fondo, quítaselo gratis en remove.bg o en Canva ("Quitar fondo").
+                </div>
+                <?php if (!empty($escudoConFondo)): ?>
+                <div class="alert alert-warning small py-2 mt-2 mb-0 d-flex gap-2 align-items-start">
+                    <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+                    <div><?= e(MENSAJE_ESCUDO_SIN_FONDO) ?></div>
+                </div>
+                <?php endif; ?>
                 <div class="vista-previa-subida mt-2" id="previewLogoTorneo" data-vacio="Aún no has subido un logo: se mostrará el balón del deporte.">
                     <?php if (!empty($torneoEditar['logo'])): ?>
                     <figure class="vista-previa-item mb-0">
