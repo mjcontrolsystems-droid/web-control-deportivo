@@ -272,10 +272,23 @@ function reporte_tarjetas(array $f, array $d): array
         array_push($pie, $tot['total'], $tot['pagada'], $tot['pendiente'], $tot['condonada']);
     }
 
+    // Totales del detalle: cuántas tarjetas y, si se cobran, la suma de las multas. Con el
+    // filtro "Multa pagada" esa suma es lo cobrado en el periodo.
+    $filasDetalle = array_column($detalle, 'fila');
+    $pieDetalle = null;
+    if (!empty($filasDetalle)) {
+        $pieDetalle = array_fill(0, count($columnas), null);
+        $pieDetalle[0] = 'TOTAL';
+        $pieDetalle[6] = count($filasDetalle) . (count($filasDetalle) === 1 ? ' tarjeta' : ' tarjetas');
+        if ($conMultas) {
+            $pieDetalle[7] = array_sum(array_map(fn($f) => (float) ($f[7] ?? 0), $filasDetalle));
+        }
+    }
+
     return [
         'titulo' => 'Reporte de tarjetas y multas',
         'secciones' => [
-            ['titulo' => 'Detalle de tarjetas', 'columnas' => $columnas, 'formatos' => $formatos, 'filas' => array_column($detalle, 'fila'), 'pie' => null],
+            ['titulo' => 'Detalle de tarjetas', 'columnas' => $columnas, 'formatos' => $formatos, 'filas' => $filasDetalle, 'pie' => $pieDetalle],
             ['titulo' => 'Resumen por equipo', 'columnas' => $colRes, 'formatos' => $fmtRes, 'filas' => $resumen, 'pie' => $resumen ? $pie : null],
         ],
     ];
@@ -458,7 +471,7 @@ function reporte_pagos(array $f, array $d): array
         'titulo' => 'Reporte de pagos y cuentas',
         'secciones' => [
             ['titulo' => 'Saldo por equipo', 'columnas' => ['Equipo', 'Cargos', 'Pagos', 'Saldo pendiente'], 'formatos' => ['texto', 'dinero', 'dinero', 'dinero'], 'filas' => $resumen, 'pie' => $resumen ? ['TOTAL', $tc, $tp, $tc - $tp] : null],
-            ['titulo' => 'Movimientos', 'columnas' => ['Fecha', 'Equipo', 'Movimiento', 'Concepto', 'Cargo', 'Pago', 'Nota'], 'formatos' => ['fecha', 'texto', 'texto', 'texto', 'dinero', 'dinero', 'texto'], 'filas' => $filas, 'pie' => null],
+            ['titulo' => 'Movimientos', 'columnas' => ['Fecha', 'Equipo', 'Movimiento', 'Concepto', 'Cargo', 'Pago', 'Nota'], 'formatos' => ['fecha', 'texto', 'texto', 'texto', 'dinero', 'dinero', 'texto'], 'filas' => $filas, 'pie' => $filas ? ['TOTAL', null, null, null, $tc, $tp, null] : null],
         ],
     ];
 }
@@ -536,9 +549,25 @@ function reporte_jugadores(array $f, array $d): array
             'columnas' => $columnas,
             'formatos' => $formatos,
             'filas' => $filas,
-            'pie' => null,
+            // Totales de la plantilla: goles, tarjetas y lo que se debe en multas.
+            'pie' => $filas ? reporte_pie_sumas($filas, $formatos, [4, 5, 6, 7]) : null,
         ]],
     ];
+}
+
+/** Fila de totales: 'TOTAL' en la primera columna y la suma de las columnas pedidas. */
+function reporte_pie_sumas(array $filas, array $formatos, array $columnasSumar): array
+{
+    $pie = array_fill(0, count($formatos), null);
+    $pie[0] = 'TOTAL';
+    foreach ($columnasSumar as $k) {
+        if (!isset($formatos[$k])) {
+            continue;
+        }
+        $suma = array_sum(array_map(fn($f) => $f[$k] ?? 0, $filas));
+        $pie[$k] = $formatos[$k] === 'dinero' ? (float) $suma : (int) $suma;
+    }
+    return $pie;
 }
 
 // --- Salidas ---------------------------------------------------------------
@@ -568,9 +597,21 @@ function reporte_hojas_excel(array $reporte, string $moneda): array
         foreach ($sec['columnas'] as $k => $col) {
             $encabezado[] = ($sec['formatos'][$k] ?? '') === 'dinero' ? $col . ' (' . $moneda . ')' : $col;
         }
-        $filas = array_merge([$encabezado], $sec['filas']);
+        $formatos = $sec['formatos'];
+        // Fechas reales (se ven dd/mm/aaaa y se pueden ordenar y filtrar en Excel) y montos
+        // con dos decimales. El resto va tal cual.
+        $filas = [$encabezado];
+        foreach ($sec['filas'] as $fila) {
+            $filas[] = array_map(fn($v, $k) => match ($formatos[$k] ?? 'texto') {
+                'fecha' => excel_celda($v, 'fecha'),
+                'dinero' => excel_celda($v, 'dinero'),
+                default => $v,
+            }, $fila, array_keys($fila));
+        }
         if (!empty($sec['pie'])) {
-            $filas[] = $sec['pie'];
+            $filas[] = array_map(fn($v, $k) => ($formatos[$k] ?? '') === 'dinero'
+                ? excel_celda($v, 'dinero_negrita')
+                : excel_celda($v, 'negrita'), $sec['pie'], array_keys($sec['pie']));
         }
         $nombre = mb_substr(preg_replace('/[\\\\\/\?\*\[\]:]/u', '', $sec['titulo']) ?: 'Hoja ' . ($i + 1), 0, 31);
         $hojas[$nombre] = $filas;

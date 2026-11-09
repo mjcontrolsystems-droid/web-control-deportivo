@@ -28,6 +28,7 @@ require_once __DIR__ . '/../app/Support/calendario.php';
 require_once __DIR__ . '/../app/Support/licencia.php';
 require_once __DIR__ . '/../app/Models/Sancion.php';
 require_once __DIR__ . '/../app/Models/Cuenta.php';
+require_once __DIR__ . '/../app/Support/excel.php';
 require_once __DIR__ . '/../app/Support/reportes.php';
 require_once __DIR__ . '/../app/Support/usuarios_panel.php';
 if (!defined('LIMITE_TORNEOS_POR_DEFECTO')) {
@@ -703,6 +704,14 @@ check('jugadores: tarjetas y multa pendiente del jugador', array_slice($rep['sec
 $hojasRep = reporte_hojas_excel(reporte_armar(reporte_filtros(['tipo' => 'tarjetas']), $datosRep), 'Q');
 check('excel: una hoja por sección', array_keys($hojasRep), ['Detalle de tarjetas', 'Resumen por equipo']);
 check('excel: la columna de dinero dice la moneda', $hojasRep['Detalle de tarjetas'][0][7], 'Multa (Q)');
+check('excel: la fecha va como fecha real (dd/mm/aaaa)', [$hojasRep['Detalle de tarjetas'][1][0]['estilo'], excel_serial_fecha('2026-10-04')], ['fecha', 46299]);
+check('excel: serial de una fecha conocida (01/01/2026)', excel_serial_fecha('2026-01-01'), 46023);
+$pieExcel = end($hojasRep['Detalle de tarjetas']);
+check('excel: el detalle de tarjetas trae fila TOTAL con la suma de multas', [$pieExcel[0]['v'], $pieExcel[6]['v'], $pieExcel[7]['v'], $pieExcel[7]['estilo']], ['TOTAL', '2 tarjetas', 75.0, 'dinero_negrita']);
+$repPagadas = reporte_armar(reporte_filtros(['tipo' => 'tarjetas', 'estado' => 'pagada']), $datosRep);
+check('total con filtro "pagada" = lo cobrado', $repPagadas['secciones'][0]['pie'][7], 25.0);
+$xmlHoja = excel_hoja_xml($hojasRep['Detalle de tarjetas']);
+check('excel: la hoja usa los estilos de fecha y dinero', [str_contains($xmlHoja, '<v>46299</v>'), str_contains($xmlHoja, 's="2"'), str_contains($xmlHoja, 's="4"')], [true, true, true]);
 
 // ---------------------------------------------------------------------------
 echo "\n--- Panel de usuarios ---\n";

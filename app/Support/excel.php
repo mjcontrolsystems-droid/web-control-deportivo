@@ -78,16 +78,23 @@ function excel_generar(array $hojas): string
 
     // Dos fuentes: normal y negrita para el encabezado. Excel exige que existan al menos
     // dos rellenos aunque no se usen; sin eso se queja de archivo dañado.
+    //
+    // Estilos de celda (el índice es el s="N" de cada celda, ver EXCEL_ESTILOS):
+    //   0 normal · 1 negrita · 2 fecha dd/mm/aaaa · 3 dinero 1,234.50 · 4 dinero en negrita
     $zip->addFromString('xl/styles.xml',
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         . '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+        . '<numFmts count="2"><numFmt numFmtId="164" formatCode="dd/mm/yyyy"/><numFmt numFmtId="165" formatCode="#,##0.00"/></numFmts>'
         . '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>'
         . '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'
         . '<borders count="1"><border/></borders>'
         . '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-        . '<cellXfs count="2">'
+        . '<cellXfs count="5">'
         . '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
         . '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>'
+        . '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'
+        . '<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'
+        . '<xf numFmtId="165" fontId="1" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/>'
         . '</cellXfs>'
         . '</styleSheet>'
     );
@@ -188,6 +195,33 @@ function excel_xml(string $texto): string
  * archivo pesa un poco más, pero se arma de un solo paso y sin llevar un diccionario
  * global, que es de donde salen la mayoría de los xlsx corruptos escritos a mano.
  */
+const EXCEL_ESTILOS = ['normal' => 0, 'negrita' => 1, 'fecha' => 2, 'dinero' => 3, 'dinero_negrita' => 4];
+
+/**
+ * Celda con formato, para pasarla en una fila en lugar del valor suelto:
+ *   excel_celda('2026-11-09', 'fecha')  → fecha real de Excel que se ve como 09/11/2026
+ *   excel_celda(75.5, 'dinero')         → número con formato 75.50 (se puede sumar)
+ *   excel_celda('TOTAL', 'negrita')
+ */
+function excel_celda(mixed $valor, string $estilo): array
+{
+    return ['__excel' => true, 'v' => $valor, 'estilo' => $estilo];
+}
+
+/**
+ * Número de serie de Excel para una fecha Y-m-d (días desde el 30/12/1899), o null si
+ * no es una fecha válida.
+ */
+function excel_serial_fecha(string $fecha): ?int
+{
+    $d = DateTimeImmutable::createFromFormat('!Y-m-d', substr($fecha, 0, 10), new DateTimeZone('UTC'));
+    if ($d === false) {
+        return null;
+    }
+    $base = new DateTimeImmutable('1899-12-30', new DateTimeZone('UTC'));
+    return (int) $base->diff($d)->format('%r%a');
+}
+
 function excel_hoja_xml(array $filas): string
 {
     $xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -200,6 +234,27 @@ function excel_hoja_xml(array $filas): string
 
         foreach (array_values((array) $fila) as $j => $valor) {
             $ref = excel_columna($j) . $numeroFila;
+
+            // Celda con formato (excel_celda): fecha real, dinero o negrita.
+            if (is_array($valor) && !empty($valor['__excel'])) {
+                $tipo = (string) $valor['estilo'];
+                $valor = $valor['v'];
+                if ($valor === null || $valor === '') {
+                    continue;
+                }
+                if ($tipo === 'fecha' && ($serial = excel_serial_fecha((string) $valor)) !== null) {
+                    $xml .= '<c r="' . $ref . '" s="' . EXCEL_ESTILOS['fecha'] . '"><v>' . $serial . '</v></c>';
+                    continue;
+                }
+                $s = ' s="' . (EXCEL_ESTILOS[$tipo] ?? 0) . '"';
+                if (is_int($valor) || is_float($valor)) {
+                    $xml .= '<c r="' . $ref . '"' . $s . '><v>' . $valor . '</v></c>';
+                } else {
+                    $xml .= '<c r="' . $ref . '" t="inlineStr"' . $s . '><is><t xml:space="preserve">'
+                        . excel_xml((string) $valor) . '</t></is></c>';
+                }
+                continue;
+            }
 
             if ($valor === null || $valor === '') {
                 continue;   // una celda vacía simplemente no se escribe
