@@ -17,6 +17,15 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/config/bootstrap.php';
 
+// IPs bloqueadas a mano por el super-admin (panel de Seguridad): se cortan aquí, antes
+// de tocar ninguna ruta. Si la consulta falla, deja pasar (ver seguridad_ip_bloqueada).
+if (seguridad_ip_bloqueada(obtener_ip_cliente())) {
+    seguridad_registrar('ip_bloqueada_manual', 'Petición rechazada');
+    http_response_code(403);
+    header('Content-Type: text/plain; charset=utf-8');
+    exit('Acceso bloqueado.');
+}
+
 $rutas = require RAIZ_APP . '/config/rutas.php';
 
 // --- 1. Ruta pedida, relativa a la raíz del sitio ---

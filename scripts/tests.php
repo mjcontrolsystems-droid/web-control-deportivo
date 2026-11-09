@@ -32,6 +32,7 @@ require_once __DIR__ . '/../app/Support/excel.php';
 require_once __DIR__ . '/../app/Support/upload.php';
 require_once __DIR__ . '/../app/Support/reportes.php';
 require_once __DIR__ . '/../app/Support/usuarios_panel.php';
+require_once __DIR__ . '/../app/Support/seguridad.php';
 if (!defined('LIMITE_TORNEOS_POR_DEFECTO')) {
     define('LIMITE_TORNEOS_POR_DEFECTO', 1);
 }
@@ -766,6 +767,30 @@ if (function_exists('imagecreatetruecolor')) {
 } else {
     echo "  (GD no está instalado: se omiten las pruebas del escudo)\n";
 }
+
+// ---------------------------------------------------------------------------
+echo "\n--- Seguridad ---\n";
+check('escaneo: /wp-admin', seguridad_es_escaneo('/wp-admin/setup-config.php'), true);
+check('escaneo: /.env', seguridad_es_escaneo('/.env'), true);
+check('escaneo: phpMyAdmin en mayúsculas', seguridad_es_escaneo('/phpMyAdmin/index.php'), true);
+check('escaneo: ruta codificada ..%2f', seguridad_es_escaneo('/copa/%2e%2e/%2e%2e/etc/passwd'), true);
+check('no es escaneo: página normal de una copa', seguridad_es_escaneo('/liga-municipal/tabla.php'), false);
+check('no es escaneo: enlace viejo roto', seguridad_es_escaneo('/liga-municipal/partido.php?id=999'), false);
+check('navegador: Chrome en Android', seguridad_navegador_corto('Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36'), 'Chrome · Android');
+check('navegador: curl es robot', seguridad_navegador_corto('curl/8.4.0'), 'Robot / script');
+check('filtros: periodo raro cae en 7 días e IP inválida se ignora', seguridad_filtros(['periodo' => 'x', 'ip' => '999.1.1.1']), ['periodo' => '7d', 'nivel' => '', 'tipo' => '', 'ip' => '']);
+$evs = [
+    ['tipo' => 'login_fallido', 'nivel' => SEG_AVISO, 'ip' => '1.1.1.1', 'usuario' => 'admin', 'creado_en' => '2026-11-09 10:00:00+00', 'user_agent' => 'curl/8'],
+    ['tipo' => 'login_fallido', 'nivel' => SEG_AVISO, 'ip' => '1.1.1.1', 'usuario' => 'root', 'creado_en' => '2026-11-09 10:00:05+00', 'user_agent' => 'curl/8'],
+    ['tipo' => 'login_bloqueado', 'nivel' => SEG_ALERTA, 'ip' => '1.1.1.1', 'usuario' => 'root', 'creado_en' => '2026-11-09 10:00:09+00', 'user_agent' => 'curl/8'],
+    ['tipo' => 'login_fallido', 'nivel' => SEG_AVISO, 'ip' => '2.2.2.2', 'usuario' => 'prueba', 'creado_en' => '2026-11-09 09:00:00+00', 'user_agent' => ''],
+    ['tipo' => 'login_ok', 'nivel' => SEG_INFO, 'ip' => '2.2.2.2', 'usuario' => 'prueba', 'creado_en' => '2026-11-09 09:00:30+00', 'user_agent' => ''],
+    ['tipo' => 'login_ok', 'nivel' => SEG_INFO, 'ip' => '3.3.3.3', 'usuario' => 'otro', 'creado_en' => '2026-11-09 08:00:00+00', 'user_agent' => ''],
+];
+$res = seguridad_resumen($evs);
+check('resumen: cifras', [$res['logins_ok'], $res['fallidos'], $res['alertas'], $res['ips']], [2, 3, 1, 3]);
+check('resumen: la IP del ataque va primero, con los usuarios que probó', [$res['sospechosas'][0]['ip'], $res['sospechosas'][0]['usuarios']], ['1.1.1.1', ['admin', 'root']]);
+check('resumen: una IP solo con logins exitosos no es sospechosa', count($res['sospechosas']), 2);
 
 // ---------------------------------------------------------------------------
 echo "\n============================\n";

@@ -6,6 +6,7 @@ declare(strict_types=1);
 // evitar que alguien intente adivinar códigos por fuerza bruta.
 $ip = obtener_ip_cliente();
 if (codigo_ip_bloqueada($ip)) {
+    seguridad_registrar('codigo_bloqueado', 'Demasiados códigos probados (posible fuerza bruta)', strtoupper(trim((string) ($_GET['c'] ?? ''))));
     redirigir_con_mensaje(url('/'), 'error', 'Demasiados intentos. Espera unos minutos antes de volver a intentar.');
 }
 codigo_registrar_intento($ip);

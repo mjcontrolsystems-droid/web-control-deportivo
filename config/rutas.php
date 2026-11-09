@@ -80,4 +80,6 @@ return [
     'admin/bitacora.php' => ['controlador' => 'Admin/Bitacora', 'copa' => false],
     'admin/perfil.php' => ['controlador' => 'Admin/Perfil', 'copa' => false],
     'admin/usuarios_autorizados.php' => ['controlador' => 'Admin/UsuariosAutorizados', 'copa' => false],
+    // Registro de seguridad (logins, bloqueos, robots) y bloqueo manual de IPs. Solo super-admin.
+    'admin/seguridad.php' => ['controlador' => 'Admin/Seguridad', 'copa' => false],
 ];

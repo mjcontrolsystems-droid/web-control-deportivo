@@ -394,3 +394,28 @@ ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS torneos_creados INTEGER NOT NULL D
 -- inicio de sesión, para ver en el panel quién está usando la plataforma.
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS suspendido_en TIMESTAMP;
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ultimo_acceso TIMESTAMP;
+
+-- --- Registro de seguridad (solo super-admin, ver app/Support/seguridad.php) ---
+-- Lo que pasa en la puerta: logins fallidos, IPs frenadas por fuerza bruta, correos de
+-- Google rechazados, tokens CSRF falsos, accesos denegados y robots escaneando rutas.
+-- Se guarda 90 días. ips_bloqueadas: IPs que el super-admin bloqueó a mano.
+CREATE TABLE IF NOT EXISTS seguridad_eventos (
+    id SERIAL PRIMARY KEY,
+    tipo TEXT NOT NULL,
+    nivel TEXT NOT NULL DEFAULT 'aviso',
+    ip TEXT NOT NULL DEFAULT '',
+    usuario TEXT NOT NULL DEFAULT '',
+    usuario_id INTEGER,
+    detalle TEXT NOT NULL DEFAULT '',
+    ruta TEXT NOT NULL DEFAULT '',
+    user_agent TEXT NOT NULL DEFAULT '',
+    creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_seguridad_fecha ON seguridad_eventos (creado_en);
+CREATE INDEX IF NOT EXISTS idx_seguridad_ip_tipo ON seguridad_eventos (ip, tipo, creado_en);
+CREATE TABLE IF NOT EXISTS ips_bloqueadas (
+    ip TEXT PRIMARY KEY,
+    motivo TEXT NOT NULL DEFAULT '',
+    bloqueada_por INTEGER,
+    creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
+);

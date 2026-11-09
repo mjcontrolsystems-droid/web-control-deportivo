@@ -39,6 +39,8 @@ const BITACORA_ETIQUETAS = [
     'licencia_actualizada' => ['Licencia actualizada', 'bi-calendar-range', 'secondary'],
     'usuario_suspendido' => ['Usuario suspendido', 'bi-person-slash', 'danger'],
     'usuario_reactivado' => ['Usuario reactivado', 'bi-person-check', 'success'],
+    'ip_bloqueada' => ['IP bloqueada', 'bi-slash-circle', 'danger'],
+    'ip_desbloqueada' => ['IP desbloqueada', 'bi-unlock', 'secondary'],
 ];
 
 $seccion_activa = 'bitacora';

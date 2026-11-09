@@ -11,6 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ip = obtener_ip_cliente();
 
     if (auth_ip_bloqueada($ip)) {
+        seguridad_registrar('login_bloqueado', 'Superó ' . LOGIN_MAX_INTENTOS . ' intentos en ' . LOGIN_VENTANA_SEGUNDOS . ' segundos', trim((string) ($_POST['usuario'] ?? '')));
         $error = 'Demasiados intentos. Espera un minuto antes de volver a intentar.';
     } else {
         auth_registrar_intento($ip);

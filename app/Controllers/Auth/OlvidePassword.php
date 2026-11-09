@@ -28,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // envía nada — pero la pantalla dice lo mismo en ambos casos, para no
             // revelar qué correos tienen cuenta (anti-enumeración).
             $token = password_reset_crear($email);
+            seguridad_registrar('recuperar_password', $token !== null ? 'Se envió el enlace' : 'El correo no tiene cuenta con contraseña (no se envió nada)', $email);
             if ($token !== null) {
                 correo_recuperar_password($email, SITE_ORIGIN . url('restablecer_password.php?token=' . $token));
             }

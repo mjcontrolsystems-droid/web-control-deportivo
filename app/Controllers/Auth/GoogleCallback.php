@@ -126,6 +126,7 @@ if ($cuenta === null) {
     // está en la lista blanca que administra el super-admin. No afecta a cuentas que
     // ya existían (esas entran por el bloque de arriba, sin pasar por aquí).
     if (!correo_autorizado($email)) {
+        seguridad_registrar('google_rechazado', 'Correo fuera de la lista de autorizados', $email);
         redirigir_con_mensaje(url('login.php'), 'error', 'Tu correo no está autorizado para crear una cuenta. Contacta al administrador.');
     }
 

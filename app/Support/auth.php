@@ -73,10 +73,15 @@ function auth_intentar_login(string $usuario, string $password): bool
 {
     $cuenta = usuarios_obtener_por_usuario($usuario);
     if ($cuenta === null) {
+        // Al visitante se le dice lo mismo en los dos casos (no se revela si el usuario
+        // existe); en el registro de seguridad sí se distingue, porque probar nombres de
+        // usuario al azar es la firma de un ataque.
+        seguridad_registrar('login_fallido', 'El usuario no existe', $usuario);
         return false;
     }
 
     if (!password_verify($password, (string) $cuenta['password_hash'])) {
+        seguridad_registrar('login_fallido', 'Contraseña incorrecta', $usuario, (int) $cuenta['id']);
         return false;
     }
 
@@ -97,6 +102,7 @@ function auth_iniciar_sesion_usuario(array $usuario): void
     // Trazabilidad de accesos en la bitácora (nunca falla la sesión por esto).
     bitacora_registrar('login', 'Sesión iniciada (' . ($usuario['email'] ?? $usuario['usuario']) . ')');
     usuario_registrar_acceso((int) $usuario['id']);
+    seguridad_registrar('login_ok', empty($usuario['password_hash']) ? 'Con Google' : 'Con usuario y contraseña', (string) ($usuario['email'] ?? $usuario['usuario']), (int) $usuario['id']);
 }
 
 function auth_logout(): void
@@ -126,6 +132,9 @@ function auth_requerir(): void
     // suspender surte efecto de inmediato. El super-admin nunca queda fuera.
     $cuenta = usuarios_obtener_por_id((int) ($_SESSION['usuario_id'] ?? 0));
     if ($cuenta === null || (!empty($cuenta['suspendido_en']) && !es_superadmin($cuenta))) {
+        if ($cuenta !== null) {
+            seguridad_registrar('cuenta_suspendida', 'Se le cerró la sesión', (string) $cuenta['email'], (int) $cuenta['id']);
+        }
         auth_logout();
         // Sesión nueva y con id nuevo solo para llevar el aviso al login: con el id viejo,
         // la cookie que auth_logout() acaba de borrar se llevaba el mensaje con ella.
@@ -279,6 +288,7 @@ function requerir_permiso(string $accion, ?array $torneo = null): void
     if (puede($accion, $torneo)) {
         return;
     }
+    seguridad_registrar('acceso_denegado', "Sin permiso de '{$accion}'", '', isset($_SESSION['usuario_id']) ? (int) $_SESSION['usuario_id'] : null);
 
     redirigir_con_mensaje(
         url('admin/index.php'),
@@ -389,6 +399,9 @@ function csrf_validar(): void
 {
     $token = $_POST['csrf_token'] ?? '';
     if (!is_string($token) || $token === '' || !hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
+        // Casi siempre es una pestaña vieja (la sesión expiró), pero un formulario enviado
+        // desde otro sitio también cae aquí: queda registrado para poder distinguirlo.
+        seguridad_registrar('csrf_invalido', $token === '' ? 'Formulario sin token' : 'Token que no corresponde a la sesión', '', isset($_SESSION['usuario_id']) ? (int) $_SESSION['usuario_id'] : null);
         http_response_code(403);
         exit('Token de seguridad inválido o expirado. Recarga la página e intenta de nuevo.');
     }

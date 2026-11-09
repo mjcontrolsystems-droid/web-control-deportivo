@@ -16,6 +16,7 @@ declare(strict_types=1);
 auth_requerir();
 $usuarioSesion = usuarios_obtener_por_id((int) $_SESSION['usuario_id']);
 if (!es_superadmin($usuarioSesion)) {
+    seguridad_registrar('acceso_denegado', 'Intentó abrir el panel de usuarios', (string) ($usuarioSesion['email'] ?? ''), (int) $_SESSION['usuario_id']);
     http_response_code(403);
     exit('No tienes permiso para ver esta página.');
 }

@@ -42,6 +42,7 @@ foreach ([
     'excel',    // generación de archivos .xlsx sin librerías externas
     'reportes', // reportes filtrables del panel (pantalla, impresión y Excel)
     'usuarios_panel', // panel de usuarios del super-admin (lista blanca + cuentas + copas)
+    'seguridad', // registro de seguridad: logins fallidos, bloqueos, robots (solo super-admin)
     'demo',     // copa de demostración de voleibol con datos inventados
 ] as $modulo) {
     require_once RAIZ_APP . '/app/Support/' . $modulo . '.php';
