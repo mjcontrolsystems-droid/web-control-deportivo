@@ -25,7 +25,7 @@ function nav_activa(string $clave, string $activa): string
     // Open Graph + Twitter Card: al compartir el enlace por WhatsApp, Instagram o
     // redes, se muestra una tarjeta con el nombre de la copa, descripción y logo en
     // vez de un link pelón — la primera impresión del torneo empieza en el chat.
-    $ogImagen = !empty($torneo['logo']) ? SITE_ORIGIN . url_imagen((string) $torneo['logo']) : SITE_ORIGIN . url('assets/img/logo.png');
+    $ogImagen = !empty($torneo['logo']) ? SITE_ORIGIN . url_imagen((string) $torneo['logo']) : SITE_ORIGIN . asset_url('assets/img/logo.png');
     ?>
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="<?= e($torneo['nombre'] ?? NOMBRE_PLATAFORMA) ?>">

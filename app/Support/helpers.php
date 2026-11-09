@@ -389,7 +389,9 @@ SVG;
  */
 function icono_multideporte(int $size = 24): string
 {
-    $src = e(url('assets/img/logo.png'));
+    // asset_url() le pone ?v=<fecha del archivo>: al cambiar el logo cambia la URL y el
+    // navegador ya no puede seguir mostrando el viejo que tenía guardado en caché.
+    $src = e(asset_url('assets/img/logo.png'));
     return "<img src=\"{$src}\" width=\"{$size}\" height=\"{$size}\" style=\"border-radius:50%;object-fit:cover;display:block;\" alt=\"\">";
 }
 
@@ -453,7 +455,7 @@ function logo_torneo(?array $torneo, int $size = 42, string $clase = ''): string
  */
 function etiquetas_icono_app(?array $torneo = null): string
 {
-    $html = '<link rel="icon" href="' . e(url('assets/img/app/favicon-32.png')) . '" type="image/png" sizes="32x32">' . "\n";
+    $html = '<link rel="icon" href="' . e(asset_url('assets/img/app/favicon-32.png')) . '" type="image/png" sizes="32x32">' . "\n";
     if ($torneo !== null && !empty($torneo['slug'])) {
         $v = rawurlencode((string) ($torneo['logo'] ?? '0'));
         // Siempre con el slug explícito (también en la copa predeterminada): las rutas de
@@ -463,8 +465,8 @@ function etiquetas_icono_app(?array $torneo = null): string
             . '    <link rel="manifest" href="' . e($base . 'manifest.php') . '">' . "\n"
             . '    <meta name="apple-mobile-web-app-title" content="' . e(mb_substr((string) $torneo['nombre'], 0, 30)) . '">' . "\n";
     } else {
-        $html .= '    <link rel="apple-touch-icon" sizes="180x180" href="' . e(url('assets/img/app/apple-touch-icon.png')) . '">' . "\n"
-            . '    <link rel="manifest" href="' . e(url('manifest.webmanifest')) . '">' . "\n"
+        $html .= '    <link rel="apple-touch-icon" sizes="180x180" href="' . e(asset_url('assets/img/app/apple-touch-icon.png')) . '">' . "\n"
+            . '    <link rel="manifest" href="' . e(asset_url('manifest.webmanifest')) . '">' . "\n"
             . '    <meta name="apple-mobile-web-app-title" content="' . e(NOMBRE_PLATAFORMA) . '">' . "\n";
     }
     return $html . '    <meta name="mobile-web-app-capable" content="yes">' . "\n"

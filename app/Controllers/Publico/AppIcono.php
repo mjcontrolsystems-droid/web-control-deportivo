@@ -64,7 +64,7 @@ if ($png === null) {
         $tam === 512 => 'icono-512.png',
         default => 'icono-192.png',
     };
-    header('Location: ' . url('assets/img/app/' . $archivo), true, 302);
+    header('Location: ' . asset_url('assets/img/app/' . $archivo), true, 302);
     exit;
 }
 
