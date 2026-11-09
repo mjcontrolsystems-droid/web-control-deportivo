@@ -2452,3 +2452,46 @@ main.flex-grow-1 {
 .verificacion-carnet__estado { border-radius: 16px; padding: 1rem; font-weight: 700; font-size: 1.15rem; }
 .verificacion-carnet__estado--ok { background: #d1f2df; color: #0f5132; }
 .verificacion-carnet__estado--no { background: #f8d7da; color: #842029; }
+
+/* ---------------------------------------------------------------------------
+   Portada de ControlDep: tipografía de marcador deportivo.
+   Barlow Condensed en cursiva y mayúsculas, como en los marcadores de las
+   transmisiones: la inclinación da sensación de movimiento. Solo en la portada de
+   la plataforma; las copas siguen con su tipografía.
+   --------------------------------------------------------------------------- */
+.portada-deportiva h1,
+.portada-deportiva h2,
+.portada-deportiva h5,
+.portada-deportiva .kicker,
+.portada-deportiva .eyebrow {
+    font-family: 'Barlow Condensed', 'Poppins', sans-serif;
+    text-transform: uppercase;
+}
+
+.hero-copa.portada-deportiva h1 {
+    font-style: italic;
+    font-weight: 800;
+    font-size: clamp(3rem, 7.2vw, 5.8rem);
+    line-height: .92;
+    letter-spacing: .005em;
+}
+
+.portada-deportiva h2 {
+    font-style: italic;
+    font-weight: 800;
+    font-size: clamp(2rem, 4vw, 2.9rem);
+    line-height: 1;
+}
+
+.portada-deportiva h5 {
+    font-weight: 700;
+    font-size: 1.45rem;
+    letter-spacing: .02em;
+}
+
+.portada-deportiva .kicker,
+.portada-deportiva .eyebrow {
+    font-weight: 700;
+    font-size: .95rem;
+    letter-spacing: .2em;
+}

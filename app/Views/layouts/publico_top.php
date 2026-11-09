@@ -40,7 +40,7 @@ function nav_activa(string $clave, string $activa): string
     <?php // La barra del navegador móvil toma el color de la copa (detalle de app nativa) ?>
     <meta name="theme-color" content="<?= e(color_hex_valido($torneo['color_primario'] ?? null, '#e8410c')) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&family=Barlow+Condensed:ital,wght@0,600;0,700;1,700;1,800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <link href="<?= asset_url('assets/css/style.css') ?>" rel="stylesheet">

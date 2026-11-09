@@ -1,4 +1,4 @@
-<header class="hero-copa">
+<header class="hero-copa portada-deportiva">
     <div class="container">
         <div class="row align-items-center gy-5">
             <div class="col-lg-7">
@@ -26,7 +26,7 @@
     </div>
 </header>
 
-<section class="seccion">
+<section class="seccion portada-deportiva">
     <div class="container">
         <div class="seccion-titulo mb-4 text-center">
             <p class="eyebrow mb-1">Cómo funciona</p>
