@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // Colores de la marca, para que SweetAlert2 no desentone con el resto del sitio.
-    var COLOR_ACCION = '#7b2ff7';
+    var COLOR_ACCION = '#e8410c';
     var COLOR_PELIGRO = '#e24b4a';
 
     // Si SweetAlert2 no cargó (CDN caído, sin conexión), se cae a los diálogos del
@@ -767,7 +767,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         text: url,
                         width: 180,
                         height: 180,
-                        colorDark: '#241a3a',
+                        colorDark: '#142033',
                         colorLight: '#ffffff',
                     });
                 }
@@ -958,8 +958,8 @@ document.addEventListener('DOMContentLoaded', function () {
             var tipoAviso = avisoCopa.getAttribute('data-tipo');
             var estilos = {
                 luto: { emoji: '🕊️', boton: '#495057', confirmar: 'Nuestro pesar los acompaña' },
-                celebracion: { emoji: '🎉', boton: '#7b2ff7', confirmar: '¡Felicidades!' },
-                informativo: { emoji: '📢', boton: '#7b2ff7', confirmar: 'Entendido' }
+                celebracion: { emoji: '🎉', boton: '#e8410c', confirmar: '¡Felicidades!' },
+                informativo: { emoji: '📢', boton: '#e8410c', confirmar: 'Entendido' }
             };
             var estilo = estilos[tipoAviso] || estilos.informativo;
             Swal.fire({

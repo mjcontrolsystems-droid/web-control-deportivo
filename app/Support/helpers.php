@@ -73,7 +73,7 @@ function siglas_de_equipo(string $nombre, string $manual = ''): string
  * Genera un escudo circular en SVG a partir de las siglas y colores del equipo.
  * Se usa como respaldo cuando el equipo no tiene un logo cargado.
  */
-function escudo_svg(string $nombre, string $color1 = '#7b2ff7', string $color2 = '#ff6b35', int $size = 96, string $siglas = ''): string
+function escudo_svg(string $nombre, string $color1 = '#e8410c', string $color2 = '#ffb300', int $size = 96, string $siglas = ''): string
 {
     $texto = siglas_de_equipo($nombre, $siglas);
     $iniciales = e($texto);
@@ -118,8 +118,8 @@ function logo_equipo(array $equipo, int $size = 96, string $clase = ''): string
         $alt = e($equipo['nombre'] ?? '');
         return "<img src=\"{$src}\" alt=\"{$alt}\" width=\"{$size}\" height=\"{$size}\" class=\"{$clase}\" style=\"object-fit:cover;border-radius:50%;\">";
     }
-    $c1 = $equipo['color_primario'] ?? '#7b2ff7';
-    $c2 = $equipo['color_secundario'] ?? '#ff6b35';
+    $c1 = $equipo['color_primario'] ?? '#e8410c';
+    $c2 = $equipo['color_secundario'] ?? '#ffb300';
     return "<span class=\"{$clase}\">" . escudo_svg($equipo['nombre'] ?? '?', $c1, $c2, $size, (string) ($equipo['siglas'] ?? '')) . '</span>';
 }
 
@@ -568,13 +568,13 @@ function color_hex_a_rgb(string $hex): string
 function torneo_variables_css(?array $torneo): string
 {
     // Contexto genérico (portada, login, listado de copas — sin copa activa): usa la
-    // paleta VIBRANTE de la marca (morado -> naranja del logo), no grises neutros. Los
+    // paleta VIBRANTE de ControlDep (rojo-naranja -> oro, sobre azul marino), no grises neutros. Los
     // grises pizarra que había antes apagaban toda la primera impresión del sitio:
     // botones, círculos de pasos y acentos se veían desteñidos. Cada copa sigue
     // pintándose con SUS propios colores cuando está activa.
-    $primario = color_hex_valido($torneo['color_primario'] ?? null, '#7b2ff7');
-    $secundario = color_hex_valido($torneo['color_secundario'] ?? null, '#ff6b35');
-    $acento = color_hex_valido($torneo['color_acento'] ?? null, '#ffc93c');
+    $primario = color_hex_valido($torneo['color_primario'] ?? null, '#e8410c');
+    $secundario = color_hex_valido($torneo['color_secundario'] ?? null, '#ffb300');
+    $acento = color_hex_valido($torneo['color_acento'] ?? null, '#ff7a00');
     $oscuro = color_oscurecer($primario, 0.35);
 
     $variables = [

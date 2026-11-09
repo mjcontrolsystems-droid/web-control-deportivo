@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Fondo: degradado oscuro con los colores de la copa
         var grad = ctx.createLinearGradient(0, 0, W, H);
         grad.addColorStop(0, '#171028');
-        grad.addColorStop(1, '#241a3a');
+        grad.addColorStop(1, '#142033');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, W, H);
 

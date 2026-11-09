@@ -3,8 +3,8 @@
  * Hoja de carnets. Página suelta (sin el menú del panel) porque su único destino es la
  * impresora: en pantalla se ve igual que en papel, con una barra arriba para imprimir.
  */
-$colorA = color_hex_valido($torneo['color_primario'] ?? null, '#7b2ff7');
-$colorB = color_hex_valido($torneo['color_secundario'] ?? null, '#ff6b35');
+$colorA = color_hex_valido($torneo['color_primario'] ?? null, '#e8410c');
+$colorB = color_hex_valido($torneo['color_secundario'] ?? null, '#ffb300');
 $temporada = trim((string) ($torneo['temporada'] ?? '')) ?: date('Y');
 ?>
 <!doctype html>

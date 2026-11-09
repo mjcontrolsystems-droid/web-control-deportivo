@@ -42,11 +42,11 @@
             </div>
             <div class="col-md-3">
                 <label class="form-label small fw-semibold">Color primario</label>
-                <input type="color" name="color_primario" class="form-control form-control-color w-100" value="<?= e($equipoEditar['color_primario'] ?? '#7b2ff7') ?>">
+                <input type="color" name="color_primario" class="form-control form-control-color w-100" value="<?= e($equipoEditar['color_primario'] ?? '#e8410c') ?>">
             </div>
             <div class="col-md-3">
                 <label class="form-label small fw-semibold">Color secundario</label>
-                <input type="color" name="color_secundario" class="form-control form-control-color w-100" value="<?= e($equipoEditar['color_secundario'] ?? '#ff6b35') ?>">
+                <input type="color" name="color_secundario" class="form-control form-control-color w-100" value="<?= e($equipoEditar['color_secundario'] ?? '#ffb300') ?>">
             </div>
             <div class="col-12">
                 <label class="form-label small fw-semibold">Descripción</label>

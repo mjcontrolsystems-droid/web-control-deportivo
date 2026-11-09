@@ -250,7 +250,7 @@
 <?php endif; ?>
 
 <!-- PARTIDOS -->
-<section class="seccion bg-white bg-opacity-50" style="background:#f4f0fb;">
+<section class="seccion bg-white bg-opacity-50" style="background:#eef2f7;">
     <div class="container">
         <div class="row gy-5">
             <div class="col-lg-6">

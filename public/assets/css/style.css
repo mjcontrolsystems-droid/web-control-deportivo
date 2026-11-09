@@ -5,27 +5,29 @@
 
 :root {
     /* Respaldo para el primer instante de carga (antes de que torneo_variables_css()
-       los sobreescriba): la paleta VIBRANTE de la marca (morado -> naranja del logo),
+       los sobreescriba): la paleta VIBRANTE de ControlDep (rojo-naranja -> oro, sobre azul marino),
        en sintonía con lo que inyecta el PHP para el contexto genérico. Cada copa
        activa sigue sobreescribiendo esto con sus propios colores. */
-    --color-primario: #7b2ff7;
-    --color-primario-oscuro: #501fa0;
-    --color-secundario: #ff6b35;
-    --color-acento: #ffc93c;
-    --color-rosa: #ffc93c;
-    --color-primario-rgb: 123, 47, 247;
-    --color-primario-oscuro-rgb: 80, 31, 160;
-    --color-secundario-rgb: 255, 107, 53;
-    --color-acento-rgb: 255, 201, 60;
-    --color-rosa-rgb: 255, 201, 60;
-    --color-noche: #120a24;
-    --color-noche-2: #1c0f38;
+    --color-primario: #e8410c;
+    --color-primario-oscuro: #a52a04;
+    --color-secundario: #ffb300;
+    --color-acento: #ff7a00;
+    --color-rosa: #ff7a00;
+    --color-primario-rgb: 232, 65, 12;
+    --color-primario-oscuro-rgb: 165, 42, 4;
+    --color-secundario-rgb: 255, 179, 0;
+    --color-acento-rgb: 255, 122, 0;
+    --color-rosa-rgb: 255, 122, 0;
+    --color-noche: #0a1628;
+    --color-noche-2: #10243f;
     --bs-body-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --sombra-suave: 0 10px 30px -12px rgba(var(--color-primario-oscuro-rgb), .35);
     --degradado-principal: linear-gradient(135deg, var(--color-primario) 0%, var(--color-rosa) 55%, var(--color-secundario) 100%);
-    --degradado-noche: radial-gradient(circle at 15% 20%, rgba(var(--color-secundario-rgb), .35), transparent 45%),
-        radial-gradient(circle at 85% 0%, rgba(var(--color-rosa-rgb), .35), transparent 40%),
-        radial-gradient(circle at 50% 100%, rgba(var(--color-primario-rgb), .5), transparent 55%),
+    /* Destellos de color sobre el azul noche, como luces de estadio. El tono más claro
+       (secundario) va bajito: un dorado fuerte sobre azul marino se veía verde oliva. */
+    --degradado-noche: radial-gradient(circle at 15% 20%, rgba(var(--color-primario-rgb), .30), transparent 45%),
+        radial-gradient(circle at 85% 0%, rgba(var(--color-secundario-rgb), .16), transparent 40%),
+        radial-gradient(circle at 50% 100%, rgba(var(--color-rosa-rgb), .38), transparent 55%),
         linear-gradient(160deg, var(--color-noche) 0%, var(--color-noche-2) 100%);
 }
 
@@ -34,8 +36,8 @@
 }
 
 body {
-    background-color: #f7f5fb;
-    color: #241a3a;
+    background-color: #f4f6fa;
+    color: #142033;
 }
 
 h1, h2, h3, h4, h5, h6, .fw-heading {
@@ -589,7 +591,7 @@ a.hero-stat:focus-visible {
     text-transform: uppercase;
     font-size: .72rem;
     letter-spacing: .07em;
-    color: #8b7fa8;
+    color: #7a8599;
     font-weight: 700;
     padding-bottom: .5rem;
 }
@@ -603,7 +605,7 @@ a.hero-stat:focus-visible {
 .tabla-posiciones tbody tr:hover {
     transform: translateY(-3px);
     box-shadow: 0 14px 28px -14px rgba(var(--color-primario-oscuro-rgb), .45);
-    background: #fbfaff;
+    background: #fafbfd;
 }
 
 .tabla-posiciones tbody tr td {
@@ -636,7 +638,7 @@ a.hero-stat:focus-visible {
     border-radius: 50%;
     font-weight: 800;
     font-size: .85rem;
-    background: #f1ecfb;
+    background: #eef2f8;
     color: var(--color-primario-oscuro);
 }
 
@@ -690,7 +692,7 @@ a.hero-stat:focus-visible {
         font-size: .7rem;
         text-transform: uppercase;
         letter-spacing: .06em;
-        color: #8b7fa8;
+        color: #7a8599;
         font-weight: 700;
     }
     .tabla-posiciones tbody tr td.td-equipo {
@@ -870,7 +872,7 @@ a.hero-stat:focus-visible {
 }
 
 .badge-jornada {
-    background: #f1ecfb;
+    background: #eef2f8;
     color: var(--color-primario-oscuro);
     font-weight: 700;
     border-radius: 999px;
@@ -909,12 +911,12 @@ a.hero-stat:focus-visible {
 
 .equipo-tile .ciudad {
     font-size: .78rem;
-    color: #8b7fa8;
+    color: #7a8599;
 }
 
 /* ---------- Carrusel de patrocinadores (marquee infinito) ---------- */
 .sponsors-section {
-    background: linear-gradient(180deg, #ffffff 0%, #f4f0fb 100%);
+    background: linear-gradient(180deg, #ffffff 0%, #eef2f7 100%);
 }
 
 .marquee-track-wrap {
@@ -1207,7 +1209,7 @@ a.hero-stat:focus-visible {
    documento para que lo que se ve antes de imprimir se parezca al papel. */
 .hoja-previa .ficha-titulo { text-align: center; margin-bottom: 1.2rem; }
 .hoja-previa .ficha-titulo h2 { font-size: 1.25rem; margin: 0; }
-.hoja-previa .ficha-titulo p { font-size: .85rem; color: #6b5e8f; margin: .2rem 0 0; }
+.hoja-previa .ficha-titulo p { font-size: .85rem; color: #5b6b82; margin: .2rem 0 0; }
 .hoja-previa h3 {
     font-size: .95rem;
     font-weight: 700;
@@ -1229,7 +1231,7 @@ a.hero-stat:focus-visible {
     font-size: .7rem;
     letter-spacing: .04em;
 }
-.hoja-previa .ficha-pie { margin-top: 1.2rem; font-size: .72rem; color: #8b7fa8; }
+.hoja-previa .ficha-pie { margin-top: 1.2rem; font-size: .72rem; color: #7a8599; }
 .hoja-previa .ficha-pie p { margin: 0; }
 
 /* Colores de estado en los documentos imprimibles (solvencia, nómina, reporte de
@@ -1374,7 +1376,7 @@ a.hero-stat:focus-visible {
     background:
         radial-gradient(circle at 15% 15%, rgba(var(--color-primario-rgb), .5), transparent 55%),
         radial-gradient(circle at 85% 85%, rgba(var(--color-secundario-rgb), .4), transparent 55%),
-        #120a24;
+        #0a1628;
     color: #fff;
     display: flex;
     align-items: center;
@@ -1781,7 +1783,7 @@ main.flex-grow-1 {
 /* Botones outline: borde más fino y hover que rellena suave con el color de
    la copa en vez del gris plano de Bootstrap. */
 .btn-outline-secondary {
-    --bs-btn-color: #5d5478;
+    --bs-btn-color: #4f5d73;
     --bs-btn-border-color: rgba(var(--color-primario-oscuro-rgb), .22);
     --bs-btn-hover-bg: rgba(var(--color-primario-rgb), .07);
     --bs-btn-hover-border-color: rgba(var(--color-primario-rgb), .45);
@@ -2227,7 +2229,7 @@ main.flex-grow-1 {
 }
 
 .tabla-posiciones.tabla-clasica tbody tr:hover,
-.tabla-posiciones.tabla-clasica tbody tr:hover .col-fija { background: #f7f4ff; }
+.tabla-posiciones.tabla-clasica tbody tr:hover .col-fija { background: #f3f6fb; }
 
 .tabla-posiciones.tabla-clasica tbody tr td,
 .tabla-posiciones.tabla-clasica tbody tr td:first-child,
@@ -2288,7 +2290,7 @@ main.flex-grow-1 {
     align-items: center;
     gap: .4rem 1.1rem;
     font-size: .82rem;
-    color: #6b5e8f;
+    color: #5b6b82;
 }
 
 @media (max-width: 767.98px) {

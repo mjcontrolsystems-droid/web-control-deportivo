@@ -12,9 +12,9 @@ CREATE TABLE IF NOT EXISTS torneos (
     descripcion TEXT NOT NULL DEFAULT '',
     sede_principal TEXT NOT NULL DEFAULT '',
     logo TEXT NOT NULL DEFAULT '',
-    color_primario TEXT NOT NULL DEFAULT '#8b2fd9',
-    color_secundario TEXT NOT NULL DEFAULT '#ff6b35',
-    color_acento TEXT NOT NULL DEFAULT '#ffc93c',
+    color_primario TEXT NOT NULL DEFAULT '#e8410c',
+    color_secundario TEXT NOT NULL DEFAULT '#ffb300',
+    color_acento TEXT NOT NULL DEFAULT '#ff7a00',
     fecha_inicio TEXT NOT NULL DEFAULT '',
     fecha_fin TEXT NOT NULL DEFAULT '',
     formato TEXT NOT NULL DEFAULT '',
@@ -64,8 +64,8 @@ CREATE TABLE IF NOT EXISTS equipos (
     sede TEXT NOT NULL DEFAULT '',
     entrenador TEXT NOT NULL DEFAULT '',
     fundacion TEXT NOT NULL DEFAULT '',
-    color_primario TEXT NOT NULL DEFAULT '#7b2ff7',
-    color_secundario TEXT NOT NULL DEFAULT '#ff6b35',
+    color_primario TEXT NOT NULL DEFAULT '#e8410c',
+    color_secundario TEXT NOT NULL DEFAULT '#ffb300',
     logo TEXT NOT NULL DEFAULT '',
     descripcion TEXT NOT NULL DEFAULT ''
 );

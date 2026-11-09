@@ -31,8 +31,8 @@ if ($mensaje === '') {
             color: #fff;
             text-align: center;
             background: linear-gradient(135deg,
-                <?= e(color_hex_valido($torneo['color_primario'] ?? null, '#241a3a')) ?>,
-                <?= e(color_hex_valido($torneo['color_secundario'] ?? null, '#7b2ff7')) ?>);
+                <?= e(color_hex_valido($torneo['color_primario'] ?? null, '#142033')) ?>,
+                <?= e(color_hex_valido($torneo['color_secundario'] ?? null, '#e8410c')) ?>);
         }
         .caja { max-width: 540px; }
         h1 { font-family: Poppins, sans-serif; font-size: 1.6rem; margin: 1.25rem 0 .75rem; }

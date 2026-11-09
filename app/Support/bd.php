@@ -592,6 +592,20 @@ function db_migrar_automatico(): void
             creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
         )");
 
+        // Paleta ControlDep (rojo-naranja, naranja y oro sobre azul marino): reemplaza al
+        // morado de antes. Las copas y equipos nuevos nacen con ella, y los que se quedaron
+        // con el morado POR DEFECTO (nadie lo eligió) pasan a la nueva. Los colores que un
+        // organizador escogió a mano no se tocan: solo cambia la combinación exacta vieja.
+        $pdo->exec("ALTER TABLE torneos ALTER COLUMN color_primario SET DEFAULT '#e8410c'");
+        $pdo->exec("ALTER TABLE torneos ALTER COLUMN color_secundario SET DEFAULT '#ffb300'");
+        $pdo->exec("ALTER TABLE torneos ALTER COLUMN color_acento SET DEFAULT '#ff7a00'");
+        $pdo->exec("ALTER TABLE equipos ALTER COLUMN color_primario SET DEFAULT '#e8410c'");
+        $pdo->exec("ALTER TABLE equipos ALTER COLUMN color_secundario SET DEFAULT '#ffb300'");
+        $pdo->exec("UPDATE torneos SET color_primario = '#e8410c', color_secundario = '#ffb300', color_acento = '#ff7a00'
+                    WHERE lower(color_primario) IN ('#7b2ff7', '#8b2fd9') AND lower(color_secundario) = '#ff6b35' AND lower(color_acento) = '#ffc93c'");
+        $pdo->exec("UPDATE equipos SET color_primario = '#e8410c', color_secundario = '#ffb300'
+                    WHERE lower(color_primario) IN ('#7b2ff7', '#8b2fd9') AND lower(color_secundario) = '#ff6b35'");
+
         // Se limpian las marcas de versiones anteriores para que la sesión no acumule una
         // clave por cada cambio del archivo a lo largo de la vida del proyecto.
         foreach (array_keys($_SESSION) as $k) {

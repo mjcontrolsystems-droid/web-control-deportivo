@@ -13,7 +13,7 @@
                             <?php if (!empty($equipo['logo'])): ?>
                                 <img src="<?= e(url_imagen((string) $equipo['logo'])) ?>" alt="<?= e($equipo['nombre']) ?>">
                             <?php else: ?>
-                                <?= escudo_svg($equipo['nombre'], $equipo['color_primario'] ?? '#7b2ff7', $equipo['color_secundario'] ?? '#ff6b35', 120, (string) ($equipo['siglas'] ?? '')) ?>
+                                <?= escudo_svg($equipo['nombre'], $equipo['color_primario'] ?? '#e8410c', $equipo['color_secundario'] ?? '#ffb300', 120, (string) ($equipo['siglas'] ?? '')) ?>
                             <?php endif; ?>
                         </div>
                     </div>

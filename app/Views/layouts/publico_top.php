@@ -38,7 +38,7 @@ function nav_activa(string $clave, string $activa): string
     <meta name="twitter:image" content="<?= e($ogImagen) ?>">
 
     <?php // La barra del navegador móvil toma el color de la copa (detalle de app nativa) ?>
-    <meta name="theme-color" content="<?= e(color_hex_valido($torneo['color_primario'] ?? null, '#7b2ff7')) ?>">
+    <meta name="theme-color" content="<?= e(color_hex_valido($torneo['color_primario'] ?? null, '#e8410c')) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -123,7 +123,7 @@ function nav_activa(string $clave, string $activa): string
       // superadmins. Sin esta franja no había forma de notar que estaba cerrado: uno abre
       // el sitio, lo ve normal, y concluye que el botón no sirvió. Pasó exactamente eso. ?>
 <?php if (torneo_en_mantenimiento($torneo ?? null)): ?>
-<div class="w-100 text-center py-2 px-3" style="background:#ffc93c;color:#3d2c00;font-weight:600;font-size:.9rem;position:relative;z-index:1080;">
+<div class="w-100 text-center py-2 px-3" style="background:#ff7a00;color:#3d2c00;font-weight:600;font-size:.9rem;position:relative;z-index:1080;">
     <i class="bi bi-cone-striped me-1"></i>
     Este sitio está <strong>cerrado al público</strong>. Lo estás viendo porque tienes tu sesión abierta.
     <a href="<?= url('admin/index.php') ?>" class="ms-2 text-decoration-underline" style="color:#3d2c00;">Reabrirlo</a>

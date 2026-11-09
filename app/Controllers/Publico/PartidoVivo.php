@@ -40,8 +40,8 @@ $textoGol = match (deporte_clave($deporte)) {
 $textoAmarilla = mb_strtoupper(etiqueta_falta_leve($deporte));
 $textoRoja = mb_strtoupper(etiqueta_falta_grave($deporte));
 $textoCambio = 'CAMBIO';
-$colorLocal = color_hex_valido($local['color_primario'] ?? null, '#7b2ff7');
-$colorVisit = color_hex_valido($visit['color_primario'] ?? null, '#ff6b35');
+$colorLocal = color_hex_valido($local['color_primario'] ?? null, '#e8410c');
+$colorVisit = color_hex_valido($visit['color_primario'] ?? null, '#ffb300');
 
 // El encuentro ya terminó: la página deja de anunciarse como "En vivo" y muestra el cartel
 // de FINAL con el resultado. Si el organizador lo finaliza mientras alguien tiene la página

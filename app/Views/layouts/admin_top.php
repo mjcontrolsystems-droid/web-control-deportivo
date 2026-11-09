@@ -107,7 +107,7 @@ function admin_tarjeta_usuario(array $usuario): string
     <?= etiquetas_icono_app() ?>
     <?= torneo_variables_css($torneoActivo) ?>
 </head>
-<body style="background:#f7f5fb;">
+<body style="background:#f4f6fa;">
 <div class="d-flex">
     <aside class="sidebar-admin d-none d-lg-flex flex-column p-3" style="width:270px;flex-shrink:0;">
         <a href="<?= url('admin/index.php') ?>" class="d-flex align-items-center gap-2 text-decoration-none text-white mb-3 px-2 pt-2">

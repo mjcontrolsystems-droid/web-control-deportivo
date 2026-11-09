@@ -6,9 +6,9 @@
 <?php // El enlace recién copiado. Se muestra grande porque es lo que la persona vino a
       // hacer: sacarlo de aquí y pegarlo en el chat de la liga. ?>
 <?php if ($enlaceInvitacion !== null): ?>
-<div class="card-suave p-4 mb-4" style="border:2px solid var(--color-primario,#7b2ff7);">
+<div class="card-suave p-4 mb-4" style="border:2px solid var(--color-primario,#e8410c);">
     <div class="d-flex align-items-start gap-3">
-        <i class="bi bi-link-45deg fs-3" style="color:var(--color-primario,#7b2ff7);"></i>
+        <i class="bi bi-link-45deg fs-3" style="color:var(--color-primario,#e8410c);"></i>
         <div class="flex-grow-1" style="min-width:0;">
             <h6 class="mb-1">Enlace de invitación para <?= e($enlaceInvitacion['email']) ?></h6>
             <p class="small text-muted mb-2">

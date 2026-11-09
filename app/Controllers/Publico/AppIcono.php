@@ -31,7 +31,7 @@ if ($esManifest) {
         'scope' => $base,
         'display' => 'standalone',
         'background_color' => '#ffffff',
-        'theme_color' => color_hex_valido($torneo['color_primario'] ?? null, '#7b2ff7'),
+        'theme_color' => color_hex_valido($torneo['color_primario'] ?? null, '#e8410c'),
         'lang' => 'es',
         'icons' => [
             ['src' => $icono(192), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],

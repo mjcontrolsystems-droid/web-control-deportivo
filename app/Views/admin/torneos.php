@@ -376,15 +376,15 @@
             </div>
             <div class="col-md-4">
                 <label class="form-label small fw-semibold">Color primario</label>
-                <input type="color" name="color_primario" class="form-control form-control-color w-100" value="<?= e($torneoEditar['color_primario'] ?? '#7b2ff7') ?>">
+                <input type="color" name="color_primario" class="form-control form-control-color w-100" value="<?= e($torneoEditar['color_primario'] ?? '#e8410c') ?>">
             </div>
             <div class="col-md-4">
                 <label class="form-label small fw-semibold">Color secundario</label>
-                <input type="color" name="color_secundario" class="form-control form-control-color w-100" value="<?= e($torneoEditar['color_secundario'] ?? '#ff6b35') ?>">
+                <input type="color" name="color_secundario" class="form-control form-control-color w-100" value="<?= e($torneoEditar['color_secundario'] ?? '#ffb300') ?>">
             </div>
             <div class="col-md-4">
                 <label class="form-label small fw-semibold">Color acento</label>
-                <input type="color" name="color_acento" class="form-control form-control-color w-100" value="<?= e($torneoEditar['color_acento'] ?? '#ffc93c') ?>">
+                <input type="color" name="color_acento" class="form-control form-control-color w-100" value="<?= e($torneoEditar['color_acento'] ?? '#ff7a00') ?>">
             </div>
             <?php // --- Reglamento del campeonato en PDF ---
                   // Se muestra en el sitio público para que jugadores y equipos lo

@@ -13,14 +13,14 @@
         <div id="datosPodio"
             data-torneo="<?= e($torneo['nombre']) ?>"
             data-temporada="<?= e($torneo['temporada']) ?>"
-            data-color1="<?= e(color_hex_valido($torneo['color_primario'] ?? null, '#241a3a')) ?>"
-            data-color2="<?= e(color_hex_valido($torneo['color_acento'] ?? null, '#7b2ff7')) ?>"
+            data-color1="<?= e(color_hex_valido($torneo['color_primario'] ?? null, '#142033')) ?>"
+            data-color2="<?= e(color_hex_valido($torneo['color_acento'] ?? null, '#e8410c')) ?>"
             data-titulo1="<?= e(podio_titulo(1, $torneo['genero'] ?? null)) ?>"
             data-titulo2="<?= e(podio_titulo(2, $torneo['genero'] ?? null)) ?>"
             data-titulo3="<?= e(podio_titulo(3, $torneo['genero'] ?? null)) ?>"
             <?php foreach (['campeon' => 1, 'subcampeon' => 2, 'tercero' => 3] as $clave => $puesto): ?>
             data-eq<?= $puesto ?>-nombre="<?= e($podio[$clave]['nombre'] ?? '') ?>"
-            data-eq<?= $puesto ?>-color="<?= e(color_hex_valido($podio[$clave]['color_primario'] ?? null, '#7b2ff7')) ?>"
+            data-eq<?= $puesto ?>-color="<?= e(color_hex_valido($podio[$clave]['color_primario'] ?? null, '#e8410c')) ?>"
             data-eq<?= $puesto ?>-logo="<?= !empty($podio[$clave]['logo']) ? e(url_imagen((string) $podio[$clave]['logo'])) : '' ?>"
             <?php endforeach; ?>
             >

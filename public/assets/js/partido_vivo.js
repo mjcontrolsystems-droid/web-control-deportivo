@@ -22,7 +22,7 @@
     // assets/css/style.css (.banner-evento-<tipo>). "cambio" es deliberadamente más
     // discreto (menos partículas) que un gol o una tarjeta.
     var reaccionesPorTipo = {
-        gol: { colores: ['#7b2ff7', '#ff6b35', '#22d3ee', '#facc15', '#f472b6', '#4ade80'], cantidad: 160, forma: 'rect' },
+        gol: { colores: ['#e8410c', '#ffb300', '#22d3ee', '#facc15', '#f472b6', '#4ade80'], cantidad: 160, forma: 'rect' },
         amarilla: { colores: ['#facc15', '#fde047', '#eab308'], cantidad: 80, forma: 'rect' },
         roja: { colores: ['#f87171', '#ef4444', '#b91c1c'], cantidad: 80, forma: 'rect' },
         cambio: { colores: ['#38bdf8', '#0ea5e9', '#7dd3fc'], cantidad: 50, forma: 'circle' },

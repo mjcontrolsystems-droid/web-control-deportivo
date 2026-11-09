@@ -77,8 +77,8 @@ document.addEventListener('DOMContentLoaded', function () {
     Promise.all(puestos.map(function (p) { return cargarImagen(d['eq' + p.n + 'Logo']); })).then(function (imgs) {
         // Fondo con el degradado de la copa
         var grad = ctx.createLinearGradient(0, 0, W, H);
-        grad.addColorStop(0, d.color1 || '#241a3a');
-        grad.addColorStop(1, d.color2 || '#7b2ff7');
+        grad.addColorStop(0, d.color1 || '#142033');
+        grad.addColorStop(1, d.color2 || '#e8410c');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, W, H);
 
@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var nombre = d['eq' + p.n + 'Nombre'];
             if (!nombre) { return; }
 
-            dibujarLogo(imgs[i], p.x, p.yLogo, p.radio, d['eq' + p.n + 'Color'] || '#7b2ff7', nombre);
+            dibujarLogo(imgs[i], p.x, p.yLogo, p.radio, d['eq' + p.n + 'Color'] || '#e8410c', nombre);
 
             // Medalla justo encima del logo
             ctx.font = Math.round(p.radio * 0.62) + 'px Arial, sans-serif';

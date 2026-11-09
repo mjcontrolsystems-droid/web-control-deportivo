@@ -28,7 +28,7 @@ $compartirDescripcion = isset($compartir_url)
             <div class="modal-body pt-2 text-center">
                 <p class="fw-semibold mb-1"><?= e($compartirTitulo) ?></p>
                 <p class="text-muted small mb-3"><?= e($compartirDescripcion) ?></p>
-                <div id="qrCompartir" class="d-flex justify-content-center align-items-center mx-auto mb-3" style="width:200px;height:200px;background:#fff;border-radius:16px;border:1px solid rgba(123,47,247,.12);"></div>
+                <div id="qrCompartir" class="d-flex justify-content-center align-items-center mx-auto mb-3" style="width:200px;height:200px;background:#fff;border-radius:16px;border:1px solid rgba(232,65,12,.12);"></div>
                 <div class="input-group">
                     <input type="text" id="inputEnlaceCompartir" class="form-control" readonly>
                     <button class="btn btn-degradado" type="button" id="btnCopiarEnlace"><i class="bi bi-clipboard me-1"></i>Copiar</button>

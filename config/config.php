@@ -177,7 +177,7 @@ set_exception_handler(function (Throwable $e): void {
         . 'font-family:Inter,system-ui,-apple-system,sans-serif;background:#f6f4fb;color:#241a3a;padding:2rem;}'
         . '.caja{text-align:center;max-width:760px;}'
         . 'h1{font-size:1.4rem;margin:0 0 .5rem;}p.msg{color:#5f5e6a;margin:0 0 1.5rem;}'
-        . 'a.btn{display:inline-block;background:#7b2ff7;color:#fff;text-decoration:none;'
+        . 'a.btn{display:inline-block;background:#e8410c;color:#fff;text-decoration:none;'
         . 'padding:.6rem 1.4rem;border-radius:999px;font-weight:600;}</style></head><body>'
         . '<div class="caja">'
         . '<div style="font-size:3rem;line-height:1;margin-bottom:.5rem;">⚠️</div>'

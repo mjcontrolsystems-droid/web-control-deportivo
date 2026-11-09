@@ -6,7 +6,7 @@
     <title>Copa o liga no encontrada</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body style="background:#120a24;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;">
+<body style="background:#0a1628;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;">
     <div class="p-4">
         <div style="font-size:3rem;">🏆</div>
         <h1 class="mb-3">Copa o liga no encontrada</h1>

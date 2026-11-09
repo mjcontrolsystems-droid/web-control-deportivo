@@ -132,17 +132,17 @@ function correo_plantilla(string $titulo, string $cuerpoHtml, string $botonTexto
     if ($botonTexto !== '' && $botonUrl !== '') {
         $urlSegura = htmlspecialchars($botonUrl, ENT_QUOTES, 'UTF-8');
         $textoSeguro = htmlspecialchars($botonTexto, ENT_QUOTES, 'UTF-8');
-        $boton = '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px auto 8px;"><tr><td style="border-radius:999px;background:linear-gradient(135deg,#7b2ff7,#ff6b35);">'
+        $boton = '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px auto 8px;"><tr><td style="border-radius:999px;background:linear-gradient(135deg,#e8410c,#ffb300);">'
             . '<a href="' . $urlSegura . '" style="display:inline-block;padding:13px 34px;color:#ffffff;text-decoration:none;font-weight:700;font-family:Arial,sans-serif;font-size:15px;">' . $textoSeguro . '</a>'
             . '</td></tr></table>';
     }
 
     $tituloSeguro = htmlspecialchars($titulo, ENT_QUOTES, 'UTF-8');
 
-    return '<!doctype html><html><body style="margin:0;padding:0;background:#f4f0fb;">'
-        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f0fb;padding:32px 12px;"><tr><td align="center">'
+    return '<!doctype html><html><body style="margin:0;padding:0;background:#eef2f7;">'
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef2f7;padding:32px 12px;"><tr><td align="center">'
         . '<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:18px;overflow:hidden;">'
-        . '<tr><td style="background:linear-gradient(135deg,#241a3a,#3d2c63);padding:26px 32px;">'
+        . '<tr><td style="background:linear-gradient(135deg,#142033,#3d2c63);padding:26px 32px;">'
         . '<p style="margin:0;color:#ffffff;font-family:Arial,sans-serif;font-size:19px;font-weight:700;">' . $tituloSeguro . '</p>'
         . '</td></tr>'
         . '<tr><td style="padding:30px 32px;font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#3a3357;">'
@@ -150,7 +150,7 @@ function correo_plantilla(string $titulo, string $cuerpoHtml, string $botonTexto
         . $boton
         . '</td></tr>'
         . '<tr><td style="padding:18px 32px;border-top:1px solid #eee9f7;">'
-        . '<p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#8b7fa8;">MJ Control Systems · Plataformas web inteligentes, control total de tu negocio.</p>'
+        . '<p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#7a8599;">MJ Control Systems · Plataformas web inteligentes, control total de tu negocio.</p>'
         . '</td></tr>'
         . '</table></td></tr></table></body></html>';
 }
