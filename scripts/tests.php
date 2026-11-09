@@ -26,6 +26,9 @@ require_once __DIR__ . '/../app/Models/Jugador.php';
 require_once __DIR__ . '/../app/Support/fixture.php';
 require_once __DIR__ . '/../app/Support/calendario.php';
 require_once __DIR__ . '/../app/Support/licencia.php';
+require_once __DIR__ . '/../app/Models/Sancion.php';
+require_once __DIR__ . '/../app/Models/Cuenta.php';
+require_once __DIR__ . '/../app/Support/reportes.php';
 // licencia.php usa el correo de contacto en sus mensajes; vive en config.php, que aquí no se carga.
 if (!defined('CONTACTO_PLATAFORMA')) {
     define('CONTACTO_PLATAFORMA', 'contacto@prueba.test');
@@ -645,6 +648,57 @@ check('fecha de fin más allá de la licencia: error', licencia_validar_fecha_fi
 check('sin licencia no hay tope de fecha de fin', licencia_validar_fecha_fin('2030-01-01', null), '');
 check('fecha de fin vacía no se valida', licencia_validar_fecha_fin('', '2026-12-31'), '');
 check('fecha legible', licencia_fecha_legible('2026-12-13 20:00:00'), '13/12/2026');
+
+// ---------------------------------------------------------------------------
+echo "\n--- Reportes ---\n";
+$f = reporte_filtros(['tipo' => 'inventado', 'desde' => '2026-12-31', 'hasta' => '2026-01-01', 'estado' => 'raro', 'equipo_id' => '-3']);
+check('tipo desconocido cae en tarjetas', $f['tipo'], 'tarjetas');
+check('fechas al revés se voltean', [$f['desde'], $f['hasta']], ['2026-01-01', '2026-12-31']);
+check('estado que no existe se ignora', $f['estado'], '');
+check('equipo negativo queda en 0 (todos)', $f['equipo_id'], 0);
+check('fecha mal escrita se descarta', reporte_filtros(['desde' => '31/12/2026'])['desde'], '');
+check('en rango', reporte_en_rango('2026-11-07', '2026-11-01', '2026-11-30'), true);
+check('fuera de rango', reporte_en_rango('2026-12-01', '2026-11-01', '2026-11-30'), false);
+check('sin rango todo entra', reporte_en_rango('', '', ''), true);
+check('con rango, fecha vacía (sin pagar) no entra', reporte_en_rango('', '2026-11-01', ''), false);
+check('pago 01:30 UTC es el día anterior en Guatemala', reporte_fecha_local('2026-11-08 01:30:00+00'), '2026-11-07');
+
+$datosRep = [
+    'torneo' => ['deporte' => 'futbol', 'multa_amarilla' => 25, 'multa_roja' => 50, 'moneda' => 'Q'],
+    'equipos' => [1 => ['id' => 1, 'nombre' => 'Norte'], 2 => ['id' => 2, 'nombre' => 'Sur']],
+    'partidos' => [10 => ['id' => 10, 'jornada' => 1, 'fecha' => '2026-10-04', 'hora' => '08:00', 'equipo_local' => 1, 'equipo_visitante' => 2, 'estado' => 'jugado', 'marcador_local' => 2, 'marcador_visitante' => 1, 'fase' => 'grupos']],
+    'jugadores' => [5 => ['id' => 5, 'equipo_id' => 2, 'dorsal' => '9', 'nombre' => 'Pérez', 'activo' => true], 6 => ['id' => 6, 'equipo_id' => 1, 'dorsal' => '10', 'nombre' => 'López', 'activo' => true]],
+    'eventos' => [
+        ['id' => 100, 'partido_id' => 10, 'tipo' => 'amarilla', 'equipo_id' => 2, 'jugador_id' => 5],
+        ['id' => 101, 'partido_id' => 10, 'tipo' => 'roja', 'equipo_id' => 2, 'jugador_id' => 5],
+        ['id' => 102, 'partido_id' => 10, 'tipo' => 'gol', 'equipo_id' => 1, 'jugador_id' => 6, 'minuto' => 20, 'tipo_gol' => 'jugada'],
+        ['id' => 103, 'partido_id' => 10, 'tipo' => 'gol', 'equipo_id' => 2, 'jugador_id' => 5, 'minuto' => 30, 'tipo_gol' => 'autogol'],
+    ],
+    'sanciones' => [
+        ['evento_id' => 100, 'jugador_id' => 5, 'monto' => 25.0, 'estado' => 'pagada', 'cobrada_en' => '2026-10-10 15:00:00+00', 'nota' => ''],
+        ['evento_id' => 101, 'jugador_id' => 5, 'monto' => 50.0, 'estado' => 'pendiente', 'cobrada_en' => null, 'nota' => ''],
+    ],
+    'movimientos' => [],
+];
+$rep = reporte_armar(reporte_filtros(['tipo' => 'tarjetas']), $datosRep);
+check('tarjetas: dos en el detalle', count($rep['secciones'][0]['filas']), 2);
+check('tarjetas: la pagada lleva su fecha de pago', $rep['secciones'][0]['filas'][0][9], '2026-10-10');
+check('tarjetas: totales del resumen (multas, pagado, pendiente)', array_slice($rep['secciones'][1]['pie'], 4, 3), [75.0, 25.0, 50.0]);
+$rep = reporte_armar(reporte_filtros(['tipo' => 'tarjetas', 'fecha_por' => 'pago', 'desde' => '2026-10-10', 'hasta' => '2026-10-10']), $datosRep);
+check('tarjetas por fecha de pago: solo la que se pagó ese día', count($rep['secciones'][0]['filas']), 1);
+$rep = reporte_armar(reporte_filtros(['tipo' => 'tarjetas', 'estado' => 'pendiente']), $datosRep);
+check('tarjetas: filtro de multa pendiente', $rep['secciones'][0]['filas'][0][6], 'TR');
+$rep = reporte_armar(reporte_filtros(['tipo' => 'goles']), $datosRep);
+check('goles: el autogol no entra en goleadores', count($rep['secciones'][0]['filas']), 1);
+check('goles: pero sí sale en el detalle', count($rep['secciones'][2]['filas']), 2);
+check('goles: por equipo no cuenta el autogol', $rep['secciones'][1]['pie'], ['TOTAL', 1]);
+$rep = reporte_armar(reporte_filtros(['tipo' => 'resultados', 'equipo_id' => 2]), $datosRep);
+check('resultados: el equipo visitante también ve su partido', $rep['secciones'][0]['filas'][0][6], '2 - 1');
+$rep = reporte_armar(reporte_filtros(['tipo' => 'jugadores', 'equipo_id' => 2]), $datosRep);
+check('jugadores: tarjetas y multa pendiente del jugador', array_slice($rep['secciones'][0]['filas'][0], 5), [1, 1, 50.0]);
+$hojasRep = reporte_hojas_excel(reporte_armar(reporte_filtros(['tipo' => 'tarjetas']), $datosRep), 'Q');
+check('excel: una hoja por sección', array_keys($hojasRep), ['Detalle de tarjetas', 'Resumen por equipo']);
+check('excel: la columna de dinero dice la moneda', $hojasRep['Detalle de tarjetas'][0][7], 'Multa (Q)');
 
 // ---------------------------------------------------------------------------
 echo "\n============================\n";

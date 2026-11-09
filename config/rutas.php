@@ -72,6 +72,8 @@ return [
     'admin/disciplina.php' => ['controlador' => 'Admin/Disciplina', 'copa' => false],
     'admin/cuentas.php' => ['controlador' => 'Admin/Cuentas', 'copa' => false],
     'admin/exportar.php' => ['controlador' => 'Admin/Exportar', 'copa' => false],
+    // Reportes filtrables (tarjetas y multas, goles, resultados, pagos, jugadores): pantalla, impresión y Excel.
+    'admin/reportes.php' => ['controlador' => 'Admin/Reportes', 'copa' => false],
     'admin/patrocinadores.php' => ['controlador' => 'Admin/Patrocinadores', 'copa' => false],
     'admin/comentarios.php' => ['controlador' => 'Admin/Comentarios', 'copa' => false],
     'admin/colaboradores.php' => ['controlador' => 'Admin/Colaboradores', 'copa' => false],
