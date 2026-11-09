@@ -28,7 +28,7 @@ function nav_activa(string $clave, string $activa): string
     $ogImagen = !empty($torneo['logo']) ? SITE_ORIGIN . url_imagen((string) $torneo['logo']) : SITE_ORIGIN . url('assets/img/logo.png');
     ?>
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="<?= e($torneo['nombre'] ?? 'Plataforma de Copas y Ligas') ?>">
+    <meta property="og:site_name" content="<?= e($torneo['nombre'] ?? NOMBRE_PLATAFORMA) ?>">
     <meta property="og:title" content="<?= e($titulo_pagina) ?>">
     <meta property="og:description" content="<?= e($torneo['descripcion'] ?? 'Tabla de posiciones, calendario y resultados.') ?>">
     <meta property="og:image" content="<?= e($ogImagen) ?>">
@@ -44,7 +44,7 @@ function nav_activa(string $clave, string $activa): string
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <link href="<?= asset_url('assets/css/style.css') ?>" rel="stylesheet">
-    <link rel="icon" href="<?= url('assets/img/logo.png') ?>" type="image/png">
+    <?= etiquetas_icono_app(copa_actual()) ?>
     <?= torneo_variables_css($torneo) ?>
 </head>
 <body>
@@ -55,7 +55,7 @@ function nav_activa(string $clave, string $activa): string
               // propio se cae al balón/ícono del deporte (ver logo_torneo() en helpers). ?>
         <a class="navbar-brand d-flex align-items-center gap-2" href="<?= $torneo ? url_copa('index.php') : url('/') ?>">
             <?= logo_torneo($torneo, 42) ?>
-            <span><?= e($torneo['nombre'] ?? 'Plataforma de Copas y Ligas') ?></span>
+            <span><?= e($torneo['nombre'] ?? NOMBRE_PLATAFORMA) ?></span>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navPrincipal">
             <span class="navbar-toggler-icon"></span>

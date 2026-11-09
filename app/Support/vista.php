@@ -128,7 +128,7 @@ function datos_layout_publico(array $datos): array
         'pagina_activa' => '',
         'titulo_pagina' => $torneo
             ? $torneo['nombre'] . ' — ' . $torneo['subtitulo']
-            : 'Plataforma de Copas y Ligas',
+            : NOMBRE_PLATAFORMA,
         'flash' => obtener_flash(),
         'usuarioActual' => auth_check() ? usuarios_obtener_por_id((int) $_SESSION['usuario_id']) : null,
     ];

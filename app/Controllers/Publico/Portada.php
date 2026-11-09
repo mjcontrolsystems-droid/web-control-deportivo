@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 $torneo = null;
 
-$titulo_pagina = 'Encuentra tu copa o liga';
+$titulo_pagina = NOMBRE_PLATAFORMA . ' — Encuentra tu copa o liga';
 $pagina_activa = 'inicio';
 
 vista_publica('publico/portada', compact(

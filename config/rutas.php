@@ -39,6 +39,9 @@ return [
     'podio_imagen.php' => ['controlador' => 'Publico/PodioImagen', 'copa' => true],
     'patrocinadores.php' => ['controlador' => 'Publico/Patrocinadores', 'copa' => true],
     'organizador.php' => ['controlador' => 'Publico/Organizador', 'copa' => true],
+    // "Agregar a la pantalla de inicio": ícono con el escudo de la copa y su manifest.
+    'icono.php' => ['controlador' => 'Publico/AppIcono', 'copa' => true],
+    'manifest.php' => ['controlador' => 'Publico/AppIcono', 'copa' => true],
 
     // --- Páginas sin copa: portada de la plataforma y utilidades ---
     'portada.php' => ['controlador' => 'Publico/Portada', 'copa' => false],

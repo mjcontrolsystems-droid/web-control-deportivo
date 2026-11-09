@@ -445,6 +445,33 @@ function logo_torneo(?array $torneo, int $size = 42, string $clase = ''): string
 }
 
 /**
+ * Etiquetas del <head> para el ícono del sitio y "Agregar a la pantalla de inicio".
+ *
+ * Dentro de una copa: el ícono es el ESCUDO de la copa y el nombre de la app es el de la
+ * copa (ver Controllers/Publico/AppIcono.php). Fuera de una copa (portada, login, panel):
+ * el logo de la plataforma. iPhone usa apple-touch-icon; Android, el manifest.
+ */
+function etiquetas_icono_app(?array $torneo = null): string
+{
+    $html = '<link rel="icon" href="' . e(url('assets/img/app/favicon-32.png')) . '" type="image/png" sizes="32x32">' . "\n";
+    if ($torneo !== null && !empty($torneo['slug'])) {
+        $v = rawurlencode((string) ($torneo['logo'] ?? '0'));
+        // Siempre con el slug explícito (también en la copa predeterminada): las rutas de
+        // copa pedidas sin slug mandan a la portada.
+        $base = url($torneo['slug'] . '/');
+        $html .= '    <link rel="apple-touch-icon" sizes="180x180" href="' . e($base . 'icono.php?t=180&v=' . $v) . '">' . "\n"
+            . '    <link rel="manifest" href="' . e($base . 'manifest.php') . '">' . "\n"
+            . '    <meta name="apple-mobile-web-app-title" content="' . e(mb_substr((string) $torneo['nombre'], 0, 30)) . '">' . "\n";
+    } else {
+        $html .= '    <link rel="apple-touch-icon" sizes="180x180" href="' . e(url('assets/img/app/apple-touch-icon.png')) . '">' . "\n"
+            . '    <link rel="manifest" href="' . e(url('manifest.webmanifest')) . '">' . "\n"
+            . '    <meta name="apple-mobile-web-app-title" content="' . e(NOMBRE_PLATAFORMA) . '">' . "\n";
+    }
+    return $html . '    <meta name="mobile-web-app-capable" content="yes">' . "\n"
+        . '    <meta name="apple-mobile-web-app-capable" content="yes">';
+}
+
+/**
  * Escudo de la copa para el encabezado de las hojas impresas (reportes, nómina,
  * calendario, ficha del partido...). Solo el logo que subió el organizador: si no subió
  * ninguno no se pinta nada (un balón genérico en un documento oficial se ve de relleno).

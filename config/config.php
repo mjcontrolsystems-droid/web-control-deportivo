@@ -36,6 +36,9 @@ if (getenv('DATABASE_URL') === false && file_exists($archivoEnv)) {
 // copa. Va en el pie del sitio y en la ficha imprimible del partido. Como constante y no
 // suelto en cada plantilla: estaba escrito a mano en la ficha y ya iba camino a
 // desincronizarse del resto.
+// Nombre de la plataforma: sale en la portada, al compartir enlaces, en el ícono del
+// teléfono y en todo lo que no pertenece a una copa en particular.
+const NOMBRE_PLATAFORMA = 'ControlDep';
 const CONTACTO_PLATAFORMA = 'mjcontrolsystems@gmail.com';
 const LEMA_PLATAFORMA = 'Plataformas web inteligentes, control total de tu negocio.';
 

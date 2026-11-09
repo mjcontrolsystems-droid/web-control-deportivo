@@ -763,6 +763,11 @@ if (function_exists('imagecreatetruecolor')) {
     check('JPG: siempre tiene fondo', imagen_tiene_fondo($jpg()), true);
     check('archivo que no es imagen: no se puede revisar', imagen_tiene_fondo('no soy una imagen'), null);
     $optim = optimizar_imagen($png(true), 'image/png');
+    $ic = icono_app_png($png(true), 180, true, 0.8);
+    $icImg = imagecreatefromstring((string) $ic);
+    check('ícono de iPhone: 180x180 y esquina blanca (iOS pinta de negro lo transparente)', [imagesx($icImg), imagesy($icImg), imagecolorat($icImg, 0, 0) & 0xFFFFFF], [180, 180, 0xFFFFFF]);
+    check('ícono de Android "any": conserva la transparencia', imagen_tiene_fondo((string) icono_app_png($png(true), 192, false, 0.92)), false);
+    check('ícono: imagen ilegible devuelve null (se usa el de la plataforma)', icono_app_png('basura', 192, false, 0.9), null);
     check('optimizar un PNG sin fondo NO le agrega fondo (bug de transparencia)', imagen_tiene_fondo($optim !== null ? $optim[0] : $png(true)), false);
 } else {
     echo "  (GD no está instalado: se omiten las pruebas del escudo)\n";

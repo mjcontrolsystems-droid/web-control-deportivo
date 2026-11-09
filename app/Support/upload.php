@@ -298,3 +298,47 @@ function imagen_datos(string $id): ?string
 
 /** Mensaje único para pedir el escudo sin fondo (formulario y aviso al guardar). */
 const MENSAJE_ESCUDO_SIN_FONDO = 'Tu escudo tiene fondo. Para que se vea limpio en el sitio y en los reportes impresos, súbelo SIN fondo: un PNG con fondo transparente. Puedes quitarle el fondo gratis en remove.bg o en Canva ("Quitar fondo").';
+
+/**
+ * Ícono cuadrado para la pantalla de inicio del teléfono a partir del escudo de la copa.
+ *
+ * $conFondo: fondo blanco sólido. Lo necesitan el ícono del iPhone (iOS pinta de NEGRO
+ * lo transparente) y el "maskable" de Android (el sistema lo recorta en círculo o en
+ * gota, y sin fondo quedarían esquinas vacías). $escala: qué parte del cuadro ocupa el
+ * escudo; el maskable usa 66% para quedar dentro de la zona segura que no se recorta.
+ *
+ * @return string|null PNG, o null si no hay GD o la imagen no se puede leer
+ */
+function icono_app_png(string $escudo, int $tam, bool $conFondo, float $escala): ?string
+{
+    if (!function_exists('imagecreatefromstring')) {
+        return null;
+    }
+    $origen = @imagecreatefromstring($escudo);
+    if ($origen === false) {
+        return null;
+    }
+    $lienzo = imagecreatetruecolor($tam, $tam);
+    imagealphablending($lienzo, false);
+    imagesavealpha($lienzo, true);
+    imagefill($lienzo, 0, 0, $conFondo
+        ? imagecolorallocate($lienzo, 255, 255, 255)
+        : imagecolorallocatealpha($lienzo, 0, 0, 0, 127));
+    imagealphablending($lienzo, true);
+
+    // Escudo centrado, sin deformarlo (cabe completo en el cuadro).
+    $w = imagesx($origen);
+    $h = imagesy($origen);
+    $max = (int) round($tam * $escala);
+    $f = min($max / $w, $max / $h);
+    $nw = max(1, (int) round($w * $f));
+    $nh = max(1, (int) round($h * $f));
+    imagecopyresampled($lienzo, $origen, intdiv($tam - $nw, 2), intdiv($tam - $nh, 2), 0, 0, $nw, $nh, $w, $h);
+
+    ob_start();
+    imagepng($lienzo, null, 9);
+    $png = (string) ob_get_clean();
+    imagedestroy($origen);
+    imagedestroy($lienzo);
+    return $png;
+}

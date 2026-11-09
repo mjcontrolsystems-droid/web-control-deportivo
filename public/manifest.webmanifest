@@ -1,0 +1,16 @@
+{
+  "name": "ControlDep · Control Deportivo",
+  "short_name": "ControlDep",
+  "description": "Tablas, calendario y resultados de tus copas y ligas.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0b2545",
+  "lang": "es",
+  "icons": [
+    { "src": "/assets/img/app/icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/img/app/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/img/app/icono-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

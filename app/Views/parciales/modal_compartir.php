@@ -13,7 +13,7 @@
  */
 $compartirTorneo = $torneo ?? null;
 $compartirUrl = $compartir_url ?? ($compartirTorneo ? url_copa_de($compartirTorneo) : SITE_ORIGIN . url('/'));
-$compartirTitulo = $compartir_titulo ?? ($compartirTorneo ? $compartirTorneo['nombre'] : 'Plataforma de Copas y Ligas');
+$compartirTitulo = $compartir_titulo ?? ($compartirTorneo ? $compartirTorneo['nombre'] : NOMBRE_PLATAFORMA);
 $compartirDescripcion = isset($compartir_url)
     ? 'Comparte esta vista escaneando el código o copiando el enlace.'
     : 'Comparte ' . ($compartirTorneo ? 'la página principal de esta copa o liga' : 'este sitio') . ' escaneando el código o copiando el enlace.';

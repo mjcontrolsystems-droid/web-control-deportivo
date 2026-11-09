@@ -4,8 +4,14 @@ FROM php:8.3-apache
 # (usado por google_callback.php para hablar con los endpoints de Google OAuth);
 # libzip-dev para la extensión zip, que hace falta para leer archivos .xlsx — un Excel
 # es en realidad un ZIP con XML adentro (ver app/Support/importacion.php).
+#
+# GD (libpng/libjpeg/libwebp) procesa imágenes: reduce las fotos al subirlas, detecta si
+# el escudo trae fondo y arma el ícono de cada copa para la pantalla de inicio del
+# teléfono. Sin GD todo eso se saltaba en silencio en producción.
 RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev libcurl4-openssl-dev libzip-dev \
-    && docker-php-ext-install pdo pdo_pgsql fileinfo curl zip \
+        libpng-dev libjpeg62-turbo-dev libwebp-dev \
+    && docker-php-ext-configure gd --with-jpeg --with-webp \
+    && docker-php-ext-install pdo pdo_pgsql fileinfo curl zip gd \
     && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && a2enmod rewrite
 

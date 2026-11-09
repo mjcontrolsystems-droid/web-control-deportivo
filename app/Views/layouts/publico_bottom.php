@@ -5,7 +5,7 @@
             <div class="col-lg-4">
                 <div class="d-flex align-items-center gap-2 mb-3">
                     <?= logo_torneo($torneo, 38) ?>
-                    <span class="fw-heading text-white fs-5"><?= e($torneo['nombre'] ?? 'Plataforma de Copas y Ligas') ?></span>
+                    <span class="fw-heading text-white fs-5"><?= e($torneo['nombre'] ?? NOMBRE_PLATAFORMA) ?></span>
                 </div>
                 <?php if ($torneo): ?>
                 <p class="small mb-3"><?= e($torneo['descripcion']) ?></p>
@@ -59,7 +59,7 @@
             <?php endif; ?>
         </div>
         <hr class="border-secondary opacity-25 my-4">
-        <p class="small text-center mb-1 opacity-75">© <?= date('Y') ?> <?= e($torneo['nombre'] ?? 'Plataforma de Copas y Ligas') ?><?= $torneo ? ' · ' . e($torneo['subtitulo']) : '' ?></p>
+        <p class="small text-center mb-1 opacity-75">© <?= date('Y') ?> <?= e($torneo['nombre'] ?? NOMBRE_PLATAFORMA) ?><?= $torneo ? ' · ' . e($torneo['subtitulo']) : '' ?></p>
         <?php // Contacto de MJ Control Systems, no del organizador de esta copa: el de la
               // copa vive en su propia página (ver publico/organizador.php). El correo va
               // como enlace mailto y con opacidad completa, porque si está para que la

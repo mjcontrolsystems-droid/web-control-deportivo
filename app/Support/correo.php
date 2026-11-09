@@ -161,7 +161,7 @@ function correo_plantilla(string $titulo, string $cuerpoHtml, string $botonTexto
 function correo_avisar_autorizado(string $email, int $cupo): bool
 {
     $cuantos = $cupo === 1 ? 'una copa o liga' : "{$cupo} copas o ligas";
-    $cuerpo = '<p>¡Buenas noticias! Tu correo fue autorizado para crear una cuenta de organizador en nuestra plataforma de copas y ligas.</p>'
+    $cuerpo = '<p>¡Buenas noticias! Tu correo fue autorizado para crear una cuenta de organizador en ' . NOMBRE_PLATAFORMA . ', la plataforma de copas y ligas.</p>'
         . "<p>Tienes autorizada la creación de <strong>{$cuantos}</strong>. Entra con el botón de abajo usando <strong>Continuar con Google</strong> con este mismo correo.</p>";
     return correo_enviar(
         $email,
