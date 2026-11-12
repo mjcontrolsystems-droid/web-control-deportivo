@@ -2344,3 +2344,48 @@ function calendario_reordenar_jornada(array $lista, mixed $orden, array $config)
 
     return ['cambios' => $cambios, 'error' => ''];
 }
+
+/** Máximo de canchas que se pueden configurar en una copa. */
+const CANCHAS_MAXIMO = 20;
+
+/**
+ * Canchas que mandó el formulario del generador: una casilla por cancha (canchas[]),
+ * tantas como diga "Cantidad de canchas" (num_canchas).
+ *
+ * - Una sola cancha sin nombre = sede única sin nombre (como siempre: la cancha no se
+ *   muestra en el calendario).
+ * - Con dos o más, la que se deje en blanco se llama "Cancha N": si no tuvieran nombre
+ *   no se podría saber en cuál juega cada partido.
+ * - Se sigue aceptando el formato viejo (texto separado por comas) por si llega de una
+ *   pestaña abierta antes del cambio.
+ *
+ * @return array<int, string>
+ */
+function calendario_canchas_desde_formulario(array $post): array
+{
+    $nombres = $post['canchas'] ?? [];
+    if (is_string($nombres)) {
+        $nombres = explode(',', $nombres);
+    }
+    $nombres = array_map(fn($n) => mb_substr(trim((string) $n), 0, 60), (array) $nombres);
+
+    $cantidad = isset($post['num_canchas']) ? (int) $post['num_canchas'] : count($nombres);
+    $cantidad = max(1, min(CANCHAS_MAXIMO, $cantidad));
+    $nombres = array_slice(array_pad($nombres, $cantidad, ''), 0, $cantidad);
+
+    if ($cantidad === 1) {
+        return $nombres[0] === '' ? [] : [$nombres[0]];
+    }
+    $resultado = [];
+    foreach ($nombres as $i => $nombre) {
+        $nombre = $nombre !== '' ? $nombre : 'Cancha ' . ($i + 1);
+        // Dos canchas con el mismo nombre serían la misma: se numera la repetida.
+        $base = $nombre;
+        $n = 2;
+        while (in_array($nombre, $resultado, true)) {
+            $nombre = $base . ' ' . $n++;
+        }
+        $resultado[] = $nombre;
+    }
+    return $resultado;
+}

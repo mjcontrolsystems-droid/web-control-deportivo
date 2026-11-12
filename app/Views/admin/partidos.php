@@ -102,10 +102,29 @@
         </div>
 
         <div class="row g-3">
+            <?php
+            // Canchas: primero lo que se acaba de enviar (si hubo error o vista previa),
+            // si no, las que la copa ya tiene guardadas. Mínimo una casilla.
+            $canchasForm = isset($datosPrevios['canchas'])
+                ? array_map('strval', (array) $datosPrevios['canchas'])
+                : (array) ($configCalendario['canchas'] ?? []);
+            $numCanchas = max(1, min(CANCHAS_MAXIMO, (int) ($datosPrevios['num_canchas'] ?? count($canchasForm))));
+            $canchasForm = array_slice(array_pad($canchasForm, $numCanchas, ''), 0, $numCanchas);
+            ?>
             <div class="col-md-6">
-                <label class="form-label small fw-semibold">Canchas</label>
-                <input type="text" name="canchas" class="form-control" value="<?= e((string) ($datosPrevios['canchas'] ?? ($torneo['sede_principal'] ?? ''))) ?>" placeholder="Cancha 1, Cancha 2">
-                <div class="form-text">Separadas por coma. Con dos canchas, dos partidos van a la misma hora y la siguiente tanda arranca después del intervalo.</div>
+                <label class="form-label small fw-semibold" for="numCanchas"><i class="bi bi-grid-3x2-gap me-1"></i>Cantidad de canchas</label>
+                <input type="number" name="num_canchas" id="numCanchas" class="form-control mb-2" style="max-width:130px;" min="1" max="<?= CANCHAS_MAXIMO ?>" value="<?= $numCanchas ?>" data-canchas-cantidad="#nombresCanchas">
+                <div id="nombresCanchas" class="row g-2">
+                    <?php foreach ($canchasForm as $i => $nombre): ?>
+                    <div class="col-6">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><?= $i + 1 ?></span>
+                            <input type="text" name="canchas[]" class="form-control" maxlength="60" value="<?= e($nombre) ?>" placeholder="Cancha <?= $i + 1 ?>" aria-label="Nombre de la cancha <?= $i + 1 ?>">
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <div class="form-text">Escribe el nombre de cada una (si lo dejas vacío se llama "Cancha 1", "Cancha 2"…). Con dos canchas, dos partidos van a la misma hora y la siguiente tanda arranca después del intervalo; la cancha de cada encuentro se asigna sola.</div>
             </div>
             <div class="col-md-6">
                 <label class="form-label small fw-semibold">Fechas que no se juegan</label>

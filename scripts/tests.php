@@ -798,6 +798,18 @@ check('resumen: la IP del ataque va primero, con los usuarios que probó', [$res
 check('resumen: una IP solo con logins exitosos no es sospechosa', count($res['sospechosas']), 2);
 
 // ---------------------------------------------------------------------------
+echo "\n--- Canchas del generador ---\n";
+check('3 canchas con nombre', calendario_canchas_desde_formulario(['num_canchas' => '3', 'canchas' => ['Norte', 'Sur', 'Techada']]), ['Norte', 'Sur', 'Techada']);
+check('casillas vacías se llaman Cancha N', calendario_canchas_desde_formulario(['num_canchas' => '3', 'canchas' => ['Norte', '', '']]), ['Norte', 'Cancha 2', 'Cancha 3']);
+check('una sola cancha sin nombre = sede única sin nombre', calendario_canchas_desde_formulario(['num_canchas' => '1', 'canchas' => ['']]), []);
+check('una sola cancha con nombre', calendario_canchas_desde_formulario(['num_canchas' => '1', 'canchas' => ['Estadio']]), ['Estadio']);
+check('si la cantidad sube y faltan casillas, se completan', calendario_canchas_desde_formulario(['num_canchas' => '2', 'canchas' => ['A']]), ['A', 'Cancha 2']);
+check('si la cantidad baja, sobran casillas y se ignoran', calendario_canchas_desde_formulario(['num_canchas' => '1', 'canchas' => ['A', 'B']]), ['A']);
+check('nombres repetidos se numeran', calendario_canchas_desde_formulario(['num_canchas' => '2', 'canchas' => ['Sintética', 'Sintética']]), ['Sintética', 'Sintética 2']);
+check('cantidad fuera de rango se limita', count(calendario_canchas_desde_formulario(['num_canchas' => '99', 'canchas' => []])), CANCHAS_MAXIMO);
+check('formato viejo con comas sigue funcionando', calendario_canchas_desde_formulario(['canchas' => 'Cancha 1, Cancha 2']), ['Cancha 1', 'Cancha 2']);
+
+// ---------------------------------------------------------------------------
 echo "\n============================\n";
 printf("%d pruebas, %d fallos\n", $pruebas, $fallos);
 echo $fallos === 0 ? "TODAS LAS PRUEBAS PASARON\n" : "HAY FALLOS - revisar antes de desplegar\n";

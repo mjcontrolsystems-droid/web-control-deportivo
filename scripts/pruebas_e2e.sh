@@ -53,7 +53,12 @@ probar() {
     local ruta="$1" esperado="${2:-200}" codigo problema=""
     codigo=$(curl -s -b "$GALLETAS" -c "$GALLETAS" -o "$TMP/salida" -w "%{http_code}" "$BASE$ruta")
     [ "$codigo" != "$esperado" ] && problema="HTTP $codigo (esperaba $esperado)"
-    revisar_cuerpo "$TMP/salida" && problema="$problema ERROR-PHP"
+    # Los archivos estáticos (CSS/JS) no los genera PHP: buscar "Warning:" ahí da falsos
+    # positivos (p. ej. el selector .btn-outline-warning:hover del CSS).
+    case "$ruta" in
+        *.css|*.js|*.css\?*|*.js\?*) ;;
+        *) revisar_cuerpo "$TMP/salida" && problema="$problema ERROR-PHP" ;;
+    esac
     [ -z "$problema" ] && resultado si "$ruta" || resultado no "$ruta" "$problema"
 }
 

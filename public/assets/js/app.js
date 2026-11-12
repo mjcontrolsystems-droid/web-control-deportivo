@@ -1208,3 +1208,59 @@ document.addEventListener('DOMContentLoaded', function () {
     form.querySelectorAll('input.campo-set').forEach(function (campo) { campo.addEventListener('input', refrescar); });
     refrescar();
 });
+
+// Canchas del generador de calendario: "Cantidad de canchas" agrega o quita casillas
+// para escribir el nombre de cada una. Lo que ya se escribió se conserva al cambiar
+// el número (bajar a 2 y volver a 3 no borra el nombre de la tercera).
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-canchas-cantidad]').forEach(function (campo) {
+        var contenedor = document.querySelector(campo.getAttribute('data-canchas-cantidad'));
+        if (!contenedor) { return; }
+        var maximo = parseInt(campo.getAttribute('max') || '20', 10);
+        var guardados = [];
+
+        function casilla(numero, valor) {
+            var col = document.createElement('div');
+            col.className = 'col-6';
+            var grupo = document.createElement('div');
+            grupo.className = 'input-group input-group-sm';
+            var etiqueta = document.createElement('span');
+            etiqueta.className = 'input-group-text';
+            etiqueta.textContent = String(numero);
+            var input = document.createElement('input');
+            input.type = 'text';
+            input.name = 'canchas[]';
+            input.className = 'form-control';
+            input.maxLength = 60;
+            input.placeholder = 'Cancha ' + numero;
+            input.setAttribute('aria-label', 'Nombre de la cancha ' + numero);
+            input.value = valor || '';
+            grupo.appendChild(etiqueta);
+            grupo.appendChild(input);
+            col.appendChild(grupo);
+            return col;
+        }
+
+        function ajustar() {
+            var cantidad = parseInt(campo.value, 10);
+            if (isNaN(cantidad)) { return; }   // mientras borra para escribir otro número
+            cantidad = Math.max(1, Math.min(maximo, cantidad));
+            var actuales = contenedor.querySelectorAll('input[name="canchas[]"]');
+            actuales.forEach(function (input, i) { guardados[i] = input.value; });
+            while (contenedor.children.length > cantidad) {
+                contenedor.removeChild(contenedor.lastElementChild);
+            }
+            for (var n = contenedor.children.length; n < cantidad; n++) {
+                contenedor.appendChild(casilla(n + 1, guardados[n]));
+            }
+        }
+
+        campo.addEventListener('input', ajustar);
+        campo.addEventListener('change', function () {
+            // Al salir del campo se corrige un número fuera de rango (0, 99...).
+            var v = parseInt(campo.value, 10);
+            campo.value = String(Math.max(1, Math.min(maximo, isNaN(v) ? 1 : v)));
+            ajustar();
+        });
+    });
+});

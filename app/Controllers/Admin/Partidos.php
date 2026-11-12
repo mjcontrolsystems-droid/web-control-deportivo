@@ -435,7 +435,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ];
         }
 
-        $canchas = array_values(array_filter(array_map('trim', explode(',', (string) ($_POST['canchas'] ?? ''))), fn($c) => $c !== ''));
+        // Una casilla por cancha (tantas como "Cantidad de canchas"); ver calendario.php.
+        $canchas = calendario_canchas_desde_formulario($_POST);
 
         // Fechas que no se juegan (feriados, fines de semana todavía sin confirmar). Se
         // aceptan separadas por coma o por salto de línea, que es como se pegan de un chat.
