@@ -1120,48 +1120,98 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-// Planilla rápida de la ficha del partido: los botones + / − de cada contador, el total de
-// goles por equipo al momento y el aviso de "cambios sin guardar" (también al salir).
+// Planilla rápida de la ficha del partido: cada botón con ícono suma 1 y el "−" corrige,
+// el total de goles de cada equipo se ve en su pestaña, el buscador filtra por número o
+// nombre, y se avisa de los cambios sin guardar (también al intentar salir).
 document.addEventListener('DOMContentLoaded', function () {
     var planilla = document.querySelector('form[data-planilla]');
     if (!planilla) { return; }
     var pendiente = planilla.querySelector('[data-planilla-pendiente]');
+    var alDia = planilla.querySelector('[data-planilla-al-dia]');
     var enviando = false;
+    var campos = function () { return planilla.querySelectorAll('[data-contador] input[data-original]'); };
+    var valorDe = function (campo) { return Math.max(0, parseInt(campo.value, 10) || 0); };
 
     var hayCambios = function () {
-        return Array.prototype.some.call(planilla.querySelectorAll('input[type="number"]'), function (campo) {
-            return String(parseInt(campo.value, 10) || 0) !== campo.getAttribute('data-original');
+        return Array.prototype.some.call(campos(), function (campo) {
+            return String(valorDe(campo)) !== campo.getAttribute('data-original');
         });
     };
     var refrescar = function () {
         planilla.querySelectorAll('[data-planilla-equipo]').forEach(function (bloque) {
             var total = 0;
-            bloque.querySelectorAll('input[data-cuenta-gol]').forEach(function (campo) { total += Math.max(0, parseInt(campo.value, 10) || 0); });
-            var marca = bloque.querySelector('[data-planilla-total]');
+            bloque.querySelectorAll('input[data-cuenta-gol]').forEach(function (campo) { total += valorDe(campo); });
+            var marca = planilla.querySelector('[data-planilla-total-de="' + bloque.getAttribute('data-planilla-equipo') + '"]');
             if (marca) { marca.textContent = String(total); }
         });
-        planilla.querySelectorAll('input[type="number"]').forEach(function (campo) {
-            campo.classList.toggle('cambiado', String(parseInt(campo.value, 10) || 0) !== campo.getAttribute('data-original'));
-        });
-        if (pendiente) { pendiente.classList.toggle('d-none', !hayCambios()); }
+        var cambios = hayCambios();
+        if (pendiente) { pendiente.classList.toggle('d-none', !cambios); }
+        if (alDia) { alDia.classList.toggle('d-none', cambios); }
+        planilla.classList.toggle('con-cambios', cambios);
     };
 
     planilla.querySelectorAll('[data-contador]').forEach(function (contador) {
-        var campo = contador.querySelector('input');
+        var campo = contador.querySelector('input[data-original]');
+        var numero = contador.querySelector('[data-numero]');
         contador.querySelectorAll('[data-paso]').forEach(function (boton) {
             boton.addEventListener('click', function () {
-                var valor = (parseInt(campo.value, 10) || 0) + parseInt(boton.getAttribute('data-paso'), 10);
-                campo.value = String(Math.max(0, Math.min(99, valor)));
+                var valor = Math.max(0, Math.min(99, valorDe(campo) + parseInt(boton.getAttribute('data-paso'), 10)));
+                campo.value = String(valor);
+                numero.textContent = String(valor);
+                contador.classList.toggle('con-valor', valor > 0);
+                contador.classList.toggle('cambiado', String(valor) !== campo.getAttribute('data-original'));
+                // Pequeño rebote para confirmar el toque sin tener que mirar el número.
+                contador.classList.remove('pulso');
+                void contador.offsetWidth;
+                contador.classList.add('pulso');
                 refrescar();
             });
         });
-        campo.addEventListener('input', refrescar);
     });
+
+    // Pestañas: un equipo a la vez. Al cambiar se vuelve al inicio de la planilla para no
+    // quedar a media lista del otro equipo.
+    var pestanas = planilla.querySelectorAll('[data-planilla-pestana]');
+    pestanas.forEach(function (pestana) {
+        pestana.addEventListener('click', function () {
+            pestanas.forEach(function (otra) {
+                var activa = otra === pestana;
+                otra.classList.toggle('active', activa);
+                otra.setAttribute('aria-selected', activa ? 'true' : 'false');
+                var panel = document.getElementById(otra.getAttribute('data-planilla-pestana'));
+                if (panel) { panel.classList.toggle('d-none', !activa); }
+            });
+            var barra = planilla.querySelector('.planilla-barra');
+            if (barra && barra.getBoundingClientRect().top < 0) { barra.scrollIntoView({block: 'start'}); }
+        });
+    });
+
+    // Buscador: por número exacto ("7") o por parte del nombre, sin importar acentos.
+    var buscar = planilla.querySelector('[data-planilla-buscar]');
+    var normalizar = function (t) { return (t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim(); };
+    if (buscar) {
+        buscar.addEventListener('input', function () {
+            var q = normalizar(buscar.value).replace(/^#/, '');
+            planilla.querySelectorAll('[data-planilla-equipo]').forEach(function (bloque) {
+                var visibles = 0;
+                bloque.querySelectorAll('.planilla-fila').forEach(function (fila) {
+                    var ok = q === '' || (/^\d+$/.test(q)
+                        ? fila.getAttribute('data-dorsal') === q
+                        : normalizar(fila.getAttribute('data-buscar')).indexOf(q) !== -1);
+                    fila.classList.toggle('d-none', !ok);
+                    if (ok) { visibles++; }
+                });
+                var vacio = bloque.querySelector('[data-planilla-vacio]');
+                if (vacio) { vacio.classList.toggle('d-none', visibles > 0); }
+            });
+        });
+    }
 
     planilla.addEventListener('submit', function () { enviando = true; });
     window.addEventListener('beforeunload', function (evento) {
         if (!enviando && hayCambios()) { evento.preventDefault(); evento.returnValue = ''; }
     });
+    refrescar();
 });
 
 // Sets de voleibol en la ficha del partido: cuenta los sets ganados mientras se escriben y

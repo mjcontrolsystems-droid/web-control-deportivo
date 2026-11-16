@@ -412,23 +412,62 @@ foreach ($equiposDelPartido as $eid) {
 </div>
 
 <?php // ---------- Planilla rápida (fútbol / futsal) ----------
-      // Para no cargar gol por gol: cada jugador con su conteo de goles y tarjetas, se
-      // ajusta con + / − (o escribiendo el número) y se guarda todo junto. El formulario
-      // detallado de abajo queda para autogoles o para un gol con minuto y asistencia. ?>
+      // Una fila por jugador con sus tres botones (gol, amarilla, roja) en la MISMA fila y
+      // con su ícono: así nunca hay que correr la tabla de lado ni buscar el encabezado
+      // para saber qué columna es qué. Un toque suma 1; el "−" aparece cuando hay algo que
+      // corregir. Un equipo a la vez (pestañas), buscador por número o nombre y la barra
+      // de guardar fija abajo. Se guarda todo junto, con los mismos campos de siempre.
+      // El formulario detallado de abajo queda para autogoles o goles con minuto. ?>
 <?php if (!$resultadoBloqueado && !$basketball): ?>
-<div class="card-suave p-4 mb-4">
+<?php
+    // Un contador: botón grande que suma (con ícono y número) y "−" chico para corregir.
+    $chipPlanilla = function (string $nombreCampo, int $valor, string $tipo, string $aria, string $icono) {
+        $clase = 'chip-planilla chip-' . $tipo . ($valor > 0 ? ' con-valor' : '');
+        return '<div class="' . $clase . '" data-contador>'
+            . '<button type="button" class="chip-sumar" data-paso="1" aria-label="Sumar ' . e($aria) . '">'
+            . $icono . '<span class="chip-numero" data-numero>' . $valor . '</span></button>'
+            . '<button type="button" class="chip-restar" data-paso="-1" aria-label="Restar ' . e($aria) . '"><i class="bi bi-dash"></i></button>'
+            . '<input type="hidden" name="' . e($nombreCampo) . '" value="' . $valor . '" data-original="' . $valor . '"'
+            . ($tipo === 'gol' ? ' data-cuenta-gol' : '') . '>'
+            . '</div>';
+    };
+    $iconoGol = icono_balon_img($deporte, 18, 'chip-icono');
+    $iconoAmarilla = '<span class="tarjeta-icono tarjeta-amarilla"></span>';
+    $iconoRoja = '<span class="tarjeta-icono tarjeta-roja"></span>';
+    $primerEquipo = true;
+?>
+<div class="card-suave p-3 p-md-4 mb-4 planilla-rapida">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
         <div>
             <h5 class="mb-1"><i class="bi bi-lightning-charge me-1"></i>Planilla rápida</h5>
-            <p class="small text-muted mb-0">Ajusta cuántos goles y tarjetas lleva cada <?= e(mb_strtolower($etJugador)) ?> y guarda una sola vez. No hace falta el minuto. Los autogoles se cargan abajo.</p>
+            <p class="small text-muted mb-0">Toca <?= $iconoGol ?> para sumar un <?= e(mb_strtolower(etiqueta_anotaciones($deporte)) === 'goles' ? 'gol' : 'punto') ?>, <?= $iconoAmarilla ?> amarilla o <?= $iconoRoja ?> roja. Con <i class="bi bi-dash-circle"></i> corriges. Guarda una sola vez al final. Los autogoles se cargan abajo.</p>
         </div>
     </div>
     <form method="post" data-planilla>
         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="accion" value="guardar_planilla">
         <input type="hidden" name="partido_id" value="<?= $partidoId ?>">
-        <div class="row g-3">
-            <?php foreach ($equiposDelPartido as $eid): $equipoLado = $equiposPorId[$eid] ?? null; if (!$equipoLado) { continue; } ?>
+
+        <?php // Pestañas por equipo + buscador: quedan pegadas arriba al bajar por la lista. ?>
+        <div class="planilla-barra">
+            <div class="nav planilla-pestanas" role="tablist">
+                <?php foreach ($equiposDelPartido as $eid): $equipoLado = $equiposPorId[$eid] ?? null; if (!$equipoLado) { continue; } ?>
+                <?php $totalGolesEquipo = array_sum(array_map(fn($c) => (int) ($c['gol'] ?? 0), $conteoPlanilla[$eid] ?? [])); ?>
+                <button type="button" class="planilla-pestana <?= $primerEquipo ? 'active' : '' ?>" data-planilla-pestana="planillaEquipo<?= $eid ?>" role="tab" aria-selected="<?= $primerEquipo ? 'true' : 'false' ?>">
+                    <?= logo_equipo($equipoLado, 26) ?>
+                    <span class="text-truncate"><?= e($equipoLado['nombre']) ?></span>
+                    <span class="planilla-total"><?= $iconoGol ?><span data-planilla-total-de="<?= $eid ?>"><?= $totalGolesEquipo ?></span></span>
+                </button>
+                <?php $primerEquipo = false; endforeach; ?>
+            </div>
+            <div class="planilla-buscar">
+                <i class="bi bi-search"></i>
+                <input type="search" class="form-control form-control-sm" placeholder="Buscar por número o nombre" data-planilla-buscar aria-label="Buscar <?= e(mb_strtolower($etJugador)) ?>">
+            </div>
+        </div>
+
+        <div>
+            <?php $primerEquipo = true; foreach ($equiposDelPartido as $eid): $equipoLado = $equiposPorId[$eid] ?? null; if (!$equipoLado) { continue; } ?>
             <?php
                 $conteoEquipo = $conteoPlanilla[$eid] ?? [];
                 // Se listan los activos y, aunque estén de baja, los que ya tienen algo
@@ -437,65 +476,39 @@ foreach ($equiposDelPartido as $eid) {
                     $jugadoresPorEquipo[$eid] ?? [],
                     fn($j) => !empty($j['activo']) || !empty($conteoEquipo[(int) $j['id']])
                 ));
-                $totalGolesEquipo = array_sum(array_map(fn($c) => (int) ($c['gol'] ?? 0), $conteoEquipo));
             ?>
-            <div class="col-lg-6" data-planilla-equipo>
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="mb-0 d-flex align-items-center gap-2"><?= logo_equipo($equipoLado, 24) ?><?= e($equipoLado['nombre']) ?></h6>
-                    <span class="badge rounded-pill text-bg-primary"><?= e(etiqueta_anotaciones($deporte)) ?>: <span data-planilla-total><?= $totalGolesEquipo ?></span></span>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle mb-0 tabla-planilla">
-                        <thead>
-                            <tr class="small text-muted">
-                                <th><?= e($etJugador) ?></th>
-                                <th class="text-center"><?= e(etiqueta_anotaciones($deporte)) ?></th>
-                                <th class="text-center"><i class="bi bi-square-fill text-warning"></i></th>
-                                <th class="text-center"><i class="bi bi-square-fill text-danger"></i></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($filasPlanilla as $j): $jid = (int) $j['id']; $c = $conteoEquipo[$jid] ?? []; ?>
-                            <tr>
-                                <td class="small"><span class="text-muted">#<?= e((string) $j['dorsal']) ?></span> <?= e($j['nombre']) ?></td>
-                                <?php foreach (['gol', 'amarilla', 'roja'] as $tipoPlanilla): $valor = (int) ($c[$tipoPlanilla] ?? 0); ?>
-                                <td>
-                                    <div class="contador-planilla" data-contador>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-paso="-1" aria-label="Restar"><i class="bi bi-dash"></i></button>
-                                        <input type="number" min="0" max="99" inputmode="numeric" class="form-control form-control-sm text-center"
-                                               name="planilla[<?= $eid ?>][<?= $jid ?>][<?= $tipoPlanilla ?>]" value="<?= $valor ?>"
-                                               data-original="<?= $valor ?>" <?= $tipoPlanilla === 'gol' ? 'data-cuenta-gol' : '' ?>
-                                               aria-label="<?= e($tipoPlanilla) ?> de <?= e($j['nombre']) ?>">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-paso="1" aria-label="Sumar"><i class="bi bi-plus"></i></button>
-                                    </div>
-                                </td>
-                                <?php endforeach; ?>
-                            </tr>
-                            <?php endforeach; ?>
-                            <?php $sinIdentificar = (int) ($conteoEquipo[0]['gol'] ?? 0); ?>
-                            <tr>
-                                <td class="small text-muted fst-italic">Sin identificar</td>
-                                <td>
-                                    <div class="contador-planilla" data-contador>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-paso="-1" aria-label="Restar"><i class="bi bi-dash"></i></button>
-                                        <input type="number" min="0" max="99" inputmode="numeric" class="form-control form-control-sm text-center"
-                                               name="planilla[<?= $eid ?>][0][gol]" value="<?= $sinIdentificar ?>" data-original="<?= $sinIdentificar ?>" data-cuenta-gol
-                                               aria-label="Goles sin identificar">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-paso="1" aria-label="Sumar"><i class="bi bi-plus"></i></button>
-                                    </div>
-                                </td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <div class="planilla-panel <?= $primerEquipo ? '' : 'd-none' ?>" id="planillaEquipo<?= $eid ?>" role="tabpanel" data-planilla-equipo="<?= $eid ?>">
+                <div class="planilla-lista">
+                    <?php foreach ($filasPlanilla as $j): $jid = (int) $j['id']; $c = $conteoEquipo[$jid] ?? []; ?>
+                    <div class="planilla-fila" data-buscar="<?= e(mb_strtolower('#' . $j['dorsal'] . ' ' . $j['nombre'])) ?>" data-dorsal="<?= e((string) $j['dorsal']) ?>">
+                        <span class="planilla-dorsal"><?= e((string) $j['dorsal']) ?></span>
+                        <span class="planilla-nombre"><?= e($j['nombre']) ?></span>
+                        <div class="planilla-chips">
+                            <?= $chipPlanilla("planilla[{$eid}][{$jid}][gol]", (int) ($c['gol'] ?? 0), 'gol', etiqueta_anotaciones($deporte) . ' de ' . $j['nombre'], $iconoGol) ?>
+                            <?= $chipPlanilla("planilla[{$eid}][{$jid}][amarilla]", (int) ($c['amarilla'] ?? 0), 'amarilla', 'amarilla a ' . $j['nombre'], $iconoAmarilla) ?>
+                            <?= $chipPlanilla("planilla[{$eid}][{$jid}][roja]", (int) ($c['roja'] ?? 0), 'roja', 'roja a ' . $j['nombre'], $iconoRoja) ?>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                    <?php $sinIdentificar = (int) ($conteoEquipo[0]['gol'] ?? 0); ?>
+                    <div class="planilla-fila planilla-fila-otros" data-buscar="sin identificar">
+                        <span class="planilla-dorsal"><i class="bi bi-question-lg"></i></span>
+                        <span class="planilla-nombre text-muted fst-italic"><?= e(etiqueta_anotaciones($deporte)) ?> sin identificar</span>
+                        <div class="planilla-chips">
+                            <?= $chipPlanilla("planilla[{$eid}][0][gol]", $sinIdentificar, 'gol', 'sin identificar', $iconoGol) ?>
+                        </div>
+                    </div>
+                    <div class="planilla-sin-resultados d-none text-muted small text-center py-3" data-planilla-vacio>Nadie coincide con la búsqueda en este equipo.</div>
                 </div>
             </div>
-            <?php endforeach; ?>
+            <?php $primerEquipo = false; endforeach; ?>
         </div>
-        <div class="d-flex align-items-center gap-2 mt-3 flex-wrap">
-            <button type="submit" class="btn btn-sm btn-degradado rounded-pill px-4"><i class="bi bi-check2 me-1"></i>Guardar planilla</button>
-            <span class="small text-warning-emphasis d-none" data-planilla-pendiente><i class="bi bi-exclamation-circle me-1"></i>Hay cambios sin guardar</span>
+
+        <?php // Barra de guardar pegada abajo: siempre a la vista mientras se baja por la lista. ?>
+        <div class="planilla-guardar">
+            <span class="small d-none" data-planilla-pendiente><i class="bi bi-exclamation-circle-fill me-1"></i>Hay cambios sin guardar</span>
+            <span class="small text-muted" data-planilla-al-dia><i class="bi bi-check-circle me-1"></i>Todo guardado</span>
+            <button type="submit" class="btn btn-degradado rounded-pill px-4 ms-auto"><i class="bi bi-check2 me-1"></i>Guardar planilla</button>
         </div>
     </form>
 </div>
