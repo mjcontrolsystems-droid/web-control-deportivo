@@ -100,32 +100,75 @@
             </div>
         </div>
 
-        <?php // ---------- Detalle de goles: en qué partido, clicable a la ficha ---------- ?>
-        <?php if (!empty($anotaciones)): ?>
+        <?php // ---------- Goles por partido: una fila por encuentro, clicable a la ficha ----------
+              // Antes era una fila por gol y en el celular cada una se volvía una tarjeta de
+              // cuatro renglones. Ahora: rival, fecha, cuántos y en qué minutos. Con muchos
+              // partidos sale con buscador, páginas y orden (tabla-datos.js). ?>
+        <?php if (!empty($anotacionesPorPartido)): ?>
+        <?php $miEquipo = (int) ($jugador['equipo_id'] ?? 0); ?>
         <div class="card-suave p-4 mb-4">
-            <h5 class="mb-3"><?= e(etiqueta_anotaciones($deporte)) ?> de la temporada</h5>
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                <h5 class="mb-0"><?= e(etiqueta_anotaciones($deporte)) ?> de la temporada</h5>
+                <span class="small text-muted"><strong class="text-body"><?= $basketball ? (int) $totalPuntos : count($anotaciones) ?></strong> en <?= count($anotacionesPorPartido) ?> partido<?= count($anotacionesPorPartido) === 1 ? '' : 's' ?></span>
+            </div>
             <div class="table-responsive">
-                <table class="table tabla-posiciones align-middle mb-0">
+                <table class="table align-middle mb-0 tabla-goles-jugador" <?= count($anotacionesPorPartido) > 8 ? 'data-tabla-datos data-por-pagina="10"' : '' ?>>
                     <thead>
                         <tr class="small text-muted">
-                            <th>Partido</th>
-                            <th>Fecha</th>
-                            <th class="text-center">Minuto</th>
-                            <th class="text-center"><?= $basketball ? 'Puntos' : 'Tipo' ?></th>
+                            <th data-ordenable>Partido</th>
+                            <th data-ordenable class="d-none d-sm-table-cell">Fecha</th>
+                            <th data-ordenable class="text-center"><?= $basketball ? 'Puntos' : e(etiqueta_anotaciones($deporte)) ?></th>
+                            <th class="d-none d-md-table-cell"><?= $basketball ? 'Detalle' : 'Minutos' ?></th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($anotaciones as $a): $pa = $a['partido']; ?>
+                        <?php foreach ($anotacionesPorPartido as $g): $pa = $g['partido']; ?>
+                        <?php
+                            $rival = null; $resultado = '';
+                            if ($pa) {
+                                $esLocal = (int) $pa['equipo_local'] === $miEquipo;
+                                $rival = $equiposPorId[(int) ($esLocal ? $pa['equipo_visitante'] : $pa['equipo_local'])] ?? null;
+                                $propios = (int) ($esLocal ? $pa['marcador_local'] : $pa['marcador_visitante']);
+                                $ajenos = (int) ($esLocal ? $pa['marcador_visitante'] : $pa['marcador_local']);
+                                $resultado = $propios . '-' . $ajenos;
+                                $claseRes = $propios > $ajenos ? 'res-gano' : ($propios < $ajenos ? 'res-perdio' : 'res-empato');
+                            }
+                            // Minutos (fútbol) o tipo de canasta (basket): chips cortos.
+                            $chips = [];
+                            foreach ($g['detalle'] as $a) {
+                                $chips[] = $basketball
+                                    ? '+' . (int) $a['valor']
+                                    : ($a['minuto'] !== null ? (int) $a['minuto'] . "'" : '—')
+                                        . (($a['tipo_gol'] ?? '') === 'penal' ? ' (P)' : '');
+                            }
+                        ?>
                         <tr class="<?= $pa ? 'fila-clicable' : '' ?>" <?= $pa ? 'data-href="' . e(url_copa('partido.php?id=' . (int) $pa['id'])) . '"' : '' ?>>
-                            <td class="td-equipo" data-label="Partido">
+                            <td data-orden="<?= e($rival['nombre'] ?? '') ?>">
                                 <?php if ($pa): ?>
-                                <span class="fw-semibold"><?= e($equiposPorId[$pa['equipo_local']]['nombre'] ?? '') ?> <?= (int) $pa['marcador_local'] ?>-<?= (int) $pa['marcador_visitante'] ?> <?= e($equiposPorId[$pa['equipo_visitante']]['nombre'] ?? '') ?></span>
+                                <div class="d-flex align-items-center gap-2 min-w-0">
+                                    <?= $rival ? logo_equipo($rival, 28) : '' ?>
+                                    <div class="min-w-0">
+                                        <div class="fw-semibold text-truncate">vs <?= e($rival['nombre'] ?? 'Rival') ?></div>
+                                        <div class="small text-muted">
+                                            <span class="resultado-chip <?= $claseRes ?>"><?= e($resultado) ?></span>
+                                            <span class="d-sm-none ms-1"><?= e(formatear_fecha_corta((string) $pa['fecha'])) ?></span>
+                                        </div>
+                                    </div>
+                                </div>
                                 <?php else: ?>—<?php endif; ?>
                             </td>
-                            <td data-label="Fecha"><span class="small text-muted"><?= $pa ? e(formatear_fecha_corta((string) $pa['fecha'])) : '—' ?></span></td>
-                            <td class="text-center" data-label="Minuto"><?= $a['minuto'] !== null ? e((string) $a['minuto']) . "'" : '—' ?></td>
-                            <td class="text-center" data-label="<?= $basketball ? 'Puntos' : 'Tipo' ?>">
-                                <?= $basketball ? '+' . (int) $a['valor'] : e(tipos_anotacion_label($deporte)[$a['tipo_gol']] ?? 'Jugada') ?>
+                            <td class="d-none d-sm-table-cell small text-muted" data-orden="<?= $pa ? e((string) $pa['fecha']) : '' ?>"><?= $pa ? e(formatear_fecha_corta((string) $pa['fecha'])) : '—' ?></td>
+                            <td class="text-center" data-orden="<?= $basketball ? (int) $g['valor'] : (int) $g['cantidad'] ?>">
+                                <span class="goles-partido"><?= icono_balon_img($deporte, 16, 'me-1') ?><?= $basketball ? (int) $g['valor'] : (int) $g['cantidad'] ?></span>
+                            </td>
+                            <td class="d-none d-md-table-cell">
+                                <?php if (array_filter($chips, fn($c) => $c !== '—')): ?>
+                                <div class="d-flex flex-wrap gap-1">
+                                    <?php foreach ($chips as $chip): ?><span class="minuto-chip"><?= e($chip) ?></span><?php endforeach; ?>
+                                </div>
+                                <?php else: ?>
+                                <span class="small text-muted">Sin minuto registrado</span>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -140,7 +183,7 @@
         <div class="card-suave p-4 mb-4">
             <h5 class="mb-3">Multas</h5>
             <div class="table-responsive">
-                <table class="table tabla-posiciones align-middle mb-0">
+                <table class="table tabla-posiciones align-middle mb-0" <?= count($multas) > 10 ? 'data-tabla-datos data-por-pagina="10"' : '' ?>>
                     <thead>
                         <tr class="small text-muted">
                             <th>Motivo</th>

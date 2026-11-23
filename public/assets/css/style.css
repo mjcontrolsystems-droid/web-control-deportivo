@@ -2879,3 +2879,46 @@ form[data-planilla].con-cambios .planilla-guardar { background: #fff8e6; border-
     .btn:hover, .btn:active, .btn:hover .bi { transform: none !important; }
     .btn-degradado:hover::after { animation: none; }
 }
+
+/* ---------------------------------------------------------------------------
+   Perfil del jugador: goles agrupados por partido (una fila por encuentro).
+   --------------------------------------------------------------------------- */
+.tabla-goles-jugador td, .tabla-goles-jugador th { padding: .6rem .5rem; border-color: #eef2f7; }
+.tabla-goles-jugador tbody tr.fila-clicable { cursor: pointer; transition: background .15s; }
+.tabla-goles-jugador tbody tr.fila-clicable:hover { background: #f7f9fc; }
+.tabla-goles-jugador .min-w-0 { min-width: 0; }
+/* La columna del partido toma el espacio que sobra y corta el nombre largo con "…":
+   sin esto, en el celular empujaba la columna de goles fuera de la pantalla. */
+.tabla-goles-jugador td:first-child { width: 100%; max-width: 0; }
+/* Esta tabla ya está pensada para el celular: no hereda el ancho mínimo de 560px. */
+.table-responsive > .table.tabla-goles-jugador { min-width: 0; }
+.tabla-goles-jugador td:nth-child(n+2), .tabla-goles-jugador th:nth-child(n+2) { white-space: nowrap; }
+.resultado-chip {
+    display: inline-block;
+    padding: 0 .45rem;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: .78rem;
+    line-height: 1.5;
+}
+.res-gano { background: #dcfce7; color: #166534; }
+.res-empato { background: #eef2f7; color: #475569; }
+.res-perdio { background: #fee2e2; color: #991b1b; }
+.goles-partido {
+    display: inline-flex;
+    align-items: center;
+    padding: .15rem .6rem;
+    border-radius: 999px;
+    background: rgba(var(--color-primario-rgb), .1);
+    color: var(--color-primario-oscuro);
+    font-weight: 800;
+    font-size: 1rem;
+}
+.minuto-chip {
+    padding: .05rem .45rem;
+    border-radius: 6px;
+    background: #f1f5f9;
+    font-size: .8rem;
+    font-weight: 600;
+    color: #334155;
+}

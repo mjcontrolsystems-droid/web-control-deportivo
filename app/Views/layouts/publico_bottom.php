@@ -84,5 +84,7 @@
 <?php // SweetAlert2 antes de app.js: app.js lo usa para los avisos y las confirmaciones. ?>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.5/dist/sweetalert2.all.min.js"></script>
 <script src="<?= asset_url('assets/js/app.js') ?>"></script>
+<?php // Tablas largas con buscador y páginas (perfil del jugador, etc.): data-tabla-datos. ?>
+<script src="<?= asset_url('assets/js/tabla-datos.js') ?>"></script>
 </body>
 </html>

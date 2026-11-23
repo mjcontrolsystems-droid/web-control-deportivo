@@ -67,6 +67,27 @@ foreach ($eventos as $ev) {
     }
 }
 
+// Del más reciente al más antiguo: lo primero que se busca es el último gol.
+usort($anotaciones, function (array $a, array $b): int {
+    $fa = (string) (($a['partido']['fecha'] ?? '') . ($a['partido']['hora'] ?? ''));
+    $fb = (string) (($b['partido']['fecha'] ?? '') . ($b['partido']['hora'] ?? ''));
+    return strcmp($fb, $fa) ?: ((int) ($a['minuto'] ?? 0) <=> (int) ($b['minuto'] ?? 0));
+});
+
+// Agrupadas por partido: una fila por encuentro ("4 goles · 7' 23' 41' 68'") en vez de
+// una fila por gol. Para un goleador de temporada la lista se acorta a una fracción.
+$anotacionesPorPartido = [];
+foreach ($anotaciones as $a) {
+    $clave = $a['partido'] ? (int) $a['partido']['id'] : 0;
+    if (!isset($anotacionesPorPartido[$clave])) {
+        $anotacionesPorPartido[$clave] = ['partido' => $a['partido'], 'cantidad' => 0, 'valor' => 0, 'detalle' => []];
+    }
+    $anotacionesPorPartido[$clave]['cantidad']++;
+    $anotacionesPorPartido[$clave]['valor'] += (int) $a['valor'];
+    $anotacionesPorPartido[$clave]['detalle'][] = $a;
+}
+$anotacionesPorPartido = array_values($anotacionesPorPartido);
+
 // --- ¿Suspendido para el próximo partido de su equipo? ---
 $jugadoresPorId = jugadores_por_id($jugadoresTodos);
 $proximoDeSuEquipo = null;
@@ -113,6 +134,7 @@ vista_publica('publico/jugador', compact(
     'acumulacion',
     'amarillas',
     'anotaciones',
+    'anotacionesPorPartido',
     'autogoles',
     'basketball',
     'cobraMultas',
