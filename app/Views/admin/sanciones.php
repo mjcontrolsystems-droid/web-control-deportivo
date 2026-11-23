@@ -82,7 +82,7 @@
                     <th>Motivo</th>
                     <th class="text-end">Monto</th>
                     <th>Estado</th>
-                    <th style="width:180px;"></th>
+                    <th style="width:210px;"></th>
                 </tr>
             </thead>
             <tbody>
@@ -151,6 +151,14 @@
                                 <button type="submit" class="btn btn-sm btn-outline-secondary" title="Deshacer"><i class="bi bi-arrow-counterclockwise"></i></button>
                             </form>
                             <?php endif; ?>
+                            <?php // Apelación ganada: borra la sanción (y si se quiere la tarjeta). ?>
+                            <button type="button" class="btn btn-sm btn-outline-danger" title="Anular sanción (apelación)"
+                                data-bs-toggle="modal" data-bs-target="#modalAnularSancion"
+                                data-anular-id="<?= (int) $s['id'] ?>"
+                                data-anular-texto="<?= e(($esRoja ? 'Roja' : 'Amarilla') . ' de ' . jugador_nombre($jug) . ' · ' . sancion_monto_texto($torneo, $s['monto'])) ?>"
+                                data-anular-pagada="<?= $s['estado'] === 'pagada' ? '1' : '0' ?>">
+                                <i class="bi bi-trash3"></i>
+                            </button>
                         </div>
                     </td>
                 </tr>
@@ -160,6 +168,40 @@
     </div>
 </div>
 <?php endforeach; ?>
+
+<?php // Un solo modal para anular cualquier sanción; app.js le pone el id y el texto. ?>
+<div class="modal fade" id="modalAnularSancion" tabindex="-1" aria-labelledby="tituloAnularSancion" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" class="modal-content" data-anular-form>
+            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="accion" value="anular">
+            <input type="hidden" name="id" value="" data-anular-campo-id>
+            <input type="hidden" name="volver_estado" value="<?= e($filtroEstado) ?>">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tituloAnularSancion"><i class="bi bi-shield-x me-1 text-danger"></i>Anular sanción</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3 fw-semibold" data-anular-descripcion></p>
+                <p class="small text-muted mb-3">La sanción se borra por completo.</p>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="quitar_tarjeta" value="1" id="quitarTarjeta" checked>
+                    <label class="form-check-label small" for="quitarTarjeta">
+                        Quitar también la tarjeta del partido
+                        <span class="d-block text-muted">Así deja de contar para suspensiones, acumulación de amarillas y la tabla de disciplina.</span>
+                    </label>
+                </div>
+                <div class="alert alert-warning small mb-0 mt-3 d-none" data-anular-aviso-pagada>
+                    <i class="bi bi-exclamation-triangle me-1"></i>Esta multa ya estaba <strong>pagada</strong>: saldrá de lo recaudado y te toca devolver el dinero al equipo.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-danger rounded-pill px-4"><i class="bi bi-trash3 me-1"></i>Anular</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <?php endif; ?>
 <?php endif; ?>

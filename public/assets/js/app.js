@@ -1314,3 +1314,18 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 });
+
+// Sanciones: un solo modal de "Anular" para todas las filas. Al abrirse toma el id, el
+// texto de la sanción y si ya estaba pagada (para mostrar el aviso de devolver el dinero).
+document.addEventListener('DOMContentLoaded', function () {
+    var modal = document.getElementById('modalAnularSancion');
+    if (!modal) { return; }
+    modal.addEventListener('show.bs.modal', function (evento) {
+        var boton = evento.relatedTarget;
+        if (!boton) { return; }
+        modal.querySelector('[data-anular-campo-id]').value = boton.getAttribute('data-anular-id') || '';
+        modal.querySelector('[data-anular-descripcion]').textContent = boton.getAttribute('data-anular-texto') || '';
+        modal.querySelector('[data-anular-aviso-pagada]').classList.toggle('d-none', boton.getAttribute('data-anular-pagada') !== '1');
+        modal.querySelector('#quitarTarjeta').checked = true;
+    });
+});

@@ -39,6 +39,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirigir_con_mensaje($urlLista, 'error', 'No se pudo actualizar la sanción.');
     }
 
+    // Anular por apelación: la sanción se borra (esté pendiente, pagada o condonada) y,
+    // si se pide, también la tarjeta del partido, para que deje de contar en suspensiones,
+    // acumulación de amarillas y en la tabla de disciplina. Condonar no sirve para esto:
+    // perdona el dinero pero la tarjeta sigue existiendo.
+    if ($accion === 'anular') {
+        $id = (int) ($_POST['id'] ?? 0);
+        $quitarTarjeta = !empty($_POST['quitar_tarjeta']);
+        $sancion = sancion_obtener($id, (int) $torneo['id']);
+        if ($sancion === null) {
+            redirigir_con_mensaje($urlLista, 'error', 'Esa sanción ya no existe.');
+        }
+
+        // Primero la tarjeta: si se borrara antes la sanción y esto fallara, quedaría una
+        // tarjeta "huérfana" contando para suspensiones sin que nadie lo note.
+        $tarjetaQuitada = false;
+        if ($quitarTarjeta) {
+            $partidoId = (int) $sancion['partido_id'];
+            $eventosPartido = db_leer_eventos_partido((int) $torneo['id'], $partidoId);
+            $restantes = array_values(array_filter($eventosPartido, fn($ev) => (int) $ev['id'] !== (int) $sancion['evento_id']));
+            if (count($restantes) < count($eventosPartido)) {
+                if (!db_guardar_eventos_partido((int) $torneo['id'], $partidoId, $restantes)) {
+                    redirigir_con_mensaje($urlLista, 'error', 'No se pudo quitar la tarjeta del partido. No se anuló nada.');
+                }
+                $tarjetaQuitada = true;
+            }
+        }
+
+        if (!sancion_eliminar($id, (int) $torneo['id'])) {
+            redirigir_con_mensaje($urlLista, 'error', 'No se pudo anular la sanción.');
+        }
+
+        // En etapa de prueba no se deja rastro en la bitácora. Cuando la opción quede
+        // aprobada se agrega aquí bitacora_registrar('sancion_anulada', ...) con el motivo.
+
+        $mensaje = 'Sanción anulada.' . ($tarjetaQuitada ? ' También se quitó la tarjeta del partido.' : '');
+        if ($sancion['estado'] === SANCION_PAGADA) {
+            $mensaje .= ' Ya estaba pagada: recuerda devolver ' . sancion_monto_texto($torneo, (float) $sancion['monto']) . '.';
+        }
+        // Se vuelve a la misma pestaña (Por cobrar, Pagadas...) desde donde se anuló.
+        $volver = (string) ($_POST['volver_estado'] ?? '');
+        $volver = in_array($volver, [SANCION_PENDIENTE, SANCION_PAGADA, SANCION_CONDONADA, 'todas'], true) ? $volver : SANCION_PENDIENTE;
+        redirigir_con_mensaje($urlLista . '?estado=' . $volver, 'success', $mensaje);
+    }
+
     // El capitán paga de una vez todas las de su equipo.
     if ($accion === 'cobrar_equipo') {
         $equipoId = (int) ($_POST['equipo_id'] ?? 0);

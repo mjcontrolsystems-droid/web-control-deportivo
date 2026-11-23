@@ -88,6 +88,44 @@ function sancion_borrar_por_evento(int $eventoId): bool
 }
 
 /**
+ * Una sanción de la copa por su id (null si no existe o es de otra copa).
+ */
+function sancion_obtener(int $id, int $torneoId): ?array
+{
+    try {
+        $stmt = db_conexion()->prepare('SELECT * FROM sanciones WHERE id = :id AND torneo_id = :torneo_id');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':torneo_id', $torneoId, PDO::PARAM_INT);
+        $stmt->execute();
+        $fila = $stmt->fetch();
+        return $fila ?: null;
+    } catch (Throwable $e) {
+        error_log('sancion_obtener: ' . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Anula (borra) una sanción, en cualquier estado. Es para cuando una apelación se gana:
+ * la sanción nunca debió existir, así que sale del registro y del recaudo. Si ya estaba
+ * pagada, devolver el dinero queda a cargo del organizador (la app solo lo avisa).
+ * Quién la anuló y por qué queda en la bitácora, no aquí.
+ */
+function sancion_eliminar(int $id, int $torneoId): bool
+{
+    try {
+        $stmt = db_conexion()->prepare('DELETE FROM sanciones WHERE id = :id AND torneo_id = :torneo_id');
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':torneo_id', $torneoId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->rowCount() > 0;
+    } catch (Throwable $e) {
+        error_log('sancion_eliminar: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
  * Todas las sanciones de la copa, de la más reciente a la más antigua.
  * $soloEstado filtra por estado ('pendiente', 'pagada', 'condonada').
  */
