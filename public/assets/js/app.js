@@ -1320,6 +1320,16 @@ document.addEventListener('DOMContentLoaded', function () {
 document.addEventListener('DOMContentLoaded', function () {
     var modal = document.getElementById('modalAnularSancion');
     if (!modal) { return; }
+    // Un solo envío: con doble clic el segundo llegaba cuando la sanción ya estaba borrada
+    // y su mensaje de error tapaba el de éxito.
+    var formulario = modal.querySelector('[data-anular-form]');
+    formulario.addEventListener('submit', function (evento) {
+        if (formulario.getAttribute('data-enviando') === '1') { evento.preventDefault(); return; }
+        formulario.setAttribute('data-enviando', '1');
+        var enviar = formulario.querySelector('button[type=submit]');
+        enviar.disabled = true;
+        enviar.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Anulando…';
+    });
     modal.addEventListener('show.bs.modal', function (evento) {
         var boton = evento.relatedTarget;
         if (!boton) { return; }

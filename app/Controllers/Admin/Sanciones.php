@@ -46,9 +46,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($accion === 'anular') {
         $id = (int) ($_POST['id'] ?? 0);
         $quitarTarjeta = !empty($_POST['quitar_tarjeta']);
+        if ($id <= 0) {
+            redirigir_con_mensaje($urlLista, 'error', 'No llegó cuál sanción anular. Recarga la página (Ctrl+F5) y vuelve a intentarlo.');
+        }
         $sancion = sancion_obtener($id, (int) $torneo['id']);
         if ($sancion === null) {
-            redirigir_con_mensaje($urlLista, 'error', 'Esa sanción ya no existe.');
+            // Lo normal es un doble envío: el primero ya la borró.
+            redirigir_con_mensaje($urlLista, 'warning', 'Esa sanción ya estaba anulada.');
         }
 
         // Primero la tarjeta: si se borrara antes la sanción y esto fallara, quedaría una
