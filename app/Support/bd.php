@@ -592,6 +592,18 @@ function db_migrar_automatico(): void
             creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
         )");
 
+        // Limpiezas de tarjetas (ver schema.sql).
+        $pdo->exec("CREATE TABLE IF NOT EXISTS disciplina_cortes (
+    id SERIAL PRIMARY KEY,
+    torneo_id INTEGER NOT NULL,
+    equipo_id INTEGER,
+    hasta_fecha DATE NOT NULL,
+    modo TEXT NOT NULL DEFAULT 'amarillas' CHECK (modo IN ('amarillas', 'todo')),
+    creado_por INTEGER,
+    creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
+)");
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_disciplina_cortes_torneo ON disciplina_cortes (torneo_id)');
+
         // Paleta ControlDep (rojo-naranja, naranja y oro sobre azul marino): reemplaza al
         // morado de antes. Las copas y equipos nuevos nacen con ella, y los que se quedaron
         // con el morado POR DEFECTO (nadie lo eligió) pasan a la nueva. Los colores que un

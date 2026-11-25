@@ -33,6 +33,7 @@ require_once __DIR__ . '/../app/Support/upload.php';
 require_once __DIR__ . '/../app/Support/reportes.php';
 require_once __DIR__ . '/../app/Support/usuarios_panel.php';
 require_once __DIR__ . '/../app/Support/seguridad.php';
+require_once __DIR__ . '/../app/Support/disciplina.php';
 if (!defined('LIMITE_TORNEOS_POR_DEFECTO')) {
     define('LIMITE_TORNEOS_POR_DEFECTO', 1);
 }
@@ -849,6 +850,48 @@ check('siglas: con acento', calendario_siglas_equipo('águilas'), 'ÁGU');
 check('siglas: vacío', calendario_siglas_equipo('  '), '?');
 $feb = calendario_mes_cuadricula('2027-02', [], '2026-11-24');
 check('feb 2027 (empieza lunes): 4 semanas exactas', [count($feb['semanas']), $feb['semanas'][0][0]['fecha']], [4, '2027-02-01']);
+
+// ---------------------------------------------------------------------------
+// Limpieza de tarjetas (borrón y cuenta nueva)
+// ---------------------------------------------------------------------------
+$tCorte = ['deporte' => 'futbol', 'amarillas_para_suspension' => 3, 'partidos_suspension_amarillas' => 1, 'partidos_suspension_roja' => 1];
+// Equipo 1 juega 6 partidos (uno por semana); el 2 es su rival. Jugador 10 es del equipo 1.
+$pCorte = [];
+foreach (['2026-10-03', '2026-10-10', '2026-10-17', '2026-10-24', '2026-10-31', '2026-11-07'] as $i => $f) {
+    $pCorte[] = ['id' => $i + 1, 'fecha' => $f, 'hora' => '10:00', 'equipo_local' => 1, 'equipo_visitante' => 2];
+}
+$ev = fn($partido, $tipo, $jug = 10, $eq = 1) => ['tipo' => $tipo, 'partido_id' => $partido, 'jugador_id' => $jug, 'equipo_id' => $eq];
+// Dos amarillas antes del corte y una después: sin limpieza serían 3 → suspendido.
+$evCorte = [$ev(1, 'amarilla'), $ev(2, 'amarilla'), $ev(5, 'amarilla')];
+
+$sin = disciplina_acumulacion_desde_eventos($evCorte, $tCorte + ['disciplina_cortes' => []], $pCorte);
+check('sin limpieza: 3 amarillas', $sin[10]['amarillas'], 3);
+$conCorte = $tCorte + ['disciplina_cortes' => [['equipo_id' => null, 'hasta_fecha' => '2026-10-24', 'modo' => 'amarillas']]];
+$con = disciplina_acumulacion_desde_eventos($evCorte, $conCorte, $pCorte);
+check('con limpieza al 24/10: solo cuenta 1', $con[10]['amarillas'], 1);
+check('sin limpieza la 3ª amarilla suspende', count(disciplina_castigos_desde_eventos($evCorte, $tCorte + ['disciplina_cortes' => []], $pCorte)[10] ?? []), 1);
+check('con limpieza la 3ª ya no suspende', count(disciplina_castigos_desde_eventos($evCorte, $conCorte, $pCorte)[10] ?? []), 0);
+
+// La limpieza de OTRO equipo no lo toca.
+$otroEq = $tCorte + ['disciplina_cortes' => [['equipo_id' => 2, 'hasta_fecha' => '2026-10-24', 'modo' => 'amarillas']]];
+check('limpieza de otro equipo no aplica', disciplina_acumulacion_desde_eventos($evCorte, $otroEq, $pCorte)[10]['amarillas'], 3);
+$suEq = $tCorte + ['disciplina_cortes' => [['equipo_id' => 1, 'hasta_fecha' => '2026-10-24', 'modo' => 'amarillas']]];
+check('limpieza de su equipo sí aplica', disciplina_acumulacion_desde_eventos($evCorte, $suEq, $pCorte)[10]['amarillas'], 1);
+
+// Roja el 24/10 (último partido antes del corte): suspende el partido del 31/10.
+$evRoja = [$ev(4, 'roja')];
+$jugCorte = [10 => ['id' => 10, 'equipo_id' => 1, 'nombre' => 'X']];
+$castSolo = disciplina_castigos_desde_eventos($evRoja, $conCorte, $pCorte);
+check('modo amarillas: la roja de antes se cumple', array_keys(disciplina_suspendidos_desde_castigos($castSolo, $pCorte[4], $pCorte, $jugCorte)), [10]);
+$todo = $tCorte + ['disciplina_cortes' => [['equipo_id' => null, 'hasta_fecha' => '2026-10-24', 'modo' => 'todo']]];
+$castTodo = disciplina_castigos_desde_eventos($evRoja, $todo, $pCorte);
+check('modo todo: la suspensión pendiente se perdona', disciplina_suspendidos_desde_castigos($castTodo, $pCorte[4], $pCorte, $jugCorte), []);
+// Tarjetas después del corte siguen funcionando normal.
+check('después del corte una roja sí suspende', count(disciplina_castigos_desde_eventos([$ev(5, 'roja')], $todo, $pCorte)[10] ?? []), 1);
+// Se toma la limpieza más reciente.
+$dos = $tCorte + ['disciplina_cortes' => [['equipo_id' => null, 'hasta_fecha' => '2026-10-10', 'modo' => 'amarillas'], ['equipo_id' => 1, 'hasta_fecha' => '2026-10-24', 'modo' => 'amarillas']]];
+check('vale la limpieza más reciente', disciplina_acumulacion_desde_eventos($evCorte, $dos, $pCorte)[10]['amarillas'], 1);
+check('clave de corte', disciplina_corte_clave([['equipo_id' => null, 'hasta_fecha' => '2026-10-24', 'modo' => 'todo']], 1, true), '2026-10-24 ~');
 
 // ---------------------------------------------------------------------------
 echo "\n============================\n";

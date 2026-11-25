@@ -139,6 +139,92 @@ $etRoja = etiqueta_tr($torneo['deporte'] ?? null);
             </div>
             <?php endif; ?>
         </div>
+
+        <?php // ---------- Limpieza de tarjetas ----------
+              // Borrón y cuenta nueva (antes de playoffs o por fuerza mayor). No borra
+              // tarjetas ni multas: el dinero y el historial quedan igual. ?>
+        <div class="card-suave p-4 mt-3">
+            <h5 class="mb-1"><i class="bi bi-eraser me-1"></i>Limpiar tarjetas</h5>
+            <p class="small text-muted">Deja en cero las amarillas acumuladas (por ejemplo, antes de los playoffs). El dinero recaudado y el historial de tarjetas no se tocan.</p>
+            <button type="button" class="btn btn-outline-danger rounded-pill px-3 w-100" data-bs-toggle="modal" data-bs-target="#modalLimpiarTarjetas">
+                <i class="bi bi-eraser me-1"></i>Limpiar tarjetas acumuladas
+            </button>
+
+            <?php if (!empty($cortesDisciplina)): ?>
+            <div class="mt-3">
+                <div class="small fw-semibold mb-2">Limpiezas hechas</div>
+                <?php foreach ($cortesDisciplina as $corte): ?>
+                <div class="d-flex align-items-center gap-2 py-2 border-top small">
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold"><?= $corte['equipo_id'] === null ? 'Todos los equipos' : e($equiposPorId[$corte['equipo_id']]['nombre'] ?? 'Equipo') ?></div>
+                        <div class="text-muted">
+                            Hasta el <?= e(date('d/m/Y', strtotime($corte['hasta_fecha']))) ?> ·
+                            <?= $corte['modo'] === 'todo' ? 'Amarillas y suspensiones' : 'Solo amarillas acumuladas' ?>
+                        </div>
+                    </div>
+                    <form method="post" class="mb-0" data-confirm="¿Deshacer esta limpieza? Las tarjetas de antes vuelven a contar para acumular y suspender.">
+                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                        <input type="hidden" name="accion" value="deshacer">
+                        <input type="hidden" name="id" value="<?= (int) $corte['id'] ?>">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Deshacer"><i class="bi bi-arrow-counterclockwise"></i></button>
+                    </form>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
+
+<?php // Ventana para elegir para quién, hasta qué día y qué se limpia. ?>
+<div class="modal fade" id="modalLimpiarTarjetas" tabindex="-1" aria-labelledby="tituloLimpiarTarjetas" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" class="modal-content" data-un-envio>
+            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="accion" value="limpiar">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tituloLimpiarTarjetas"><i class="bi bi-eraser me-1 text-danger"></i>Limpiar tarjetas acumuladas</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label small" for="limpiarEquipo">¿Para quién?</label>
+                    <select name="equipo_id" id="limpiarEquipo" class="form-select">
+                        <option value="0">Todos los equipos</option>
+                        <?php foreach ($equipos as $eq): ?>
+                        <option value="<?= (int) $eq['id'] ?>" <?= $equipoFiltro === (int) $eq['id'] ? 'selected' : '' ?>><?= e($eq['nombre']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small" for="limpiarHasta">Limpiar lo jugado hasta el día</label>
+                    <input type="date" name="hasta_fecha" id="limpiarHasta" class="form-control" value="<?= e(date('Y-m-d')) ?>" max="<?= e(date('Y-m-d')) ?>" required>
+                    <div class="form-text">Las tarjetas de partidos de ese día o antes dejan de contar. Las de después cuentan normal.</div>
+                </div>
+                <div class="small fw-semibold mb-2">¿Qué se limpia?</div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="modo" value="amarillas" id="modoAmarillas" checked>
+                    <label class="form-check-label small" for="modoAmarillas">
+                        <strong>Solo las amarillas acumuladas</strong>
+                        <span class="d-block text-muted">El conteo vuelve a cero. Las suspensiones que ya salieron (por roja o por acumulación) se cumplen igual.</span>
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="modo" value="todo" id="modoTodo">
+                    <label class="form-check-label small" for="modoTodo">
+                        <strong>Todo (fuerza mayor)</strong>
+                        <span class="d-block text-muted">Amarillas en cero y también se perdonan las suspensiones pendientes.</span>
+                    </label>
+                </div>
+                <div class="alert alert-info small mb-0 mt-3">
+                    <i class="bi bi-info-circle me-1"></i>No se borra ninguna tarjeta ni multa: el dinero recaudado, el historial de cada partido y esta tabla quedan igual. Se puede deshacer.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-danger rounded-pill px-4"><i class="bi bi-eraser me-1"></i>Limpiar</button>
+            </div>
+        </form>
     </div>
 </div>
 

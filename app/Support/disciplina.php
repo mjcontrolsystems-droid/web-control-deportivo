@@ -59,6 +59,48 @@ function torneo_aplica_suspensiones(array $torneo): bool
 }
 
 /**
+ * Limpiezas de tarjetas de la copa (ver app/Models/DisciplinaCorte.php).
+ * Las pruebas pueden pasarlas ya en $torneo['disciplina_cortes']; si no, se leen de la
+ * base (una vez por petición).
+ */
+function disciplina_cortes_de(array $torneo): array
+{
+    if (array_key_exists('disciplina_cortes', $torneo)) {
+        return (array) $torneo['disciplina_cortes'];
+    }
+    $id = (int) ($torneo['id'] ?? 0);
+    return $id > 0 && function_exists('disciplina_cortes_listar') ? disciplina_cortes_listar($id) : [];
+}
+
+/**
+ * Hasta dónde no cuentan las tarjetas de un equipo, como clave comparable con
+ * disciplina_orden_partido(): todo partido con fecha <= hasta_fecha queda "antes".
+ * Se toma la limpieza más reciente que le aplica (la de su equipo o la de toda la copa).
+ * Devuelve '' si no hay ninguna.
+ *
+ * @param bool $soloTodo true = solo limpiezas que también quitan suspensiones.
+ */
+function disciplina_corte_clave(array $cortes, int $equipoId, bool $soloTodo): string
+{
+    $hasta = '';
+    foreach ($cortes as $c) {
+        $equipoCorte = $c['equipo_id'] ?? null;
+        if ($equipoCorte !== null && (int) $equipoCorte !== $equipoId) {
+            continue;
+        }
+        if ($soloTodo && ($c['modo'] ?? '') !== 'todo') {
+            continue;
+        }
+        $fecha = substr((string) ($c['hasta_fecha'] ?? ''), 0, 10);
+        if ($fecha > $hasta) {
+            $hasta = $fecha;
+        }
+    }
+    // "~" va después de cualquier hora o espacio: el último partido de ese día queda antes.
+    return $hasta === '' ? '' : $hasta . ' ~';
+}
+
+/**
  * Clave de orden cronológico de un partido, para saber cuál va "después" de cuál.
  */
 function disciplina_orden_partido(array $partido): string
@@ -136,6 +178,7 @@ function disciplina_castigos_desde_eventos(array $eventos, array $torneo, array 
         $tarjetas[$jugadorId][] = [
             'tipo' => $tipo,
             'partido_id' => $partidoId,
+            'equipo_id' => (int) ($ev['equipo_id'] ?? 0),
             'orden' => disciplina_orden_partido($partidosPorId[$partidoId]),
         ];
     }
@@ -144,12 +187,29 @@ function disciplina_castigos_desde_eventos(array $eventos, array $torneo, array 
     $cadaAmarillas = torneo_amarillas_para_suspension($torneo);
     $porAmarillas = torneo_partidos_suspension_amarillas($torneo);
 
+    $cortes = disciplina_cortes_de($torneo);
+
     $castigos = [];
     foreach ($tarjetas as $jugadorId => $lista) {
         usort($lista, fn($a, $b) => strcmp($a['orden'], $b['orden']));
 
+        // Limpiezas: con modo "todo" lo de antes del corte ni suspende; con cualquier modo
+        // el conteo de amarillas vuelve a cero después del corte (las suspensiones que ya
+        // salieron antes se cumplen igual).
+        $equipoJugador = (int) end($lista)['equipo_id'];
+        $corteTodo = disciplina_corte_clave($cortes, $equipoJugador, true);
+        $corteConteo = disciplina_corte_clave($cortes, $equipoJugador, false);
+        $conteoReiniciado = false;
+
         $amarillasAcumuladas = 0;
         foreach ($lista as $t) {
+            if ($corteTodo !== '' && strcmp($t['orden'], $corteTodo) < 0) {
+                continue;
+            }
+            if (!$conteoReiniciado && $corteConteo !== '' && strcmp($t['orden'], $corteConteo) > 0) {
+                $amarillasAcumuladas = 0;
+                $conteoReiniciado = true;
+            }
             if ($t['tipo'] === 'roja' && $porRoja > 0) {
                 $castigos[$jugadorId][] = [
                     'motivo' => 'roja',
@@ -269,8 +329,9 @@ function disciplina_acumulacion_desde_eventos(array $eventos, array $torneo, arr
     // huérfana de un partido borrado no debe contar para suspender a nadie.
     $partidosPorId = [];
     foreach ($partidos as $p) {
-        $partidosPorId[(int) $p['id']] = true;
+        $partidosPorId[(int) $p['id']] = $p;
     }
+    $cortes = disciplina_cortes_de($torneo);
 
     $totales = [];
     foreach ($eventos as $ev) {
@@ -278,7 +339,13 @@ function disciplina_acumulacion_desde_eventos(array $eventos, array $torneo, arr
             continue;
         }
         $jugadorId = (int) ($ev['jugador_id'] ?? 0);
-        if ($jugadorId <= 0 || !isset($partidosPorId[(int) ($ev['partido_id'] ?? 0)])) {
+        $partidoEv = $partidosPorId[(int) ($ev['partido_id'] ?? 0)] ?? null;
+        if ($jugadorId <= 0 || $partidoEv === null) {
+            continue;
+        }
+        // Después de una limpieza solo cuentan las amarillas de partidos posteriores.
+        $corte = disciplina_corte_clave($cortes, (int) ($ev['equipo_id'] ?? 0), false);
+        if ($corte !== '' && strcmp(disciplina_orden_partido($partidoEv), $corte) < 0) {
             continue;
         }
         $totales[$jugadorId] = ($totales[$jugadorId] ?? 0) + 1;
@@ -452,13 +519,9 @@ function disciplina_aviso_por_tarjeta(int $torneoId, array $torneo, array $event
     }
 
     if ($tipo === 'amarilla' && torneo_amarillas_para_suspension($torneo) > 0 && torneo_partidos_suspension_amarillas($torneo) > 0) {
-        // Cuenta cuántas amarillas lleva ya en el torneo (incluida esta).
-        $total = 0;
-        foreach (eventos_de_torneo($torneoId) as $ev) {
-            if (($ev['tipo'] ?? '') === 'amarilla' && (int) ($ev['jugador_id'] ?? 0) === $jugadorId) {
-                $total++;
-            }
-        }
+        // Cuántas amarillas lleva (incluida esta), contando desde la última limpieza.
+        $acum = disciplina_acumulacion_desde_eventos(eventos_de_torneo($torneoId), $torneo, partidos_listar($torneoId));
+        $total = (int) ($acum[$jugadorId]['amarillas'] ?? 0);
         $cada = torneo_amarillas_para_suspension($torneo);
         if ($total > 0 && $total % $cada === 0) {
             $n = torneo_partidos_suspension_amarillas($torneo);

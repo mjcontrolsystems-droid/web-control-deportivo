@@ -413,6 +413,21 @@ CREATE TABLE IF NOT EXISTS seguridad_eventos (
 );
 CREATE INDEX IF NOT EXISTS idx_seguridad_fecha ON seguridad_eventos (creado_en);
 CREATE INDEX IF NOT EXISTS idx_seguridad_ip_tipo ON seguridad_eventos (ip, tipo, creado_en);
+-- Limpiezas de tarjetas ("borrón y cuenta nueva", p. ej. antes de los playoffs).
+-- No borran tarjetas ni multas: marcan que lo jugado hasta hasta_fecha deja de contar
+-- para acumular amarillas (modo 'amarillas') o también para suspender (modo 'todo').
+-- equipo_id NULL = toda la copa.
+CREATE TABLE IF NOT EXISTS disciplina_cortes (
+    id SERIAL PRIMARY KEY,
+    torneo_id INTEGER NOT NULL,
+    equipo_id INTEGER,
+    hasta_fecha DATE NOT NULL,
+    modo TEXT NOT NULL DEFAULT 'amarillas' CHECK (modo IN ('amarillas', 'todo')),
+    creado_por INTEGER,
+    creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_disciplina_cortes_torneo ON disciplina_cortes (torneo_id);
+
 CREATE TABLE IF NOT EXISTS ips_bloqueadas (
     ip TEXT PRIMARY KEY,
     motivo TEXT NOT NULL DEFAULT '',

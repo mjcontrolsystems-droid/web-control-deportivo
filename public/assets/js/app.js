@@ -1372,3 +1372,19 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     elegir(cal.getAttribute('data-cal-inicial'), false);
 });
+
+// Formularios con data-un-envio: el botón se bloquea al primer clic para que un doble
+// clic no mande la misma acción dos veces (p. ej. "Limpiar tarjetas").
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('form[data-un-envio]').forEach(function (formulario) {
+        formulario.addEventListener('submit', function (evento) {
+            if (formulario.getAttribute('data-enviando') === '1') { evento.preventDefault(); return; }
+            formulario.setAttribute('data-enviando', '1');
+            var boton = formulario.querySelector('button[type=submit]');
+            if (boton) {
+                boton.disabled = true;
+                boton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Procesando…';
+            }
+        });
+    });
+});

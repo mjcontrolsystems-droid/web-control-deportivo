@@ -22,6 +22,50 @@ foreach ($equipos as $eq) {
     $equiposPorId[(int) $eq['id']] = $eq;
 }
 
+// --- Limpieza de tarjetas (borrón y cuenta nueva) ---
+// No borra tarjetas ni multas: guarda un corte (ver app/Models/DisciplinaCorte.php). Lo
+// jugado hasta esa fecha deja de contar para acumular y, si se elige, para suspender.
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_validar();
+    $urlVolver = url('admin/disciplina.php');
+    $accionCorte = (string) ($_POST['accion'] ?? '');
+
+    if ($accionCorte === 'limpiar') {
+        $equiposCopa = equipos_listar((int) $torneo['id']);
+        $equipoCorte = (int) ($_POST['equipo_id'] ?? 0);
+        $equipoElegido = $equipoCorte > 0 ? equipo_buscar($equiposCopa, $equipoCorte) : null;
+        // Un equipo que no es de esta copa NO se convierte en "todos": se rechaza.
+        if ($equipoCorte > 0 && $equipoElegido === null) {
+            redirigir_con_mensaje($urlVolver, 'error', 'Ese equipo no es de esta copa.');
+        }
+        $equipoCorte = $equipoElegido !== null ? $equipoCorte : null;
+        $hastaFecha = (string) ($_POST['hasta_fecha'] ?? '');
+        $modoCorte = (string) ($_POST['modo'] ?? 'amarillas');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $hastaFecha) || strtotime($hastaFecha) === false || $hastaFecha > date('Y-m-d')) {
+            redirigir_con_mensaje($urlVolver, 'error', 'Elige una fecha válida (hoy o antes).');
+        }
+        if (!in_array($modoCorte, DISCIPLINA_CORTE_MODOS, true)) {
+            redirigir_con_mensaje($urlVolver, 'error', 'Elige qué quieres limpiar.');
+        }
+        if (!disciplina_corte_crear((int) $torneo['id'], $equipoCorte, $hastaFecha, $modoCorte, isset($_SESSION['usuario_id']) ? (int) $_SESSION['usuario_id'] : null)) {
+            redirigir_con_mensaje($urlVolver, 'error', 'No se pudo hacer la limpieza.');
+        }
+        $quien = $equipoElegido !== null ? 'de ' . $equipoElegido['nombre'] : 'de todos los equipos';
+        redirigir_con_mensaje($urlVolver, 'success', 'Tarjetas limpiadas ' . $quien . ' hasta el ' . date('d/m/Y', strtotime($hastaFecha)) . '. '
+            . ($modoCorte === 'todo' ? 'Las amarillas acumuladas y las suspensiones pendientes quedaron en cero.' : 'Las amarillas acumuladas quedaron en cero; las suspensiones que ya salieron se cumplen.')
+            . ' El dinero recaudado no cambió.');
+    }
+
+    if ($accionCorte === 'deshacer') {
+        if (!disciplina_corte_eliminar((int) ($_POST['id'] ?? 0), (int) $torneo['id'])) {
+            redirigir_con_mensaje($urlVolver, 'warning', 'Esa limpieza ya no existe.');
+        }
+        redirigir_con_mensaje($urlVolver, 'success', 'Limpieza deshecha: las tarjetas de antes vuelven a contar.');
+    }
+    redirigir_con_mensaje($urlVolver, 'error', 'Acción no válida.');
+}
+$cortesDisciplina = disciplina_cortes_listar((int) $torneo['id']);
+
 $partidos = partidos_listar($torneo['id']);
 $jugadores = jugadores_listar($torneo['id']);
 $jugadoresPorId = jugadores_por_id($jugadores);
@@ -80,6 +124,7 @@ $titulo_pagina = 'Disciplina';
 
 vista_admin('admin/disciplina', compact(
     'alBorde',
+    'cortesDisciplina',
     'equipoFiltro',
     'equipos',
     'equiposPorId',
