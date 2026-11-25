@@ -1339,3 +1339,36 @@ document.addEventListener('DOMContentLoaded', function () {
         modal.querySelector('#quitarTarjeta').checked = true;
     });
 });
+
+// Encuentros en vista Calendario: al tocar un día (o "+N más") se marca la casilla y se
+// muestra abajo la agenda de ese día. En el celular es la única forma de ver los
+// encuentros, porque la casilla solo trae puntitos. Los enlaces de cada encuentro
+// dentro de la casilla siguen yendo directo a su ficha.
+document.addEventListener('DOMContentLoaded', function () {
+    var cal = document.querySelector('[data-cal]');
+    if (!cal) { return; }
+    var elegir = function (fecha, bajar) {
+        var bloque = cal.querySelector('[data-cal-agenda="' + fecha + '"]');
+        if (!bloque) { return; }
+        cal.querySelectorAll('[data-cal-agenda]').forEach(function (b) { b.classList.toggle('d-none', b !== bloque); });
+        cal.querySelectorAll('[data-cal-dia]').forEach(function (d) { d.classList.toggle('cal-elegido', d.getAttribute('data-cal-dia') === fecha); });
+        if (bajar && bloque.getBoundingClientRect().top > window.innerHeight - 80) {
+            bloque.scrollIntoView({behavior: 'smooth', block: 'start'});
+        }
+    };
+    cal.querySelectorAll('[data-cal-dia]').forEach(function (dia) {
+        dia.addEventListener('click', function (evento) {
+            if (evento.target.closest('a')) { return; }
+            // Un día del mes anterior o siguiente lleva a ese mes.
+            if (dia.hasAttribute('data-cal-ir')) { window.location.href = dia.getAttribute('data-cal-ir'); return; }
+            elegir(dia.getAttribute('data-cal-dia'), true);
+        });
+        dia.addEventListener('keydown', function (evento) {
+            if (evento.key === 'Enter' || evento.key === ' ') {
+                evento.preventDefault();
+                elegir(dia.getAttribute('data-cal-dia'), true);
+            }
+        });
+    });
+    elegir(cal.getAttribute('data-cal-inicial'), false);
+});

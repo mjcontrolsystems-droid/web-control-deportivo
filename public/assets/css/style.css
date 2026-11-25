@@ -2922,3 +2922,175 @@ form[data-planilla].con-cambios .planilla-guardar { background: #fff8e6; border-
     font-weight: 600;
     color: #334155;
 }
+
+/* ---------------------------------------------------------------------------
+   Encuentros en vista Calendario (panel del organizador)
+   Computadora: cada casilla trae sus encuentros. Celular: casillas compactas con
+   puntitos de color y la agenda del día tocado abajo.
+   --------------------------------------------------------------------------- */
+.vista-encuentros .btn { border-radius: 999px; }
+.vista-encuentros .btn:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.vista-encuentros .btn:last-child { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+
+.cal-titulo { font-family: 'Barlow Condensed', 'Poppins', sans-serif; font-weight: 800; letter-spacing: .02em; min-width: 11rem; text-align: center; }
+.cal-flecha { width: 2rem; height: 2rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+
+.cal-leyenda { display: inline-block; width: .7rem; height: .7rem; border-radius: 3px; }
+
+.cal-grilla {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    border: 1px solid #e6ebf2;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #e6ebf2;
+    gap: 1px;
+}
+
+.cal-cabecera {
+    background: #f7f9fc;
+    text-align: center;
+    font-size: .75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #64748b;
+    padding: .45rem 0;
+}
+.cal-cabecera.cal-finde { color: var(--color-primario); }
+
+.cal-dia {
+    background: #fff;
+    min-height: 7.2rem;
+    padding: .35rem .35rem .45rem;
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    cursor: pointer;
+    position: relative;
+    transition: background .15s, box-shadow .15s;
+    min-width: 0;
+}
+.cal-dia.cal-finde { background: #fcfdff; }
+.cal-dia:hover { background: #f8fafc; }
+.cal-dia.cal-fuera { background: #f8fafc; }
+.cal-dia.cal-fuera .cal-numero, .cal-dia.cal-fuera .cal-partidos { opacity: .45; }
+.cal-dia.cal-elegido { box-shadow: inset 0 0 0 2px var(--color-primario); z-index: 1; }
+.cal-dia:focus-visible { outline: 2px solid var(--color-primario); outline-offset: -2px; }
+
+.cal-dia-top { display: flex; align-items: center; gap: .3rem; flex-wrap: wrap; }
+.cal-numero {
+    font-weight: 700;
+    font-size: .9rem;
+    width: 1.7rem;
+    height: 1.7rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #1e293b;
+}
+.cal-hoy .cal-numero { background: var(--degradado-principal); color: #fff; }
+.cal-jornada {
+    font-size: .65rem;
+    font-weight: 800;
+    padding: .05rem .35rem;
+    border-radius: 6px;
+    background: #10243f;
+    color: #fff;
+}
+
+.cal-partidos { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+
+.cal-chip {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+    min-width: 0;
+    padding: .15rem .35rem;
+    border-radius: 6px;
+    font-size: .72rem;
+    line-height: 1.25;
+    text-decoration: none;
+    border-left: 3px solid transparent;
+}
+.cal-chip-hora { font-weight: 800; flex-shrink: 0; }
+.cal-chip-equipos { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.cal-chip-vs { font-weight: 800; opacity: .75; }
+.cal-chip:hover { filter: brightness(.96); }
+
+/* Colores por estado: el mismo código en chips, puntitos, leyenda y agenda. */
+.cal-chip.cal-programado { background: rgba(var(--color-primario-rgb), .1); color: var(--color-primario-oscuro); border-left-color: var(--color-primario); }
+.cal-chip.cal-jugado { background: #eef2f7; color: #334155; border-left-color: #94a3b8; }
+.cal-chip.cal-en-vivo { background: #fee2e2; color: #991b1b; border-left-color: #dc2626; }
+.cal-leyenda.cal-programado, .cal-punto.cal-programado { background: var(--color-primario); }
+.cal-leyenda.cal-jugado, .cal-punto.cal-jugado { background: #94a3b8; }
+.cal-leyenda.cal-en-vivo, .cal-punto.cal-en-vivo { background: #dc2626; }
+
+.cal-mas {
+    border: 0;
+    background: transparent;
+    padding: 0 .35rem;
+    font-size: .72rem;
+    font-weight: 700;
+    color: var(--color-primario);
+    text-align: left;
+}
+
+.cal-puntos { display: none; gap: 3px; justify-content: center; align-items: center; margin-top: auto; }
+.cal-punto { width: 6px; height: 6px; border-radius: 50%; }
+.cal-punto-mas { font-size: .6rem; font-weight: 800; color: #64748b; line-height: 1; }
+
+/* Agenda del día */
+.cal-agenda-dia { border-top: 1px solid #eef2f7; padding-top: .9rem; }
+.cal-agenda-item {
+    display: grid;
+    grid-template-columns: 3.6rem minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: .75rem;
+    padding: .55rem .75rem;
+    border-radius: 12px;
+    border: 1px solid #eef2f7;
+    border-left: 4px solid var(--color-primario);
+    background: #fff;
+}
+.cal-agenda-item.cal-jugado { border-left-color: #94a3b8; }
+.cal-agenda-item.cal-en-vivo { border-left-color: #dc2626; background: #fff7f7; }
+.cal-agenda-hora { font-weight: 800; font-size: 1rem; }
+.cal-vivo-txt { font-size: .62rem; color: #dc2626; letter-spacing: .05em; }
+.cal-agenda-equipos { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: .5rem; min-width: 0; }
+.cal-agenda-equipo { display: flex; align-items: center; gap: .4rem; min-width: 0; font-weight: 600; }
+.cal-agenda-visita { justify-content: flex-end; text-align: right; }
+.cal-agenda-marcador { font-weight: 800; padding: .1rem .5rem; border-radius: 8px; background: #f1f5f9; white-space: nowrap; }
+.cal-agenda-extra { display: flex; flex-direction: column; align-items: flex-end; white-space: nowrap; }
+.cal-agenda-acciones { display: flex; gap: .35rem; }
+
+/* Tablet: casillas más bajas, sin hora en los chips. */
+@media (max-width: 991.98px) {
+    .cal-dia { min-height: 5.8rem; }
+    .cal-chip-hora { display: none; }
+}
+
+/* Celular: cuadrícula compacta con puntitos; los encuentros se ven en la agenda. */
+@media (max-width: 767.98px) {
+    .cal-titulo { min-width: 0; font-size: 1.3rem; }
+    .cal-grilla { border-radius: 12px; }
+    .cal-cabecera { font-size: .65rem; }
+    .cal-dia { min-height: 3.4rem; padding: .25rem .1rem; align-items: center; }
+    .cal-dia-top { justify-content: center; }
+    .cal-jornada, .cal-partidos { display: none; }
+    .cal-puntos { display: flex; }
+    .cal-numero { font-size: .85rem; }
+    /* Hora | (local / visita, con el marcador a la derecha) | botones; abajo jornada y cancha. */
+    .cal-agenda-item { grid-template-columns: auto minmax(0, 1fr) auto; column-gap: .6rem; row-gap: .3rem; padding: .55rem .6rem; }
+    .cal-agenda-hora { font-size: .9rem; white-space: nowrap; }
+    .cal-agenda-equipos { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: .5rem; row-gap: .15rem; }
+    .cal-agenda-equipos { justify-items: start; text-align: left; }
+    .cal-agenda-equipo { grid-column: 1; font-size: .92rem; justify-self: stretch; justify-content: flex-start; }
+    /* En row-reverse "flex-end" es la izquierda: escudo antes del nombre, como el local. */
+    .cal-agenda-visita { grid-row: 2; justify-content: flex-end; text-align: left; flex-direction: row-reverse; }
+    .cal-agenda-marcador { grid-column: 2; grid-row: 1 / 3; align-self: center; font-size: .85rem; padding: .1rem .45rem; }
+    .cal-agenda-extra { grid-column: 2 / 4; grid-row: 2; flex-direction: row; gap: .75rem; align-items: center; justify-content: flex-start; justify-self: start; }
+    .cal-agenda-acciones { grid-column: 3; grid-row: 1; flex-direction: column; gap: .25rem; }
+    .cal-agenda-acciones .btn { padding: .15rem .4rem; }
+}

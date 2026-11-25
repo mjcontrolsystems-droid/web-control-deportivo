@@ -428,7 +428,7 @@
 
             <div class="col-md-4">
                 <label class="form-label small fw-semibold">Fecha</label>
-                <input type="date" name="fecha" class="form-control" value="<?= e($partidoEditar['fecha'] ?? '') ?>" required>
+                <input type="date" name="fecha" class="form-control" value="<?= e($partidoEditar['fecha'] ?? $fechaSugerida) ?>" required>
             </div>
             <div class="col-md-4">
                 <label class="form-label small fw-semibold">Hora</label>
@@ -520,7 +520,12 @@
             <h3 class="mb-0">Encuentros (<?= count($partidos) ?>)</h3>
             <div class="small text-muted"><?= $esLiga ? 'Liga' : 'Campeonato' ?> · <?= e(torneo_vueltas_label($torneo)) ?></div>
         </div>
-        <div class="d-flex gap-2 flex-wrap">
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+            <?php // Lista por jornadas o calendario del mes. Se recuerda en la sesión. ?>
+            <div class="btn-group vista-encuentros" role="group" aria-label="Vista de los encuentros">
+                <a href="<?= url('admin/partidos.php?vista=lista') ?>" class="btn btn-sm <?= $vistaEncuentros === 'lista' ? 'btn-dark' : 'btn-outline-secondary' ?>" <?= $vistaEncuentros === 'lista' ? 'aria-current="true"' : '' ?>><i class="bi bi-list-ul me-1"></i>Lista</a>
+                <a href="<?= url('admin/partidos.php?vista=calendario') ?>" class="btn btn-sm <?= $vistaEncuentros === 'calendario' ? 'btn-dark' : 'btn-outline-secondary' ?>" <?= $vistaEncuentros === 'calendario' ? 'aria-current="true"' : '' ?>><i class="bi bi-calendar3 me-1"></i>Calendario</a>
+            </div>
             <a href="<?= e(url_copa('calendario_imprimir.php')) ?>" target="_blank" class="btn btn-outline-secondary rounded-pill px-3"><i class="bi bi-printer me-1"></i>Imprimir calendario</a>
             <a href="<?= url('admin/partidos.php?accion=generar') ?>" class="btn btn-outline-secondary rounded-pill px-3"><i class="bi bi-calendar-plus me-1"></i>Generar calendario</a>
             <a href="<?= url('admin/partidos.php?accion=nuevo') ?>" class="btn btn-degradado rounded-pill px-3"><i class="bi bi-plus-lg me-1"></i>Programar encuentro</a>
@@ -538,6 +543,9 @@
     </div>
     <?php endif; ?>
 
+    <?php if ($vistaEncuentros === 'calendario' && $calendarioMes !== null): ?>
+    <?php require __DIR__ . '/../parciales/calendario_encuentros.php'; ?>
+    <?php else: ?>
     <?php if (!$esLiga): ?>
     <ul class="nav nav-pills mb-4" role="tablist">
         <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#panelGrupos" type="button">Temporada regular</button></li>
@@ -780,6 +788,8 @@
         </div>
         <?php endforeach; ?>
     </div>
+
+    <?php endif; ?>
 
     <?php // Volver al encuentro que se estaba trabajando: la ficha de eventos regresa con
           // ?ir=<id> y app.js baja sola hasta esa tarjeta y la resalta un momento. Nada de

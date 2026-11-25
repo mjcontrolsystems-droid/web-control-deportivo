@@ -810,6 +810,47 @@ check('cantidad fuera de rango se limita', count(calendario_canchas_desde_formul
 check('formato viejo con comas sigue funcionando', calendario_canchas_desde_formulario(['canchas' => 'Cancha 1, Cancha 2']), ['Cancha 1', 'Cancha 2']);
 
 // ---------------------------------------------------------------------------
+// Vista Calendario de Encuentros
+// ---------------------------------------------------------------------------
+check('mes válido se respeta', calendario_mes_valido('2026-02', '2026-11-24'), '2026-02');
+check('mes vacío → mes de hoy', calendario_mes_valido('', '2026-11-24'), '2026-11');
+check('mes 13 inválido → mes de hoy', calendario_mes_valido('2026-13', '2026-11-24'), '2026-11');
+check('basura → mes de hoy', calendario_mes_valido("2026-11' OR 1=1", '2026-11-24'), '2026-11');
+check('año absurdo → mes de hoy', calendario_mes_valido('1900-01', '2026-11-24'), '2026-11');
+
+$cal = calendario_mes_cuadricula('2026-11', [
+    ['id' => 1, 'fecha' => '2026-11-22', 'hora' => '10:00', 'jornada' => 13],
+    ['id' => 2, 'fecha' => '2026-11-22', 'hora' => '08:00', 'jornada' => 13],
+    ['id' => 3, 'fecha' => '2026-12-01', 'hora' => '08:00', 'jornada' => 14],
+    ['id' => 4, 'fecha' => '', 'hora' => '', 'jornada' => 0],
+], '2026-11-24');
+check('nov 2026: título', $cal['titulo'], 'Noviembre 2026');
+check('nov 2026: mes anterior y siguiente', [$cal['anterior'], $cal['siguiente']], ['2026-10', '2026-12']);
+check('nov 2026 empieza el lunes 26 oct (1 nov es domingo)', $cal['semanas'][0][0]['fecha'], '2026-10-26');
+check('nov 2026: 6 semanas de 7 días', [count($cal['semanas']), count($cal['semanas'][5])], [6, 7]);
+check('termina el domingo 6 dic', $cal['semanas'][5][6]['fecha'], '2026-12-06');
+$dia22 = null; $dia24 = null; $dia1dic = null;
+foreach ($cal['semanas'] as $sem) { foreach ($sem as $d) {
+    if ($d['fecha'] === '2026-11-22') { $dia22 = $d; }
+    if ($d['fecha'] === '2026-11-24') { $dia24 = $d; }
+    if ($d['fecha'] === '2026-12-01') { $dia1dic = $d; }
+} }
+check('22 nov: dos encuentros ordenados por hora', array_column($dia22['partidos'], 'id'), [2, 1]);
+check('22 nov: jornada 13 y es fin de semana', [$dia22['jornadas'], $dia22['finDeSemana']], [[13], true]);
+check('24 nov es hoy', $dia24['esHoy'], true);
+check('1 dic aparece pero fuera del mes', [$dia1dic['delMes'], count($dia1dic['partidos'])], [false, 1]);
+check('total del mes no cuenta diciembre', $cal['totalMes'], 2);
+check('encuentros sin fecha se cuentan aparte', $cal['sinFecha'], 1);
+check('siglas: Promoción 47', calendario_siglas_equipo('Promoción 47'), 'P47');
+check('siglas: Deportivo Norte', calendario_siglas_equipo('Deportivo Norte'), 'DN');
+check('siglas: Comunicaciones', calendario_siglas_equipo('Comunicaciones'), 'COM');
+check('siglas: ignora "de"', calendario_siglas_equipo('Unión de Mixco'), 'UM');
+check('siglas: con acento', calendario_siglas_equipo('águilas'), 'ÁGU');
+check('siglas: vacío', calendario_siglas_equipo('  '), '?');
+$feb = calendario_mes_cuadricula('2027-02', [], '2026-11-24');
+check('feb 2027 (empieza lunes): 4 semanas exactas', [count($feb['semanas']), $feb['semanas'][0][0]['fecha']], [4, '2027-02-01']);
+
+// ---------------------------------------------------------------------------
 echo "\n============================\n";
 printf("%d pruebas, %d fallos\n", $pruebas, $fallos);
 echo $fallos === 0 ? "TODAS LAS PRUEBAS PASARON\n" : "HAY FALLOS - revisar antes de desplegar\n";

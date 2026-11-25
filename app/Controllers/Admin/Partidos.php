@@ -32,6 +32,22 @@ $equiposPorId = [];
 foreach ($equipos as $eq) { $equiposPorId[$eq['id']] = $eq; }
 
 $accion = $_GET['accion'] ?? 'lista';
+
+// Vista de la lista de encuentros: por jornadas (como siempre) o en calendario mensual.
+// La elección se recuerda en la sesión para no tener que cambiarla en cada visita.
+$vistaPedida = (string) ($_GET['vista'] ?? '');
+if (in_array($vistaPedida, ['lista', 'calendario'], true)) {
+    $_SESSION['vista_encuentros'] = $vistaPedida;
+}
+$vistaEncuentros = ($_SESSION['vista_encuentros'] ?? 'lista') === 'calendario' ? 'calendario' : 'lista';
+$hoyLocal = date('Y-m-d');
+$calendarioMes = $vistaEncuentros === 'calendario'
+    ? calendario_mes_cuadricula(calendario_mes_valido($_GET['mes'] ?? null, $hoyLocal), $partidos, $hoyLocal)
+    : null;
+// Programar desde un día vacío del calendario: la fecha llega lista en el formulario.
+$fechaSugerida = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_GET['fecha'] ?? '')) && strtotime((string) $_GET['fecha']) !== false
+    ? (string) $_GET['fecha']
+    : '';
 $idEditar = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $partidoEditar = $idEditar ? db_buscar_por_id($partidos, $idEditar) : null;
 $errores = [];
@@ -1039,5 +1055,8 @@ vista_admin('admin/partidos', compact(
     'titulo_pagina',
     'torneo',
     'configCalendario',
+    'vistaEncuentros',
+    'calendarioMes',
+    'fechaSugerida',
     'scripts_extra'
 ));

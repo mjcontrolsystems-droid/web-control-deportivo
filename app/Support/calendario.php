@@ -2389,3 +2389,136 @@ function calendario_canchas_desde_formulario(array $post): array
     }
     return $resultado;
 }
+
+// ---------------------------------------------------------------------------
+// Vista "Calendario" de Encuentros (panel del organizador)
+// ---------------------------------------------------------------------------
+
+const CALENDARIO_MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio',
+    'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const CALENDARIO_DIAS_CORTOS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+/**
+ * Normaliza el mes pedido en la URL (?mes=2026-11). Si viene vacío o mal escrito se usa
+ * el mes de $hoy. Acota a ±10 años para que nadie arme URLs absurdas.
+ */
+function calendario_mes_valido(?string $mes, string $hoy): string
+{
+    $mes = trim((string) $mes);
+    if (preg_match('/^(\d{4})-(\d{2})$/', $mes, $m) && (int) $m[2] >= 1 && (int) $m[2] <= 12) {
+        $anioHoy = (int) substr($hoy, 0, 4);
+        if (abs((int) $m[1] - $anioHoy) <= 10) {
+            return $mes;
+        }
+    }
+    return substr($hoy, 0, 7);
+}
+
+/**
+ * Arma la cuadrícula de un mes para la vista Calendario: semanas de lunes a domingo,
+ * con los días del mes anterior/siguiente que completan la primera y la última semana
+ * (marcados delMes=false). Cada día trae sus encuentros ordenados por hora y las
+ * jornadas que se juegan ese día. Función pura: no toca la base ni la sesión.
+ *
+ * @param string $mes      'YYYY-MM' ya validado (ver calendario_mes_valido)
+ * @param array  $partidos encuentros de la copa (fecha 'YYYY-MM-DD', hora, jornada…)
+ * @param string $hoy      'YYYY-MM-DD'
+ */
+function calendario_mes_cuadricula(string $mes, array $partidos, string $hoy): array
+{
+    $primero = new DateTimeImmutable($mes . '-01');
+    $ultimo = $primero->modify('last day of this month');
+
+    // Encuentros por día (solo los que tienen fecha válida).
+    $porDia = [];
+    foreach ($partidos as $p) {
+        $fecha = (string) ($p['fecha'] ?? '');
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) {
+            $porDia[$fecha][] = $p;
+        }
+    }
+    foreach ($porDia as &$lista) {
+        usort($lista, fn($a, $b) => strcmp((string) ($a['hora'] ?? '99:99'), (string) ($b['hora'] ?? '99:99'))
+            ?: ((int) ($a['id'] ?? 0) <=> (int) ($b['id'] ?? 0)));
+    }
+    unset($lista);
+
+    // Del lunes de la semana del día 1 al domingo de la semana del último día.
+    $inicio = $primero->modify('-' . ((int) $primero->format('N') - 1) . ' days');
+    $fin = $ultimo->modify('+' . (7 - (int) $ultimo->format('N')) . ' days');
+
+    $semanas = [];
+    $semana = [];
+    $totalMes = 0;
+    for ($d = $inicio; $d <= $fin; $d = $d->modify('+1 day')) {
+        $fecha = $d->format('Y-m-d');
+        $lista = $porDia[$fecha] ?? [];
+        $delMes = $d->format('Y-m') === $mes;
+        if ($delMes) {
+            $totalMes += count($lista);
+        }
+        $jornadas = array_values(array_unique(array_map(fn($p) => (int) ($p['jornada'] ?? 0), $lista)));
+        $jornadas = array_values(array_filter($jornadas, fn($j) => $j > 0));
+        sort($jornadas);
+        $semana[] = [
+            'fecha' => $fecha,
+            'dia' => (int) $d->format('j'),
+            'delMes' => $delMes,
+            'esHoy' => $fecha === $hoy,
+            'finDeSemana' => (int) $d->format('N') >= 6,
+            'partidos' => $lista,
+            'jornadas' => $jornadas,
+        ];
+        if (count($semana) === 7) {
+            $semanas[] = $semana;
+            $semana = [];
+        }
+    }
+
+    return [
+        'mes' => $mes,
+        'titulo' => CALENDARIO_MESES[(int) $primero->format('n')] . ' ' . $primero->format('Y'),
+        'anterior' => $primero->modify('-1 month')->format('Y-m'),
+        'siguiente' => $primero->modify('+1 month')->format('Y-m'),
+        'esMesActual' => $mes === substr($hoy, 0, 7),
+        'semanas' => $semanas,
+        'totalMes' => $totalMes,
+        'sinFecha' => count(array_filter($partidos, fn($p) => !preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($p['fecha'] ?? '')))),
+    ];
+}
+
+/**
+ * Siglas cortas de un equipo para las casillas del calendario, donde no cabe el nombre:
+ *   "Promoción 47" → "P47"  (si lleva número, letra inicial + el número)
+ *   "Deportivo Norte" → "DN" (varias palabras: sus iniciales, hasta 3)
+ *   "Comunicaciones" → "COM" (una palabra: sus 3 primeras letras)
+ */
+function calendario_siglas_equipo(string $nombre): string
+{
+    $nombre = trim(preg_replace('/\s+/u', ' ', $nombre));
+    if ($nombre === '') {
+        return '?';
+    }
+    $palabras = explode(' ', $nombre);
+    $numero = '';
+    $letras = [];
+    foreach ($palabras as $p) {
+        if (preg_match('/^\d+$/', $p)) {
+            $numero = $p;
+        } elseif (!in_array(mb_strtolower($p), ['de', 'del', 'la', 'las', 'los', 'el', 'y', 'fc', 'cf'], true)) {
+            $letras[] = $p;
+        }
+    }
+    if ($letras === []) {
+        $letras = [$palabras[0]];
+    }
+    if ($numero !== '') {
+        return mb_strtoupper(mb_substr($letras[0], 0, 1)) . $numero;
+    }
+    if (count($letras) === 1) {
+        return mb_strtoupper(mb_substr($letras[0], 0, 3));
+    }
+    return mb_strtoupper(implode('', array_map(fn($p) => mb_substr($p, 0, 1), array_slice($letras, 0, 3))));
+}
+
+const CALENDARIO_DIAS_LARGOS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
